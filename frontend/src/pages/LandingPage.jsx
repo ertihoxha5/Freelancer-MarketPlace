@@ -68,7 +68,7 @@ const LandingPage = () => {
             key={index}
             className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${slide.color} mix-blend-multiply`}></div>
+            <div className={`absolute inset-0 bg-linear-to-br ${slide.color} mix-blend-multiply`}></div>
             <img src={slide.image} alt="Freelancer workspace" className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/40"></div>
           </div>
@@ -145,7 +145,7 @@ const LandingPage = () => {
         </div>
       </div>
 
-      <section id="how-it-works" className="py-24 bg-gradient-to-b from-white to-gray-50">
+      <section id="how-it-works" className="py-24 bg-linear-to-b from-white to-gray-50">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="px-6 py-2 bg-indigo-100 text-indigo-700 text-sm font-semibold rounded-full">4 SIMPLE STEPS</span>
@@ -157,9 +157,9 @@ const LandingPage = () => {
             {roadmapSteps.map((step, idx) => (
               <div key={idx} className="group relative flex flex-col md:flex-row gap-8 md:gap-12 items-start">
                 {idx < roadmapSteps.length - 1 && (
-                  <div className="absolute left-[31px] top-20 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 to-transparent hidden md:block"></div>
+                  <div className="absolute left-7.75 top-20 bottom-0 w-0.5 bg-linear-to-b from-indigo-200 to-transparent hidden md:block"></div>
                 )}
-                <div className="flex-shrink-0 w-16 h-16 bg-white border-4 border-indigo-200 group-hover:border-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-indigo-500 group-hover:text-indigo-700 transition-all shadow-md">
+                <div className="shrink-0 w-16 h-16 bg-white border-4 border-indigo-200 group-hover:border-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-indigo-500 group-hover:text-indigo-700 transition-all shadow-md">
                   {step.num}
                 </div>
                 <div className="flex-1 bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 group-hover:border-indigo-200">
@@ -195,7 +195,7 @@ const LandingPage = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {featured.map((f, i) => (
               <div key={i} className="bg-white rounded-2xl p-8 shadow-md hover:shadow-xl transition-all hover:-translate-y-2 text-center">
-                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg mb-6">
+                <div className="w-24 h-24 mx-auto bg-linear-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg mb-6">
                   {f.initials}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">{f.name}</h3>
@@ -233,7 +233,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-teal-500 py-24 text-white text-center">
+      <div className="bg-linear-to-r from-indigo-600 via-purple-600 to-teal-500 py-24 text-white text-center">
         <div className="max-w-2xl mx-auto px-6">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to hire or get hired?</h2>
           <p className="text-xl text-indigo-100 mb-10">Join thousands of businesses and freelancers already growing with us.</p>
