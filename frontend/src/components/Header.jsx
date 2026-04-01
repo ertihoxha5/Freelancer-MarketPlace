@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   return (
@@ -12,19 +13,19 @@ const Header = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-x-8 text-gray-700 font-medium">
-          <a href="#" className="hover:text-blue-600 transition-colors">Home</a>
+          <Link to="/" className="hover:text-blue-600 transition-colors">Home</Link>
           <a href="#" className="hover:text-blue-600 transition-colors">Features</a>
-          <a href="#" className="hover:text-blue-600 transition-colors">About</a>
+          <Link to="/about" className="hover:text-blue-600 transition-colors">About</Link>
           <a href="#" className="hover:text-blue-600 transition-colors">Contact</a>
         </div>
 
         <div className="flex items-center gap-x-4">
-          <button className="px-6 py-2.5 text-gray-700 hover:bg-gray-100 rounded-3xl font-medium transition-colors">
+          <Link to="/login" className="px-6 py-2.5 text-gray-700 hover:bg-gray-100 rounded-3xl font-medium transition-colors">
             Login
-          </button>
-          <button className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white font-semibold rounded-3xl transition-all shadow-md">
+          </Link>
+          <Link to="/register" className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white font-semibold rounded-3xl transition-all shadow-md">
             Get Started
-          </button>
+          </Link>
         </div>
       </div>
     </nav>
