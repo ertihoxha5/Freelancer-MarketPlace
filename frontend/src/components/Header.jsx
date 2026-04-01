@@ -14,7 +14,7 @@ const Header = () => {
 
         <div className="hidden md:flex items-center gap-x-8 text-gray-700 font-medium">
           <Link to="/" className="hover:text-blue-600 transition-colors">Home</Link>
-          <a href="#" className="hover:text-blue-600 transition-colors">Features</a>
+          <Link to="/features" className="hover:text-blue-600 transition-colors">Features</Link>
           <Link to="/about" className="hover:text-blue-600 transition-colors">About</Link>
           <a href="#" className="hover:text-blue-600 transition-colors">Contact</a>
         </div>
