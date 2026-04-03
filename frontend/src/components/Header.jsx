@@ -16,7 +16,7 @@ const Header = () => {
           <Link to="/" className="hover:text-blue-600 transition-colors">Home</Link>
           <Link to="/features" className="hover:text-blue-600 transition-colors">Features</Link>
           <Link to="/about" className="hover:text-blue-600 transition-colors">About</Link>
-          <a href="#" className="hover:text-blue-600 transition-colors">Contact</a>
+          <Link to="/contact" className="hover:text-blue-600 transition-colors">Contact</Link>
         </div>
 
         <div className="flex items-center gap-x-4">
