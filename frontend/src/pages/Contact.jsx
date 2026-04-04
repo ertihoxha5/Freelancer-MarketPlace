@@ -7,7 +7,7 @@ const Contact = ()=>{
   return (
     <div className="min-h-screen bg-white">
       <Header/>
-      <section className="bg-gradient-to-br from-slate-950 via-indigo-950 to-teal-950 text-white py-6">
+      <section className="bg-linear-to-br from-slate-950 via-indigo-950 to-teal-950 text-white py-6">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <h1 className="mt-6 text-5xl md:text-5xl font-bold">We are here to help you</h1>
           <p className="mt-3 text-lg text-slate-200 max-w-2xl mx-auto">
@@ -60,7 +60,7 @@ const Contact = ()=>{
           </div>
         </div>
       </section>
-      <section className="bg-gradient-to-r from-indigo-600 via-purple-600 to-teal-500 py-20 text-white text-center">
+      <section className="bg-linear-to-r from-indigo-600 via-purple-600 to-teal-500 py-20 text-white text-center">
         <h2 className="text-4xl font-bold">We are here to help you succeed.</h2>
         <p className="mt-4 text-lg text-indigo-100">Whether you are a client or a freelancer, we are here to assist you every step of the way.</p>
       </section>

@@ -114,7 +114,7 @@ const Features = () => {
       <Header />
 
       <section className="relative overflow-hidden bg-linear-to-br from-slate-950 via-indigo-950 to-teal-950 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(45,212,191,0.18),_transparent_30%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.2),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(45,212,191,0.18),transparent_30%)]" />
         <div className="relative max-w-7xl mx-auto px-6 py-24 md:py-32">
           <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center">
             <div className="max-w-3xl">
@@ -223,7 +223,7 @@ const Features = () => {
             {audienceBenefits.map((group) => (
               <div
                 key={group.title}
-                className="rounded-[2rem] border border-slate-100 bg-slate-50 p-8 shadow-sm"
+                className="rounded-4xl border border-slate-100 bg-slate-50 p-8 shadow-sm"
               >
                 <div className={`inline-flex rounded-2xl bg-linear-to-r ${group.accent} px-5 py-3 text-lg font-semibold text-white shadow-lg`}>
                   {group.title}

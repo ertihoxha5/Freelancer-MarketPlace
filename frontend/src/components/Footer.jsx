@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-y-10">
           <div>
             <div className="flex items-center gap-x-2 mb-6">
-              <span className="text-3xl font-bold tracking-tighter bg-gradient-to-r from-blue-500 via-purple-500 to-teal-500 bg-clip-text text-transparent">
+              <span className="text-3xl font-bold tracking-tighter bg-linear-to-r from-blue-500 via-purple-500 to-teal-500 bg-clip-text text-transparent">
                 Freelancer
               </span>
               <span className="text-2xl font-semibold text-white">MARKETPLACE</span>
