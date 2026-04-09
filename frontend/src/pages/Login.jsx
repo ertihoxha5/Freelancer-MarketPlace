@@ -32,7 +32,7 @@ function Login() {
         setSubmitting(true);
         try {
             await signIn(payload);
-            navigate('/demo-protected', { replace: true });
+            navigate('/adminDashboard', { replace: true });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Login failed.');
         } finally {

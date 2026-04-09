@@ -14,6 +14,8 @@ import Register from './pages/Register.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
 import Contact from './pages/Contact.jsx'
 import DemoProtected from './pages/DemoProtected.jsx'
+import AdminDashboard from './pages/adminDashboard/dashboard.jsx'
+import User from './pages/adminDashboard/users.jsx'
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
 const router = createBrowserRouter([
@@ -36,6 +38,8 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      {path:'/adminDashboard', element: <AdminDashboard />},
+      {path:'/adminDashboard/users', element: <User />}
     ],
   },
 ]);

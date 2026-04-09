@@ -1,6 +1,7 @@
 import express from 'express';
 import { db } from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 const app = express();
 const PORT = 3000;
@@ -29,6 +30,7 @@ app.get("/", (req, res) => {
 });
 
 app.use('/api', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
