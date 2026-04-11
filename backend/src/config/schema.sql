@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS freelancerMarketplace;
-
+-- CREATE DATABASE IF NOT EXISTS freelancerMarketplace;
 USE freelancerMarketplace;
 
 CREATE TABLE IF NOT EXISTS Users(

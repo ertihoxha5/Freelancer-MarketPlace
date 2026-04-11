@@ -161,3 +161,123 @@ export async function getClientList() {
     `);
   return rows;
 }
+
+/**
+ * Get all projects for a specific client (for client dashboard)
+ */
+export async function getClientProjects(clientID) {
+  const [rows] = await db.execute(`
+        SELECT
+            p.id,
+            p.title,
+            p.pDesc,
+            p.budget,
+            p.pStatus,
+            p.deadline,
+            COUNT(pr.id) AS proposalCount,
+            COUNT(CASE WHEN pr.propStatus = 'accepted' THEN 1 END) AS acceptedProposalCount
+        FROM Project p
+        LEFT JOIN Proposal pr ON pr.projectID = p.id
+        WHERE p.clientID = ?
+        GROUP BY p.id, p.title, p.pDesc, p.budget, p.pStatus, p.deadline
+        ORDER BY p.id DESC
+    `, [clientID]);
+  return rows;
+}
+
+/**
+ * Get a single project with proposals (for client dashboard)
+ */
+export async function getClientProjectById(projectID, clientID) {
+  const [rows] = await db.execute(`
+        SELECT
+            p.id,
+            p.title,
+            p.pDesc,
+            p.budget,
+            p.pStatus,
+            p.deadline,
+            p.clientID,
+            COUNT(pr.id) AS proposalCount
+        FROM Project p
+        LEFT JOIN Proposal pr ON pr.projectID = p.id
+        WHERE p.id = ? AND p.clientID = ?
+        GROUP BY p.id, p.title, p.pDesc, p.budget, p.pStatus, p.deadline, p.clientID
+        LIMIT 1
+    `, [projectID, clientID]);
+  return rows[0] ?? null;
+}
+
+/**
+ * Create a project by client (for client dashboard postProject)
+ */
+export async function createClientProject({
+  title,
+  pDesc,
+  budget,
+  deadline,
+  clientID,
+}) {
+  const [result] = await db.execute(
+    `INSERT INTO Project (title, pDesc, budget, deadline, clientID, pStatus)
+         VALUES (?, ?, ?, ?, ?, 'pending')`,
+    [
+      title,
+      pDesc || null,
+      budget ?? null,
+      deadline || null,
+      clientID,
+    ],
+  );
+  return {
+    id: result.insertId,
+    title,
+    pDesc,
+    budget,
+    deadline,
+    clientID,
+    pStatus: 'pending',
+  };
+}
+
+/**
+ * Update a project by client (only if client is owner)
+ */
+export async function updateClientProject(
+  projectID,
+  clientID,
+  { title, pDesc, budget, deadline, pStatus },
+) {
+  const [result] = await db.execute(
+    `UPDATE Project
+         SET title = ?, pDesc = ?, budget = ?, deadline = ?, pStatus = ?
+         WHERE id = ? AND clientID = ?`,
+    [title, pDesc || null, budget ?? null, deadline || null, pStatus, projectID, clientID],
+  );
+
+  if (result.affectedRows === 0) {
+    const err = new Error("Project not found or you don't have permission.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return { id: projectID, title, pDesc, budget, deadline, pStatus };
+}
+
+/**
+ * Delete a project by client (only if client is owner)
+ */
+export async function deleteClientProject(projectID, clientID) {
+  const [result] = await db.execute(
+    "DELETE FROM Project WHERE id = ? AND clientID = ?",
+    [projectID, clientID],
+  );
+
+  if (result.affectedRows === 0) {
+    const err = new Error("Project not found or you don't have permission.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return { id: projectID };
+}

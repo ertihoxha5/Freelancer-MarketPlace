@@ -312,3 +312,48 @@ export function deleteAdminProject(id) {
     method: "DELETE",
   });
 }
+
+// ─── CLIENT PROJECT APIs ───────────────────────────────────────────────────
+
+/**
+ * GET /api/client/projects — fetch all projects for logged-in client
+ */
+export function fetchClientProjects() {
+  return authedFetch(`${API_BASE}/api/client/projects`);
+}
+
+/**
+ * GET /api/client/projects/:id — fetch single project for logged-in client
+ */
+export function fetchClientProject(id) {
+  return authedFetch(`${API_BASE}/api/client/projects/${id}`);
+}
+
+/**
+ * POST /api/client/projects — create new project as client
+ */
+export function createClientProject(payload) {
+  return authedFetch(`${API_BASE}/api/client/projects`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * PATCH /api/client/projects/:id — update own project as client
+ */
+export function updateClientProject(id, payload) {
+  return authedFetch(`${API_BASE}/api/client/projects/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * DELETE /api/client/projects/:id — delete own project as client
+ */
+export function deleteClientProject(id) {
+  return authedFetch(`${API_BASE}/api/client/projects/${id}`, {
+    method: "DELETE",
+  });
+}

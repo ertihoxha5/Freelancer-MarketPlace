@@ -5,6 +5,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import AppLayout from "./routes/AppLayout.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
+import AdminRoute from "./routes/AdminRoute.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import About from "./pages/About.jsx";
 import Features from "./pages/Features.jsx";
@@ -18,6 +19,9 @@ import AdminDashboard from "./pages/adminDashboard/dashboard.jsx";
 import User from "./pages/adminDashboard/users.jsx";
 import JobsWithFreelancer from "./pages/adminDashboard/jobsWithFreelancer.jsx";
 import JobsWithoutFreelancer from "./pages/adminDashboard/jobsWithoutFreelancer.jsx";
+import ClientDashboard from "./pages/ClientDashboard.jsx";
+import ClientProjects from "./pages/ClientProjects.jsx";
+import ClientPostProject from "./pages/ClientPostProject.jsx";
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
 const router = createBrowserRouter([
@@ -40,15 +44,61 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/adminDashboard", element: <AdminDashboard /> },
-      { path: "/adminDashboard/users", element: <User /> },
+      {
+        path: "/client/dashboard",
+        element: (
+          <ProtectedRoute>
+            <ClientDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/client/projects",
+        element: (
+          <ProtectedRoute>
+            <ClientProjects />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/client/post-project",
+        element: (
+          <ProtectedRoute>
+            <ClientPostProject />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard",
+        element: (
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/users",
+        element: (
+          <AdminRoute>
+            <User />
+          </AdminRoute>
+        ),
+      },
       {
         path: "/adminDashboard/jobs-with-freelancer",
-        element: <JobsWithFreelancer />,
+        element: (
+          <AdminRoute>
+            <JobsWithFreelancer />
+          </AdminRoute>
+        ),
       },
       {
         path: "/adminDashboard/jobs-without-freelancer",
-        element: <JobsWithoutFreelancer />,
+        element: (
+          <AdminRoute>
+            <JobsWithoutFreelancer />
+          </AdminRoute>
+        ),
       },
     ],
   },
