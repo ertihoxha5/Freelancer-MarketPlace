@@ -1,5 +1,5 @@
 # Freelancer-MarketPlace
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/af42784e-5781-4cdb-8b6b-b583f03dc1cc" />
+
 Freelancer Marketplace (FM) është një platformë e bazuar në web që lidh klientët me freelancerët, duke u mundësuar atyre të bashkëpunojnë në projekte të ndryshme në mënyrë efikase. 
 Sistemi synon të thjeshtojë procesin e publikimit të punëve, gjetjes së profesionistëve të kualifikuar dhe menaxhimit të projekteve në një ambient të centralizuar dhe të lehtë për përdorim. Ai mundëson komunikim të drejtpërdrejtë mes përdoruesve, menaxhim të aplikimeve dhe rrit transparencën dhe produktivitetin gjatë gjithë procesit të punës.
 
