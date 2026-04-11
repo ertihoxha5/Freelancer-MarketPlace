@@ -1,10 +1,13 @@
 import { Outlet } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext.jsx';
+import { LanguageProvider } from '../context/LanguageContext.jsx';
 
 export default function AppLayout() {
     return (
-        <AuthProvider>
-            <Outlet />
-        </AuthProvider>
+        <LanguageProvider>
+            <AuthProvider>
+                <Outlet />
+            </AuthProvider>
+        </LanguageProvider>
     );
 }

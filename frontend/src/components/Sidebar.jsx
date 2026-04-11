@@ -9,7 +9,7 @@ const sidebarConfigs = {
   ],
   freelancer: [
     { label: 'Dashboard', href: '/freelancer/dashboard' },
-    { label: 'Jobs', href: '/freelancer/jobs' },
+    { label: 'My Jobs', href: '/freelancer/jobs' },
     { label: 'Profile', href: '/freelancer/profile' },
   ],
   client: [
@@ -26,12 +26,13 @@ function getRoleConfig(roleID) {
   if (numericRoleID === 1) return sidebarConfigs.admin;
   if (numericRoleID === 3) return sidebarConfigs.freelancer;
   if (numericRoleID === 2) return sidebarConfigs.client;
-  return sidebarConfigs.freelancer;
+  return sidebarConfigs.client; // default si client nëse roleID është i panjohur
 }
 
 function getRoleLabel(roleID) {
-  if (Number(roleID) === 1) return 'Admin';
-  if (Number(roleID) === 3) return 'Freelancer';
+  const numeric = Number(roleID);
+  if (numeric === 1) return 'Administrator';
+  if (numeric === 3) return 'Freelancer';
   return 'Client';
 }
 
@@ -39,22 +40,24 @@ export default function Sidebar({ roleID }) {
   const config = getRoleConfig(roleID);
 
   return (
-    <aside className="h-full min-h-full w-full self-stretch shrink-0 border-r border-slate-200 bg-white lg:w-72">
-      <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Role</p>
-        <h2 className="mt-3 text-xl font-semibold text-slate-900">{getRoleLabel(roleID)}</h2>
+    <aside className="h-full w-72 shrink-0 border-r border-slate-200 bg-white hidden lg:block overflow-y-auto">
+      <div className="px-6 py-6 border-b border-slate-200 bg-slate-50">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Your Role</p>
+        <h2 className="mt-2 text-xl font-semibold text-slate-900">
+          {getRoleLabel(roleID)}
+        </h2>
       </div>
 
-      <nav className="flex flex-col py-3">
+      <nav className="py-2">
         {config.map((item) => (
           <NavLink
-            key={item.label}
+            key={item.href}
             to={item.href}
             className={({ isActive }) =>
-              `px-6 py-3 text-sm font-medium transition ${
-                isActive
-                  ? 'bg-slate-100 text-slate-900 border-l-4 border-blue-600'
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+              `flex items-center gap-3 px-6 py-3.5 text-sm font-medium transition-all ${
+                isActive 
+                  ? 'bg-[#1a3c2e] text-white border-l-4 border-[#4a7043]' 
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`
             }
           >

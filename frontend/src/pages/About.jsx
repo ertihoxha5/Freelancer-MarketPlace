@@ -2,187 +2,116 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { FiArrowRight, FiAward, FiGlobe, FiLayers, FiShield, FiUsers, FiZap } from 'react-icons/fi';
+import { FiArrowRight, FiShield, FiZap, FiUsers } from 'react-icons/fi';
 
 const About = () => {
   const values = [
     {
-      icon: <FiShield className="text-3xl" />,
-      title: 'Trust First',
-      description: 'We focus on secure payments, verified activity, and transparent collaboration for both sides.',
+      icon: <FiShield className="text-4xl" />,
+      title: "Trust First",
+      description: "Secure payments, verified profiles, and transparent processes are at the core of everything we build.",
     },
     {
-      icon: <FiZap className="text-3xl" />,
-      title: 'Simple Flow',
-      description: 'From posting a project to delivering results, every step is designed to stay fast and clear.',
+      icon: <FiZap className="text-4xl" />,
+      title: "Simplicity",
+      description: "We remove unnecessary complexity so clients and freelancers can focus on what matters — the work.",
     },
     {
-      icon: <FiUsers className="text-3xl" />,
-      title: 'Built For Both Sides',
-      description: 'Clients find dependable talent while freelancers get a cleaner path to real opportunities.',
+      icon: <FiUsers className="text-4xl" />,
+      title: "Built for Both Sides",
+      description: "A balanced platform where clients find quality talent and freelancers find meaningful opportunities.",
     },
-  ];
-
-  const milestones = [
-    {
-      number: '01',
-      title: 'A clear problem to solve',
-      description: 'Finding trustworthy talent and managing freelance work usually happens across too many disconnected tools.',
-    },
-    {
-      number: '02',
-      title: 'One place for the workflow',
-      description: 'Freelancer Marketplace brings projects, proposals, communication, and payments into one platform.',
-    },
-    {
-      number: '03',
-      title: 'A stronger experience',
-      description: 'The goal is to reduce friction, improve transparency, and make online collaboration easier to manage.',
-    },
-  ];
-
-  const highlights = [
-    { value: '142+', label: 'target markets supported', icon: <FiGlobe /> },
-    { value: '24/7', label: 'platform availability vision', icon: <FiLayers /> },
-    { value: '100%', label: 'focus on transparent flow', icon: <FiAward /> },
-  ];
-
-  const teamNotes = [
-    'Freelancer Marketplace is being shaped as a serious digital product, not just a short-term prototype.',
-    'The platform vision is to serve real clients and freelancers with a cleaner, more trustworthy workflow.',
-    'Its foundation combines modern frontend development, backend services, and a scalable relational database.',
   ];
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
 
-      <section className="relative overflow-hidden bg-linear-to-br from-slate-950 via-indigo-950 to-teal-950 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(45,212,191,0.18),_transparent_30%)]" />
-        <div className="relative max-w-7xl mx-auto px-6 py-24 md:py-32">
-          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-14 items-center">
-            <div className="max-w-3xl">
-              <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold tracking-wide text-teal-100 backdrop-blur">
-                ABOUT FREELANCER MARKETPLACE
-              </span>
-              <h1 className="mt-6 text-5xl md:text-7xl font-bold leading-tight">
-                A smarter place for clients and freelancers to work together.
-              </h1>
-              <p className="mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-8">
-                Freelancer Marketplace is designed to simplify the full freelance journey, from posting opportunities and finding talent to managing communication, delivery, and trust.
-              </p>
-              <div className="mt-10 flex flex-wrap gap-4">
-                <Link
-                  to="/register"
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 font-semibold text-slate-900 shadow-xl transition hover:scale-105"
-                >
-                  Join The Platform
-                  <FiArrowRight className="transition group-hover:translate-x-1" />
-                </Link>
-                <Link
-                  to="/"
-                  className="rounded-full border border-white/30 px-8 py-4 font-medium text-white transition hover:bg-white/10"
-                >
-                  Back To Home
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid gap-5">
-              <div className="rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur">
-                <p className="text-sm uppercase tracking-[0.25em] text-teal-200">Mission</p>
-                <p className="mt-4 text-2xl font-semibold leading-9">
-                  Connect reliable clients and skilled freelancers through one transparent digital workspace.
-                </p>
-              </div>
-              <div className="grid sm:grid-cols-3 gap-4">
-                {highlights.map((item) => (
-                  <div key={item.label} className="rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur">
-                    <div className="text-teal-300">{item.icon}</div>
-                    <p className="mt-4 text-3xl font-bold">{item.value}</p>
-                    <p className="mt-2 text-sm text-slate-200">{item.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+      {/* Hero Section */}
+      <section className="bg-[#1a3c2e] text-white py-28">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <span className="inline-block px-6 py-2 bg-white/10 rounded-full text-sm font-medium tracking-widest mb-6">
+            ABOUT US
+          </span>
+          <h1 className="text-5xl md:text-6xl font-semibold leading-tight tracking-tighter">
+            A better way for clients and freelancers to work together
+          </h1>
+          <p className="mt-8 text-xl text-white/80 max-w-3xl mx-auto">
+            Freelancer Marketplace was created to solve real problems in the freelance world — fragmented tools, lack of trust, and complicated workflows.
+          </p>
         </div>
       </section>
 
-      <section className="border-b bg-white py-8 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: 'Clients', label: 'hire faster with clearer workflows' },
-            { value: 'Freelancers', label: 'find projects that match real skills' },
-            { value: 'Projects', label: 'managed with more visibility' },
-            { value: 'Payments', label: 'planned around security and trust' },
-          ].map((item) => (
-            <div key={item.value} className="transition-transform hover:scale-105">
-              <p className="text-2xl md:text-3xl font-bold text-slate-900">{item.value}</p>
-              <p className="mt-2 text-sm text-slate-500">{item.label}</p>
-            </div>
-          ))}
+      {/* Mission */}
+      <section className="py-24 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl font-semibold text-slate-900">Our Mission</h2>
+          <p className="mt-6 text-2xl text-slate-600 leading-relaxed">
+            To build a clean, trustworthy, and efficient platform where clients can hire with confidence and freelancers can grow their careers with clarity and fairness.
+          </p>
         </div>
       </section>
 
-      <section className="bg-linear-to-b from-white to-slate-50 py-24">
+      {/* Values */}
+      <section className="py-24 bg-zinc-50">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="max-w-2xl">
-            <span className="rounded-full bg-indigo-100 px-5 py-2 text-sm font-semibold text-indigo-700">
-              WHY THIS PLATFORM EXISTS
-            </span>
-            <h2 className="mt-5 text-4xl md:text-5xl font-bold text-slate-900">
-              Freelance work should feel organized, not fragmented.
-            </h2>
-            <p className="mt-5 text-lg text-slate-600 leading-8">
-              Many freelance platforms feel crowded or transactional. This project aims to create a cleaner experience where clients can post work confidently and freelancers can respond with credibility, clarity, and less friction.
-            </p>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-semibold text-slate-900">Our Values</h2>
           </div>
 
-          <div className="mt-14 grid gap-8 md:grid-cols-3">
-            {values.map((value) => (
-              <div
-                key={value.title}
-                className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+          <div className="grid md:grid-cols-3 gap-8">
+            {values.map((value, i) => (
+              <div 
+                key={i}
+                className="bg-white border border-slate-100 hover:border-[#1a3c2e] p-10 rounded-3xl transition-all hover:shadow-xl"
               >
-                <div className="inline-flex rounded-2xl bg-linear-to-br from-indigo-500 to-teal-500 p-4 text-white shadow-lg">
+                <div className="text-[#1a3c2e] mb-8">
                   {value.icon}
                 </div>
-                <h3 className="mt-6 text-2xl font-bold text-slate-900">{value.title}</h3>
-                <p className="mt-3 text-slate-600 leading-7">{value.description}</p>
+                <h3 className="text-2xl font-semibold text-slate-900 mb-4">{value.title}</h3>
+                <p className="text-slate-600 leading-relaxed">{value.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-white py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-12 items-start">
+      {/* Why We Exist */}
+      <section className="py-24 bg-white">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <span className="rounded-full bg-teal-100 px-5 py-2 text-sm font-semibold text-teal-700">
-                PLATFORM STORY
-              </span>
-              <h2 className="mt-5 text-4xl md:text-5xl font-bold text-slate-900">
-                Built with a startup mindset from day one.
+              <span className="px-6 py-2 bg-[#1a3c2e] text-white text-sm font-medium rounded-3xl">THE PROBLEM</span>
+              <h2 className="mt-6 text-4xl font-semibold text-slate-900 leading-tight">
+                Freelance work shouldn't feel chaotic
               </h2>
-              <p className="mt-5 text-lg text-slate-600 leading-8">
-                Freelancer Marketplace is being designed as a platform that can grow into a real product. The current direction already covers essential marketplace ideas such as user roles, project handling, proposals, reviews, contracts, messaging, and payment structure. The goal is to create something that feels credible, scalable, and ready for real-world use.
+              <p className="mt-8 text-lg text-slate-600 leading-relaxed">
+                Too many tools, scattered conversations, unclear payments, and lack of trust make the freelance experience frustrating for both clients and freelancers.
               </p>
             </div>
 
-            <div className="space-y-6">
-              {milestones.map((item) => (
-                <div
-                  key={item.number}
-                  className="flex gap-5 rounded-3xl border border-slate-100 bg-slate-50 p-6 shadow-sm transition hover:shadow-lg"
-                >
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-xl font-bold text-indigo-600 shadow-sm">
-                    {item.number}
+            <div className="space-y-8">
+              {[
+                {
+                  title: "Fragmented Tools",
+                  desc: "Clients and freelancers jump between email, WhatsApp, Trello, PayPal, and multiple platforms."
+                },
+                {
+                  title: "Lack of Transparency",
+                  desc: "Unclear project status, delayed payments, and difficulty evaluating talent."
+                },
+                {
+                  title: "Low Trust",
+                  desc: "Hard to verify skills and build long-term professional relationships."
+                }
+              ].map((item, i) => (
+                <div key={i} className="flex gap-6">
+                  <div className="shrink-0 w-8 h-8 rounded-2xl bg-[#1a3c2e] text-white flex items-center justify-center font-bold text-lg">
+                    {i + 1}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">{item.title}</h3>
-                    <p className="mt-2 text-slate-600 leading-7">{item.description}</p>
+                    <h3 className="font-semibold text-slate-900 text-xl">{item.title}</h3>
+                    <p className="mt-2 text-slate-600">{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -191,53 +120,28 @@ const About = () => {
         </div>
       </section>
 
-      <section className="bg-slate-50 py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[1fr_0.9fr] gap-10 items-start">
-            <div className="rounded-[2rem] bg-linear-to-br from-slate-900 via-indigo-950 to-slate-900 p-10 text-white shadow-2xl">
-              <span className="text-sm font-semibold tracking-[0.2em] text-teal-200">THE TEAM BEHIND THE PLATFORM</span>
-              <h2 className="mt-5 text-4xl font-bold leading-tight">A focused team building toward a real marketplace product.</h2>
-              <p className="mt-5 text-slate-200 leading-8">
-                Freelancer Marketplace is being developed by a team that wants the platform to feel polished, useful, and product-ready. The intention is bigger than coursework. The intention is to build something people would actually want to use.
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-4">
-                {teamNotes.map((note) => (
-                  <div
-                    key={note}
-                    className="rounded-3xl border border-slate-100 bg-white p-6 text-slate-700 shadow-sm"
-                  >
-                    {note}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+      {/* Our Goal */}
+      <section className="py-24 bg-zinc-50">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <h2 className="text-4xl font-semibold text-slate-900 mb-6">Our Goal</h2>
+          <p className="text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+            To create one clean, professional platform where clients can hire with confidence and freelancers can build sustainable careers — all in a single, trustworthy workspace.
+          </p>
         </div>
       </section>
 
-      <section className="bg-linear-to-r from-indigo-600 via-purple-600 to-teal-500 py-24 text-white">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold">Ready to explore the platform vision?</h2>
-          <p className="mt-5 text-xl text-indigo-100">
-            Discover how Freelancer Marketplace is planned to make freelance collaboration more trusted, more modern, and easier to manage.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link
-              to="/"
-              className="rounded-full bg-white px-8 py-4 font-semibold text-slate-900 shadow-xl transition hover:scale-105"
-            >
-              Return Home
-            </Link>
-            <Link
-              to="/register"
-              className="rounded-full border border-white/30 px-8 py-4 font-semibold text-white transition hover:bg-white/10"
-            >
-              Create Account
-            </Link>
-          </div>
+      {/* Final CTA */}
+      <section className="bg-[#1a3c2e] py-28 text-white text-center">
+        <div className="max-w-2xl mx-auto px-6">
+          <h2 className="text-5xl font-semibold mb-6">Ready to be part of something better?</h2>
+          <p className="text-xl text-white/80 mb-12">Join our growing community of clients and freelancers building the future of work.</p>
+          
+          <Link 
+            to="/register"
+            className="inline-block px-14 py-6 bg-white text-[#1a3c2e] font-semibold text-2xl rounded-3xl hover:bg-slate-100 transition-all"
+          >
+            Join Now — It's Free
+          </Link>
         </div>
       </section>
 
