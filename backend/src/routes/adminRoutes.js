@@ -12,6 +12,7 @@ router.use(authMiddleware.authenticateToken);
 router.get("/users", adminController.getUsers);
 router.patch("/users/:id", adminController.updateUser);
 router.delete("/users/:id", adminController.deleteUser);
+router.post("/addUser", adminController.registerUser);
 
 // ─── Client list (for project creation dropdown) ─────────────────────────────
 router.get("/clients", projectController.getClientList);

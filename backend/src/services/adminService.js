@@ -12,9 +12,16 @@ export async function updateUserById(id, payload) {
 		throw err;
 	}
 
-	const { fullName } = payload ?? {};
+	const { fullName, roleID } = payload ?? {};
 	if (typeof fullName !== 'string' || fullName.trim() === '') {
 		const err = new Error('fullName is required.');
+		err.statusCode = 400;
+		throw err;
+	}
+
+	const parsedRoleId = Number(roleID);
+	if (!Number.isInteger(parsedRoleId) || (parsedRoleId !== 2 && parsedRoleId !== 3)) {
+		const err = new Error('roleID must be 2 (client) or 3 (freelancer).');
 		err.statusCode = 400;
 		throw err;
 	}
@@ -22,6 +29,7 @@ export async function updateUserById(id, payload) {
 	return adminRepository.updateUser({
 		id: userId,
 		fullName: fullName.trim(),
+		roleID: parsedRoleId,
 	});
 }
 
