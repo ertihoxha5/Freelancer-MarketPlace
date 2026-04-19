@@ -78,6 +78,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/client/notifications",
+        element: (
+          <ProtectedRoute>
+            <ClientNotifications />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: "/adminDashboard",
         element: (
           <AdminRoute>
