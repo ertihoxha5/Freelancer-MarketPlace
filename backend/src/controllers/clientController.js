@@ -17,9 +17,33 @@ export async function getMyProjects(req, res, next) {
 export async function getMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
-    const projectID = req.params.id;
+    const projectID = Number(req.params.id);
     const project = await clientService.getMyProject(projectID, clientID);
     return res.status(200).json({ project });
+  } catch (err) {
+    if (err.statusCode)
+      return res.status(err.statusCode).json({ message: err.message });
+    next(err);
+  }
+}
+
+export async function getMyProfile(req, res, next) {
+  try {
+    const clientID = req.user.id;
+    const profile = await clientService.getMyProfile(clientID);
+    return res.status(200).json({ profile });
+  } catch (err) {
+    if (err.statusCode)
+      return res.status(err.statusCode).json({ message: err.message });
+    next(err);
+  }
+}
+
+export async function updateMyProfile(req, res, next) {
+  try {
+    const clientID = req.user.id;
+    const profile = await clientService.updateMyProfile(clientID, req.body);
+    return res.status(200).json({ message: 'Profile updated successfully.', profile });
   } catch (err) {
     if (err.statusCode)
       return res.status(err.statusCode).json({ message: err.message });
@@ -49,7 +73,7 @@ export async function createMyProject(req, res, next) {
 export async function updateMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
-    const projectID = req.params.id;
+    const projectID = Number(req.params.id);
     const project = await clientService.updateMyProject(
       projectID,
       clientID,
@@ -69,7 +93,7 @@ export async function updateMyProject(req, res, next) {
 export async function deleteMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
-    const projectID = req.params.id;
+    const projectID = Number(req.params.id);
     const result = await clientService.deleteMyProject(projectID, clientID);
     return res
       .status(200)

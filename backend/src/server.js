@@ -1,9 +1,12 @@
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { db } from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import clientRoutes from './routes/clientRoutes.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = 3000;
 
@@ -25,6 +28,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get("/", (req, res) => {
     res.send("API is running");
@@ -33,6 +37,15 @@ app.get("/", (req, res) => {
 app.use('/api', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/client', clientRoutes);
+
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    if (res.headersSent) {
+        return next(err);
+    }
+    const status = err.statusCode || 500;
+    res.status(status).json({ message: err.message || 'Internal server error.' });
+});
 
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);

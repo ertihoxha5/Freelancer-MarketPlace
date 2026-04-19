@@ -9,9 +9,9 @@ export function authenticateToken(req, res, next) {
     try {
         const decoded = verifyAccessToken(token);
         req.user = {
-            id: decoded.sub,
+            id: Number(decoded.sub),
             email: decoded.email,
-            roleID: decoded.roleID,
+            roleID: Number(decoded.roleID),
         };
         next();
     } catch {

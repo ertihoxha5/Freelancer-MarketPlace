@@ -1,3 +1,4 @@
+-- Active: 1774977057822@@localhost@3306@freelancermarketplace
 -- CREATE DATABASE IF NOT EXISTS freelancerMarketplace;
 USE freelancerMarketplace;
 
@@ -40,8 +41,24 @@ CREATE TABLE IF NOT EXISTS RolePerms(
     permissionID INT NOT NULL,
 
     FOREIGN KEY (roleID) REFERENCES Roles(id),
-    FOREIGN KEY (permissionID) REFERENCES Permission(id)
+    FOREIGN KEY (permissionID) REFERENCES Permission(id),
+    UNIQUE KEY uniq_role_perm (roleID, permissionID)
 );
+
+INSERT IGNORE INTO Permission (permName, permDesc) VALUES
+    ('view_project', 'Can view projects'),
+    ('edit_project', 'Can update projects'),
+    ('delete_project', 'Can delete projects'),
+    ('view_profile', 'Can view profile data'),
+    ('edit_profile', 'Can update profile data'),
+    ('manage_users', 'Can manage user accounts');
+
+INSERT IGNORE INTO RolePerms (roleID, permissionID)
+    SELECT r.id, p.id FROM Roles r JOIN Permission p ON r.roleName = 'Admin' AND p.permName IN ('view_project', 'edit_project', 'delete_project', 'view_profile', 'edit_profile', 'manage_users')
+    UNION ALL
+    SELECT r.id, p.id FROM Roles r JOIN Permission p ON r.roleName = 'Client' AND p.permName IN ('view_project', 'edit_project', 'delete_project', 'view_profile', 'edit_profile')
+    UNION ALL
+    SELECT r.id, p.id FROM Roles r JOIN Permission p ON r.roleName = 'Freelancer' AND p.permName IN ('view_project', 'view_profile', 'edit_profile');
 
 CREATE TABLE IF NOT EXISTS RefreshTokens(
     id INT PRIMARY KEY AUTO_INCREMENT,

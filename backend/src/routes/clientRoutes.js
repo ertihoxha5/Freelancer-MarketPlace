@@ -14,4 +14,7 @@ router.get("/projects/:id", clientController.getMyProject);
 router.patch("/projects/:id", clientController.updateMyProject);
 router.delete("/projects/:id", clientController.deleteMyProject);
 
+router.get("/profile", clientController.getMyProfile);
+router.patch("/profile", clientController.updateMyProfile);
+
 export default router;

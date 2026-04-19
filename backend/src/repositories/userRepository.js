@@ -1,4 +1,5 @@
 import { db } from '../config/db.js';
+import { createProfileForUser } from './profileRepository.js';
 
 export async function findUserByEmail(email) {
     const [rows] = await db.execute('SELECT id FROM Users WHERE email = ? LIMIT 1', [email]);
@@ -40,6 +41,7 @@ export async function createUserWithRole({ email, passwordHash, fullName, roleID
         );
         const userID = result.insertId;
         await db.execute('INSERT INTO UserRole (userID, roleID) VALUES (?, ?)', [userID, roleID]);
+        await createProfileForUser(userID);
         await db.commit();
         return { userID, email, fullName, roleID };
     } catch (err) {

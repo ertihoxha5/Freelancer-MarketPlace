@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000";
+export const API_BASE = "http://localhost:3000";
 const TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
 
@@ -344,6 +344,17 @@ export function createClientProject(payload) {
  */
 export function updateClientProject(id, payload) {
   return authedFetch(`${API_BASE}/api/client/projects/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchClientProfile() {
+  return authedFetch(`${API_BASE}/api/client/profile`);
+}
+
+export function updateClientProfile(payload) {
+  return authedFetch(`${API_BASE}/api/client/profile`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });

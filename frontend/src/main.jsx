@@ -22,6 +22,7 @@ import JobsWithoutFreelancer from "./pages/adminDashboard/jobsWithoutFreelancer.
 import ClientDashboard from "./pages/ClientDashboard.jsx";
 import ClientProjects from "./pages/ClientProjects.jsx";
 import ClientPostProject from "./pages/ClientPostProject.jsx";
+import ClientProfile from "./pages/ClientProfile.jsx";
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
 const router = createBrowserRouter([
@@ -65,6 +66,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ClientPostProject />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/client/profile",
+        element: (
+          <ProtectedRoute>
+            <ClientProfile />
           </ProtectedRoute>
         ),
       },
