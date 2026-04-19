@@ -26,11 +26,21 @@ function NotificationBell({ user }) {
       } catch {}
     }
 
+    function onUnreadChanged(event) {
+      if (cancelled) return;
+      const count = Number(event?.detail?.count);
+      if (!Number.isNaN(count) && count >= 0) {
+        setUnread(count);
+      }
+    }
+
     load();
+    window.addEventListener("client-notifications-unread", onUnreadChanged);
 
     const interval = setInterval(load, 60000);
     return () => {
       cancelled = true;
+      window.removeEventListener("client-notifications-unread", onUnreadChanged);
       clearInterval(interval);
     };
   }, [user]);

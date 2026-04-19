@@ -1,4 +1,5 @@
 import * as projectRepository from "../repositories/projectRepository.js";
+import { pushNotification } from "./notificationService.js";
 
 function validationError(message) {
   const err = new Error(message);
@@ -45,7 +46,7 @@ export async function createProject(payload) {
     );
   }
 
-  return projectRepository.createProject({
+  const project = await projectRepository.createProject({
     title: title.trim(),
     pDesc: pDesc?.trim() || null,
     budget: budget != null ? Number(budget) : null,
@@ -53,6 +54,15 @@ export async function createProject(payload) {
     clientID: clientId,
     pStatus: pStatus || "pending",
   });
+
+  pushNotification({
+    types: "system",
+    receiverID: clientId,
+    title: "Project Assigned",
+    msg: `A project "${project.title}" was added to your account by admin.`,
+  }).catch(() => {});
+
+  return project;
 }
 
 // ─── Update ──────────────────────────────────────────────────────────────────
@@ -78,13 +88,38 @@ export async function updateProject(id, payload) {
     );
   }
 
-  return projectRepository.updateProject(projectId, {
+  const existing = await projectRepository.getProjectById(projectId);
+  if (!existing) {
+    const err = new Error("Project not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const updated = await projectRepository.updateProject(projectId, {
     title: title.trim(),
     pDesc: pDesc?.trim() || null,
     budget: budget != null ? Number(budget) : null,
     deadline: deadline || null,
     pStatus: pStatus || "pending",
   });
+
+  const changes = [];
+  if (existing.title !== updated.title) changes.push("title");
+  if (existing.pStatus !== updated.pStatus) changes.push(`status to "${updated.pStatus}"`);
+  if (String(existing.budget) !== String(updated.budget)) changes.push("budget");
+  if (String(existing.deadline) !== String(updated.deadline)) changes.push("deadline");
+
+  if (changes.length > 0) {
+    const detail = changes.slice(0, 2).join(" and ");
+    pushNotification({
+      types: "system",
+      receiverID: existing.clientID,
+      title: "Project Updated",
+      msg: `Admin updated your project "${updated.title}" (${detail}).`,
+    }).catch(() => {});
+  }
+
+  return updated;
 }
 
 // ─── Delete ──────────────────────────────────────────────────────────────────
@@ -94,5 +129,21 @@ export async function deleteProject(id) {
   if (!Number.isInteger(projectId) || projectId <= 0) {
     throw validationError("Valid project id is required.");
   }
-  return projectRepository.deleteProject(projectId);
+  const existing = await projectRepository.getProjectById(projectId);
+  if (!existing) {
+    const err = new Error("Project not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const result = await projectRepository.deleteProject(projectId);
+
+  pushNotification({
+    types: "system",
+    receiverID: existing.clientID,
+    title: "Project Removed",
+    msg: `Admin removed your project "${existing.title}".`,
+  }).catch(() => {});
+
+  return result;
 }

@@ -6,7 +6,7 @@ import * as notificationController from "../controllers/notificationController.j
 const router = Router();
 
 // ─── Middleware: require valid JWT for ALL client routes ────────────────────
-router.use(authMiddleware.authenticateToken);
+router.use(authMiddleware.authenticateToken, authMiddleware.requireRole(2));
 
 // ─── Project CRUD (client's own projects) ─────────────────────────────────
 router.get("/projects", clientController.getMyProjects);

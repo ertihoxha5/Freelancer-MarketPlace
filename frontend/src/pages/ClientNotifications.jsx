@@ -101,6 +101,14 @@ export default function ClientNotifications() {
     [notifications],
   );
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("client-notifications-unread", {
+        detail: { count: unreadCount },
+      }),
+    );
+  }, [unreadCount]);
+
   // ── Actions ───────────────────────────────────────────────────────────────
   async function handleMarkRead(id) {
     setProcessingId(id);

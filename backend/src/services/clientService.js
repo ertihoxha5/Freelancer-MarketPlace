@@ -179,10 +179,12 @@ export async function updateMyProfile(clientID, payload) {
     bio: null,
   };
   const keys = ["pictureID", "hourlyRate", "portofoliUrl", "bio"];
+  let profileChanged = false;
   for (const key of keys) {
     const oldValue = oldData[key];
     const newValue = updatedProfile[key];
     if (String(oldValue) !== String(newValue)) {
+      profileChanged = true;
       await auditRepository.insertAuditLog({
         entity: "Profile",
         entityID: clientId,
@@ -191,6 +193,15 @@ export async function updateMyProfile(clientID, payload) {
         newValue: toShortString(newValue),
       });
     }
+  }
+
+  if (profileChanged) {
+    pushNotification({
+      types: "system",
+      receiverID: clientId,
+      title: "Profile Updated",
+      msg: "Your profile details were updated successfully.",
+    }).catch(() => {});
   }
 
   return updatedProfile;
@@ -227,14 +238,12 @@ export async function createMyProject(payload) {
     clientID,
   });
 
-  if (changedFields.length > 0) {
-    pushNotification({
-      types: "system",
-      receiverID: clientID,
-      title: "Project Created",
-      msg: `Your project "${title.trim().slice(0, 50)}" has been created successfully.`,
-    }).catch(() => {});
-  }
+  pushNotification({
+    types: "system",
+    receiverID: clientID,
+    title: "Project Created",
+    msg: `Your project "${title.trim().slice(0, 50)}" has been created successfully.`,
+  }).catch(() => {});
 
   return project;
 }
@@ -372,14 +381,12 @@ export async function deleteMyProject(projectID, clientID) {
     clientID,
   );
 
-  if (changedFields.length > 0) {
-    pushNotification({
-      types: "system",
-      receiverID: clientID,
-      title: "Project Deleted",
-      msg: `Your project "${existing.title}" has been deleted.`,
-    }).catch(() => {});
-  }
+  pushNotification({
+    types: "system",
+    receiverID: clientID,
+    title: "Project Deleted",
+    msg: `Your project "${existing.title}" has been deleted.`,
+  }).catch(() => {});
 
   return result;
 }

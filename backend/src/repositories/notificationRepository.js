@@ -70,10 +70,11 @@ export async function deleteAllNotifications(userID) {
 
 export async function createNotification({ types, receiverID, title, msg }) {
   const safeTitle = String(title).slice(0, 20);
+  const safeMsg = msg == null ? null : String(msg).slice(0, 255);
   const [result] = await db.execute(
     `INSERT INTO Notifications (types, receiverID, title, msg)
          VALUES (?, ?, ?, ?)`,
-    [types, receiverID, safeTitle, msg || null],
+    [types, receiverID, safeTitle, safeMsg],
   );
   return { id: result.insertId };
 }
