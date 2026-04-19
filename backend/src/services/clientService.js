@@ -227,14 +227,12 @@ export async function createMyProject(payload) {
     clientID,
   });
 
-  if (changedFields.length > 0) {
-    pushNotification({
-      types: "system",
-      receiverID: clientID,
-      title: "Project Created",
-      msg: `Your project "${title.trim().slice(0, 50)}" has been created successfully.`,
-    }).catch(() => {});
-  }
+  pushNotification({
+    types: "system",
+    receiverID: clientID,
+    title: "Project Created",
+    msg: `Your project "${title.trim().slice(0, 50)}" has been created successfully.`,
+  }).catch(() => {});
 
   return project;
 }
@@ -372,14 +370,12 @@ export async function deleteMyProject(projectID, clientID) {
     clientID,
   );
 
-  if (changedFields.length > 0) {
-    pushNotification({
-      types: "system",
-      receiverID: clientID,
-      title: "Project Deleted",
-      msg: `Your project "${existing.title}" has been deleted.`,
-    }).catch(() => {});
-  }
+  pushNotification({
+    types: "system",
+    receiverID: clientID,
+    title: "Project Deleted",
+    msg: `Your project "${existing.title}" has been deleted.`,
+  }).catch(() => {});
 
   return result;
 }
