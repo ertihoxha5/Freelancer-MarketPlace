@@ -349,6 +349,12 @@ export function updateClientProject(id, payload) {
   });
 }
 
+export function deleteClientProject(id) {
+  return authedFetch(`${API_BASE}/api/client/projects/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export function fetchClientProfile() {
   return authedFetch(`${API_BASE}/api/client/profile`);
 }
@@ -363,8 +369,36 @@ export function updateClientProfile(payload) {
 /**
  * DELETE /api/client/projects/:id — delete own project as client
  */
-export function deleteClientProject(id) {
-  return authedFetch(`${API_BASE}/api/client/projects/${id}`, {
+// ─── NOTIFICATION APIs ─────────────────────────────────────────────────────
+
+export function fetchNotifications() {
+  return authedFetch(`${API_BASE}/api/client/notifications`);
+}
+
+export function fetchUnreadCount() {
+  return authedFetch(`${API_BASE}/api/client/notifications/unread-count`);
+}
+
+export function markNotificationRead(id) {
+  return authedFetch(`${API_BASE}/api/client/notifications/${id}/read`, {
+    method: "PATCH",
+  });
+}
+
+export function markAllNotificationsRead() {
+  return authedFetch(`${API_BASE}/api/client/notifications/read-all`, {
+    method: "PATCH",
+  });
+}
+
+export function deleteNotification(id) {
+  return authedFetch(`${API_BASE}/api/client/notifications/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function deleteAllNotifications() {
+  return authedFetch(`${API_BASE}/api/client/notifications/delete-all`, {
     method: "DELETE",
   });
 }
