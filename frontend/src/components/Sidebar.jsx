@@ -12,6 +12,7 @@ const sidebarConfigs = {
       label: "Jobs without Freelancer",
       href: "/adminDashboard/jobs-without-freelancer",
     },
+    { label: "Notifications", href: "/adminDashboard/notifications" },
   ],
   freelancer: [
     { label: "Dashboard", href: "/freelancer/dashboard" },

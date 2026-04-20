@@ -24,6 +24,7 @@ import ClientProjects from "./pages/ClientProjects.jsx";
 import ClientPostProject from "./pages/ClientPostProject.jsx";
 import ClientProfile from "./pages/ClientProfile.jsx";
 import ClientNotifications from "./pages/ClientNotifications.jsx";
+import AdminNotifications from "./pages/adminDashboard/AdminNotifications.jsx";
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
 const router = createBrowserRouter([
@@ -115,6 +116,14 @@ const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <JobsWithoutFreelancer />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/notifications",
+        element: (
+          <AdminRoute>
+            <AdminNotifications />
           </AdminRoute>
         ),
       },
