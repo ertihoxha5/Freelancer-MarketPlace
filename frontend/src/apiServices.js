@@ -402,3 +402,35 @@ export function deleteAllNotifications() {
     method: "DELETE",
   });
 }
+
+export function fetchAdminNotifications() {
+  return authedFetch(`${API_BASE}/api/admin/notifications`);
+}
+
+export function fetchAdminUnreadCount() {
+  return authedFetch(`${API_BASE}/api/admin/notifications/unread-count`);
+}
+
+export function markAdminNotificationRead(id) {
+  return authedFetch(`${API_BASE}/api/admin/notifications/${id}/read`, {
+    method: "PATCH",
+  });
+}
+
+export function markAllAdminNotificationsRead() {
+  return authedFetch(`${API_BASE}/api/admin/notifications/read-all`, {
+    method: "PATCH",
+  });
+}
+
+export function deleteAdminNotification(id) {
+  return authedFetch(`${API_BASE}/api/admin/notifications/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function deleteAllAdminNotifications() {
+  return authedFetch(`${API_BASE}/api/admin/notifications/delete-all`, {
+    method: "DELETE",
+  });
+}
