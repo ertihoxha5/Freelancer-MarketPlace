@@ -78,3 +78,15 @@ export async function createNotification({ types, receiverID, title, msg }) {
   );
   return { id: result.insertId };
 }
+
+export async function getAdminUserIds() {
+  const [rows] = await db.execute(
+    `SELECT u.id
+     FROM Users u
+     INNER JOIN UserRole ur ON ur.userID = u.id
+     INNER JOIN Roles     r  ON r.id = ur.roleID
+     WHERE r.roleName = 'SysAdmin'
+       AND u.isActive = 1`,
+  );
+  return rows.map((row) => row.id);
+}
