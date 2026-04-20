@@ -6,7 +6,7 @@ import * as projectRepository from "../repositories/projectRepository.js";
 import * as auditRepository from "../repositories/auditRepository.js";
 import * as profileRepository from "../repositories/profileRepository.js";
 import * as fileRepository from "../repositories/fileRepository.js";
-import { pushNotification } from "./notificationService.js";
+import { pushNotification, pushToAllAdmins } from "./notificationService.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
@@ -30,7 +30,6 @@ function coercePositiveInt(value, label) {
 }
 
 const VALID_STATUSES = ["pending", "active", "completed", "cancelled"];
-
 
 export async function getMyProjects(clientID) {
   return projectRepository.getClientProjects(clientID);
@@ -206,7 +205,6 @@ export async function updateMyProfile(clientID, payload) {
   return updatedProfile;
 }
 
-
 export async function createMyProject(payload) {
   const { title, pDesc, budget, deadline, clientID } = payload ?? {};
 
@@ -236,16 +234,23 @@ export async function createMyProject(payload) {
     clientID,
   });
 
+  const trimmedTitle = title.trim().slice(0, 50);
+
   pushNotification({
     types: "system",
     receiverID: clientID,
     title: "Project Created",
-    msg: `Your project "${title.trim().slice(0, 50)}" has been created successfully.`,
+    msg: `Your project "${trimmedTitle}" has been posted and is now visible to freelancers.`,
+  }).catch(() => {});
+
+  pushToAllAdmins({
+    types: "system",
+    title: "New Project Posted",
+    msg: `A client posted a new project: "${trimmedTitle}".`,
   }).catch(() => {});
 
   return project;
 }
-
 
 export async function updateMyProject(projectID, clientID, payload) {
   const projectId = coercePositiveInt(projectID, "project ID");
@@ -346,13 +351,12 @@ export async function updateMyProject(projectID, clientID, payload) {
       types: "system",
       receiverID: clientID,
       title: "Project Updated",
-      msg: `Your project "${title.trim().slice(0, 50)}" was updated.`,
+      msg: `Your project "${title.trim().slice(0, 50)}" has been updated successfully.`,
     }).catch(() => {});
   }
 
   return updated;
 }
-
 
 export async function deleteMyProject(projectID, clientID) {
   if (typeof projectID !== "number" || projectID <= 0) {
@@ -381,7 +385,7 @@ export async function deleteMyProject(projectID, clientID) {
     types: "system",
     receiverID: clientID,
     title: "Project Deleted",
-    msg: `Your project "${existing.title}" has been deleted.`,
+    msg: "One of your projects has been permanently removed from the platform.",
   }).catch(() => {});
 
   return result;
