@@ -50,3 +50,20 @@ export async function pushNotification({ types, receiverID, title, msg }) {
     msg,
   });
 }
+
+export async function pushToAllAdmins({ types, title, msg }) {
+  try {
+    const adminIds = await notificationRepository.getAdminUserIds();
+
+    await Promise.all(
+      adminIds.map((adminId) =>
+        notificationRepository.createNotification({
+          types,
+          receiverID: adminId,
+          title,
+          msg,
+        }),
+      ),
+    );
+  } catch {}
+}
