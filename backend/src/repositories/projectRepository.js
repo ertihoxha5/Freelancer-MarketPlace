@@ -1,8 +1,6 @@
 import { db } from "../config/db.js";
 
-/**
- * Projects that have at least one ACCEPTED proposal (freelancer assigned)
- */
+
 export async function getProjectsWithFreelancer() {
   const [rows] = await db.execute(`
         SELECT
@@ -29,9 +27,7 @@ export async function getProjectsWithFreelancer() {
   return rows;
 }
 
-/**
- * Projects that have NO accepted proposal (no freelancer yet)
- */
+
 export async function getProjectsWithoutFreelancer() {
   const [rows] = await db.execute(`
         SELECT
@@ -58,9 +54,7 @@ export async function getProjectsWithoutFreelancer() {
   return rows;
 }
 
-/**
- * Single project by id (with client info)
- */
+
 export async function getProjectById(id) {
   const [rows] = await db.execute(
     `
@@ -75,9 +69,7 @@ export async function getProjectById(id) {
   return rows[0] ?? null;
 }
 
-/**
- * Create a project (admin assigns on behalf of a client)
- */
+
 export async function createProject({
   title,
   pDesc,
@@ -109,9 +101,7 @@ export async function createProject({
   };
 }
 
-/**
- * Update project fields (admin)
- */
+
 export async function updateProject(
   id,
   { title, pDesc, budget, deadline, pStatus },
@@ -132,9 +122,7 @@ export async function updateProject(
   return { id, title, pDesc, budget, deadline, pStatus };
 }
 
-/**
- * Delete a project (cascades to Proposal via ON DELETE CASCADE)
- */
+
 export async function deleteProject(id) {
   const [result] = await db.execute("DELETE FROM Project WHERE id = ?", [id]);
 
@@ -147,9 +135,7 @@ export async function deleteProject(id) {
   return { id };
 }
 
-/**
- * All active clients – used by admin when creating a project
- */
+
 export async function getClientList() {
   const [rows] = await db.execute(`
         SELECT u.id, u.fullName, u.email
@@ -162,9 +148,7 @@ export async function getClientList() {
   return rows;
 }
 
-/**
- * Get all projects for a specific client (for client dashboard)
- */
+
 export async function getClientProjects(clientID) {
   const [rows] = await db.execute(`
         SELECT
@@ -185,9 +169,7 @@ export async function getClientProjects(clientID) {
   return rows;
 }
 
-/**
- * Get a single project with proposals (for client dashboard)
- */
+
 export async function getClientProjectById(projectID, clientID) {
   const [rows] = await db.execute(`
         SELECT
@@ -208,9 +190,7 @@ export async function getClientProjectById(projectID, clientID) {
   return rows[0] ?? null;
 }
 
-/**
- * Create a project by client (for client dashboard postProject)
- */
+
 export async function createClientProject({
   title,
   pDesc,
@@ -240,9 +220,7 @@ export async function createClientProject({
   };
 }
 
-/**
- * Update a project by client (only if client is owner)
- */
+
 export async function updateClientProject(
   projectID,
   clientID,
@@ -264,9 +242,7 @@ export async function updateClientProject(
   return { id: projectID, title, pDesc, budget, deadline, pStatus };
 }
 
-/**
- * Delete a project by client (only if client is owner)
- */
+
 export async function deleteClientProject(projectID, clientID) {
   const [result] = await db.execute(
     "DELETE FROM Project WHERE id = ? AND clientID = ?",

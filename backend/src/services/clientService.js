@@ -31,7 +31,6 @@ function coercePositiveInt(value, label) {
 
 const VALID_STATUSES = ["pending", "active", "completed", "cancelled"];
 
-// ─── Read ────────────────────────────────────────────────────────────────────
 
 export async function getMyProjects(clientID) {
   return projectRepository.getClientProjects(clientID);
@@ -207,7 +206,6 @@ export async function updateMyProfile(clientID, payload) {
   return updatedProfile;
 }
 
-// ─── Create ──────────────────────────────────────────────────────────────────
 
 export async function createMyProject(payload) {
   const { title, pDesc, budget, deadline, clientID } = payload ?? {};
@@ -248,7 +246,6 @@ export async function createMyProject(payload) {
   return project;
 }
 
-// ─── Update ──────────────────────────────────────────────────────────────────
 
 export async function updateMyProject(projectID, clientID, payload) {
   const projectId = coercePositiveInt(projectID, "project ID");
@@ -356,7 +353,6 @@ export async function updateMyProject(projectID, clientID, payload) {
   return updated;
 }
 
-// ─── Delete ──────────────────────────────────────────────────────────────────
 
 export async function deleteMyProject(projectID, clientID) {
   if (typeof projectID !== "number" || projectID <= 0) {

@@ -20,9 +20,7 @@ export async function login(req, res, next) {
     }
 }
 
-/**
- * GET /api/auth/me — requires Authorization: Bearer <token>
- */
+
 export function me(req, res) {
     return res.json({ user: req.user });
 }

@@ -53,7 +53,6 @@ const Features = () => {
     <div className="min-h-screen bg-white">
       <Header />
 
-      {/* Hero Section */}
       <section className="bg-[#1a3c2e] text-white py-28">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <span className="inline-block px-6 py-2 bg-white/10 rounded-full text-sm font-medium tracking-widest mb-6">
@@ -68,7 +67,6 @@ const Features = () => {
         </div>
       </section>
 
-      {/* Core Features */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -93,7 +91,6 @@ const Features = () => {
         </div>
       </section>
 
-      {/* Benefits for Clients & Freelancers */}
       <section className="py-24 bg-zinc-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -122,7 +119,6 @@ const Features = () => {
         </div>
       </section>
 
-      {/* Workflow */}
       <section className="py-24 bg-white">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -150,7 +146,6 @@ const Features = () => {
         </div>
       </section>
 
-      {/* Final CTA */}
       <section className="bg-[#1a3c2e] py-28 text-white text-center">
         <div className="max-w-2xl mx-auto px-6">
           <h2 className="text-5xl font-semibold mb-6">Ready to experience a better way to work?</h2>

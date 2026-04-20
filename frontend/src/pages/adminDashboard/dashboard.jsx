@@ -89,7 +89,6 @@ export default function AdminDashboard() {
           <Sidebar roleID={user?.roleID} />
 
           <section className="min-h-full min-w-0 flex-1 overflow-auto p-6 sm:p-8">
-            {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
               <p className="mt-2 text-slate-600">
@@ -97,14 +96,12 @@ export default function AdminDashboard() {
               </p>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200">
                 <p className="text-red-700 text-sm">{error}</p>
               </div>
             )}
 
-            {/* Stats Grid */}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {[...Array(5)].map((_, i) => (
@@ -149,7 +146,6 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Quick Access Section */}
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
                 Quick Access

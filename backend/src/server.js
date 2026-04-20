@@ -12,7 +12,6 @@ const PORT = 3000;
 
 const VITE_ORIGINS = new Set(['http://localhost:5173', 'http://127.0.0.1:5173']);
 
-/** Explicit CORS (preflight + simple requests). Avoids express@5 + cors quirks on OPTIONS. */
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin && VITE_ORIGINS.has(origin)) {

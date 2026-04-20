@@ -1,6 +1,5 @@
 import * as clientService from "../services/clientService.js";
 
-// ─── GET /api/client/projects (list all projects for logged-in client) ───────
 export async function getMyProjects(req, res, next) {
   try {
     const clientID = req.user.id;
@@ -13,7 +12,6 @@ export async function getMyProjects(req, res, next) {
   }
 }
 
-// ─── GET /api/client/projects/:id (get single project) ──────────────────────
 export async function getMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
@@ -51,7 +49,6 @@ export async function updateMyProfile(req, res, next) {
   }
 }
 
-// ─── POST /api/client/projects (create new project) ────────────────────────
 export async function createMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
@@ -69,7 +66,6 @@ export async function createMyProject(req, res, next) {
   }
 }
 
-// ─── PATCH /api/client/projects/:id (update own project) ────────────────────
 export async function updateMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
@@ -89,7 +85,6 @@ export async function updateMyProject(req, res, next) {
   }
 }
 
-// ─── DELETE /api/client/projects/:id (delete own project) ──────────────────
 export async function deleteMyProject(req, res, next) {
   try {
     const clientID = req.user.id;

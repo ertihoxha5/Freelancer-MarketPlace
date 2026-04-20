@@ -9,7 +9,6 @@ function validationError(message) {
 
 const VALID_STATUSES = ["pending", "active", "completed", "cancelled"];
 
-// ─── Read ────────────────────────────────────────────────────────────────────
 
 export async function getProjectsWithFreelancer() {
   return projectRepository.getProjectsWithFreelancer();
@@ -23,7 +22,6 @@ export async function getClientList() {
   return projectRepository.getClientList();
 }
 
-// ─── Create ──────────────────────────────────────────────────────────────────
 
 export async function createProject(payload) {
   const { title, pDesc, budget, deadline, clientID, pStatus } = payload ?? {};
@@ -65,7 +63,6 @@ export async function createProject(payload) {
   return project;
 }
 
-// ─── Update ──────────────────────────────────────────────────────────────────
 
 export async function updateProject(id, payload) {
   const projectId = Number(id);
@@ -122,7 +119,6 @@ export async function updateProject(id, payload) {
   return updated;
 }
 
-// ─── Delete ──────────────────────────────────────────────────────────────────
 
 export async function deleteProject(id) {
   const projectId = Number(id);

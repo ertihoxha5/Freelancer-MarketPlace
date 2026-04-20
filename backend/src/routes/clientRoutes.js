@@ -5,17 +5,14 @@ import * as notificationController from "../controllers/notificationController.j
 
 const router = Router();
 
-// ─── Middleware: require valid JWT for ALL client routes ────────────────────
 router.use(authMiddleware.authenticateToken, authMiddleware.requireRole(2));
 
-// ─── Project CRUD (client's own projects) ─────────────────────────────────
 router.get("/projects", clientController.getMyProjects);
 router.post("/projects", clientController.createMyProject);
 router.get("/projects/:id", clientController.getMyProject);
 router.patch("/projects/:id", clientController.updateMyProject);
 router.delete("/projects/:id", clientController.deleteMyProject);
 
-// ─── Notifications ────────────────────────────────────────────────────────
 
 router.get(
   "/notifications/unread-count",

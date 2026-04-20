@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState } from 'react';
 
 const translations = {
   en: {
-    // Header
     home: 'Home',
     features: 'Features',
     about: 'About',
@@ -16,7 +15,6 @@ const translations = {
     client: 'Client',
     freelancer: 'Freelancer',
 
-    // Landing Page
     hireTopTalent: 'Hire Top Talent',
     hireSubtitle: 'Connect with expert freelancers ready for your next project',
     postProject: 'Post Your Project',
@@ -50,7 +48,6 @@ const translations = {
     joinUs: 'Join thousands of businesses and freelancers already growing with us.',
     createAccount: 'Create Free Account',
 
-    // Login
     loginToAccount: 'Login to your account',
     email: 'Email',
     password: 'Password',
@@ -59,7 +56,6 @@ const translations = {
     loggingIn: 'Logging In…',
     login: 'Login',
 
-    // Register
     createAccount: 'Create Account',
     fullName: 'Full Name',
     confirmPassword: 'Confirm Password',
@@ -71,7 +67,6 @@ const translations = {
     alreadyAccount: 'Already have an account?',
   },
   al: {
-    // Albanian translations
     home: 'Kryefaqja',
     features: 'Karakteristikat',
     about: 'Rreth Nesh',
@@ -137,7 +132,6 @@ const translations = {
     alreadyAccount: 'Keni tashmë një llogari?',
   },
   de: {
-    // German translations
     home: 'Startseite',
     features: 'Funktionen',
     about: 'Über uns',
@@ -203,7 +197,6 @@ const translations = {
     alreadyAccount: 'Haben Sie bereits ein Konto?',
   },
   it: {
-    // Italian translations
     home: 'Home',
     features: 'Caratteristiche',
     about: 'Chi siamo',
@@ -269,7 +262,6 @@ const translations = {
     alreadyAccount: 'Hai già un account?',
   },
   fr: {
-    // French translations
     home: 'Accueil',
     features: 'Fonctionnalités',
     about: 'À propos',
@@ -335,7 +327,6 @@ const translations = {
     alreadyAccount: 'Vous avez déjà un compte?',
   },
   es: {
-    // Spanish translations
     home: 'Inicio',
     features: 'Características',
     about: 'Acerca de',

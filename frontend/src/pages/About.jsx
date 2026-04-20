@@ -27,7 +27,6 @@ const About = () => {
     <div className="min-h-screen bg-white">
       <Header />
 
-      {/* Hero Section */}
       <section className="bg-[#1a3c2e] text-white py-28">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <span className="inline-block px-6 py-2 bg-white/10 rounded-full text-sm font-medium tracking-widest mb-6">
@@ -42,7 +41,6 @@ const About = () => {
         </div>
       </section>
 
-      {/* Mission */}
       <section className="py-24 bg-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-semibold text-slate-900">Our Mission</h2>
@@ -52,7 +50,6 @@ const About = () => {
         </div>
       </section>
 
-      {/* Values */}
       <section className="py-24 bg-zinc-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -76,7 +73,6 @@ const About = () => {
         </div>
       </section>
 
-      {/* Why We Exist */}
       <section className="py-24 bg-white">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -120,7 +116,6 @@ const About = () => {
         </div>
       </section>
 
-      {/* Our Goal */}
       <section className="py-24 bg-zinc-50">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-semibold text-slate-900 mb-6">Our Goal</h2>
@@ -130,7 +125,6 @@ const About = () => {
         </div>
       </section>
 
-      {/* Final CTA */}
       <section className="bg-[#1a3c2e] py-28 text-white text-center">
         <div className="max-w-2xl mx-auto px-6">
           <h2 className="text-5xl font-semibold mb-6">Ready to be part of something better?</h2>

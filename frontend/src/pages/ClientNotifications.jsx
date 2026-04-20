@@ -11,7 +11,6 @@ import {
   deleteAllNotifications,
 } from "../apiServices.js";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function timeAgo(dateStr) {
   const now = new Date();
@@ -54,7 +53,6 @@ function NotificationIcon({ type, isRead }) {
 
 const FILTERS = ["all", "unread", "system", "message"];
 
-// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ClientNotifications() {
   const { user } = useAuth();
@@ -66,7 +64,6 @@ export default function ClientNotifications() {
   const [processingId, setProcessingId] = useState(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
-  // ── Load ──────────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -88,7 +85,6 @@ export default function ClientNotifications() {
     load();
   }, [load]);
 
-  // ── Derived lists ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     if (activeFilter === "all") return notifications;
     if (activeFilter === "unread")
@@ -109,7 +105,6 @@ export default function ClientNotifications() {
     );
   }, [unreadCount]);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
   async function handleMarkRead(id) {
     setProcessingId(id);
     try {
@@ -163,7 +158,6 @@ export default function ClientNotifications() {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden">
       <Header />
@@ -173,7 +167,6 @@ export default function ClientNotifications() {
           <Sidebar roleID={user?.roleID} />
 
           <section className="min-h-full min-w-0 flex-1 overflow-auto p-6 sm:p-8">
-            {/* ── Page header ── */}
             <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
@@ -192,7 +185,6 @@ export default function ClientNotifications() {
                 </p>
               </div>
 
-              {/* Bulk actions */}
               {notifications.length > 0 && (
                 <div className="flex shrink-0 flex-wrap gap-2">
                   {unreadCount > 0 && (
@@ -215,14 +207,12 @@ export default function ClientNotifications() {
               )}
             </div>
 
-            {/* ── Error ── */}
             {error && (
               <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                 {error}
               </div>
             )}
 
-            {/* ── Filter tabs ── */}
             <div className="mb-6 flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit">
               {FILTERS.map((f) => {
                 const label =
@@ -282,7 +272,6 @@ export default function ClientNotifications() {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function NotificationCard({ notif, processing, onMarkRead, onDelete }) {
   return (
@@ -293,15 +282,12 @@ function NotificationCard({ notif, processing, onMarkRead, onDelete }) {
           : "border-[#1a3c2e]/20 bg-[#f0f7f4]"
       }`}
     >
-      {/* Unread dot */}
       {!notif.isRead && (
         <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-[#1a3c2e]" />
       )}
 
-      {/* Icon */}
       <NotificationIcon type={notif.types} isRead={notif.isRead} />
 
-      {/* Body */}
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p
@@ -322,7 +308,6 @@ function NotificationCard({ notif, processing, onMarkRead, onDelete }) {
           </p>
         )}
 
-        {/* Type badge */}
         <div className="mt-2 flex items-center gap-2">
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -337,7 +322,6 @@ function NotificationCard({ notif, processing, onMarkRead, onDelete }) {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex shrink-0 flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         {!notif.isRead && (
           <button
@@ -359,7 +343,6 @@ function NotificationCard({ notif, processing, onMarkRead, onDelete }) {
         </button>
       </div>
 
-      {/* Processing overlay */}
       {processing && (
         <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/60">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />

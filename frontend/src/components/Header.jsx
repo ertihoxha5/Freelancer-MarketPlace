@@ -77,7 +77,6 @@ const Header = () => {
   return (
     <nav className="bg-[#1a3c2e] border-b border-[#2a5c46] sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        {/* Logo */}
         <Link to="/" className="inline-flex items-center gap-2">
           <span className="text-3xl font-bold tracking-tighter text-[#a3c9a3]">
             Freelancer
@@ -87,9 +86,7 @@ const Header = () => {
           </span>
         </Link>
 
-        {/* Navigation + Controls */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
-          {/* Main Links */}
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/90">
             <Link to="/" className="hover:text-white transition-colors">
               Home
@@ -105,7 +102,6 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Language Selector - Fixed */}
           <div className="relative">
             <select
               value={language}
@@ -120,13 +116,11 @@ const Header = () => {
               <option value="es">Español</option>
             </select>
 
-            {/* Custom dropdown arrow */}
             <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/70">
               ▼
             </div>
           </div>
 
-          {/* Auth Buttons / User Info */}
           {loading ? (
             <span className="text-sm text-white/70">Loading...</span>
           ) : user ? (

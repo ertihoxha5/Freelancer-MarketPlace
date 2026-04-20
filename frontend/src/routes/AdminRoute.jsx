@@ -17,15 +17,11 @@ export default function AdminRoute({ children }) {
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
-    // Check if user is admin (roleID === 1)
     if (Number(user.roleID) !== 1) {
-        // Redirect non-admins based on their role
         if (Number(user.roleID) === 2) {
-            // Client
             return <Navigate to="/client/dashboard" replace />;
         }
         if (Number(user.roleID) === 3) {
-            // Freelancer
             return <Navigate to="/freelancer/dashboard" replace />;
         }
     }

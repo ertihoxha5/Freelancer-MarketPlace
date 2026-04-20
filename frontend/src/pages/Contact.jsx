@@ -36,7 +36,6 @@ const Contact = () => {
     <div className="min-h-screen bg-white">
       <Header />
 
-      {/* Hero */}
       <section className="bg-[#1a3c2e] text-white py-28">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <span className="inline-block px-6 py-2 bg-white/10 rounded-full text-sm font-medium tracking-widest mb-6">
@@ -55,7 +54,6 @@ const Contact = () => {
       <div className="max-w-7xl mx-auto px-6 py-24">
         <div className="grid lg:grid-cols-5 gap-16">
           
-          {/* Contact Info */}
           <div className="lg:col-span-2 space-y-10">
             <div>
               <h2 className="text-3xl font-semibold text-slate-900 mb-8">Contact Information</h2>
@@ -107,7 +105,6 @@ const Contact = () => {
             </div>
           </div>
 
-          {/* Contact Form */}
           <div className="lg:col-span-3">
             <div className="bg-white border border-slate-100 shadow-xl rounded-3xl p-10 md:p-12">
               <h2 className="text-3xl font-semibold text-slate-900 mb-8">Send us a message</h2>
@@ -185,7 +182,6 @@ const Contact = () => {
         </div>
       </div>
 
-      {/* Final Message */}
       <section className="bg-zinc-50 py-20 text-center">
         <div className="max-w-2xl mx-auto px-6">
           <h2 className="text-3xl font-semibold text-slate-900">We respond quickly</h2>

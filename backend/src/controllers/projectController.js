@@ -1,6 +1,5 @@
 import * as projectService from "../services/projectService.js";
 
-// ─── GET /api/admin/projects/with-freelancer ──────────────────────────────────
 export async function getProjectsWithFreelancer(req, res, next) {
   try {
     const projects = await projectService.getProjectsWithFreelancer();
@@ -12,7 +11,6 @@ export async function getProjectsWithFreelancer(req, res, next) {
   }
 }
 
-// ─── GET /api/admin/projects/without-freelancer ───────────────────────────────
 export async function getProjectsWithoutFreelancer(req, res, next) {
   try {
     const projects = await projectService.getProjectsWithoutFreelancer();
@@ -24,7 +22,6 @@ export async function getProjectsWithoutFreelancer(req, res, next) {
   }
 }
 
-// ─── GET /api/admin/clients ───────────────────────────────────────────────────
 export async function getClientList(req, res, next) {
   try {
     const clients = await projectService.getClientList();
@@ -36,7 +33,6 @@ export async function getClientList(req, res, next) {
   }
 }
 
-// ─── POST /api/admin/projects ─────────────────────────────────────────────────
 export async function createProject(req, res, next) {
   try {
     const project = await projectService.createProject(req.body);
@@ -50,7 +46,6 @@ export async function createProject(req, res, next) {
   }
 }
 
-// ─── PATCH /api/admin/projects/:id ───────────────────────────────────────────
 export async function updateProject(req, res, next) {
   try {
     const project = await projectService.updateProject(req.params.id, req.body);
@@ -64,7 +59,6 @@ export async function updateProject(req, res, next) {
   }
 }
 
-// ─── DELETE /api/admin/projects/:id ──────────────────────────────────────────
 export async function deleteProject(req, res, next) {
   try {
     const result = await projectService.deleteProject(req.params.id);

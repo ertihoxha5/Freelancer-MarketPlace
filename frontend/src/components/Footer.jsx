@@ -7,7 +7,6 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-y-12">
           
-          {/* Logo + Description */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-x-2 mb-6">
               <span className="text-3xl font-bold tracking-tighter text-[#a3c9a3]">
@@ -26,7 +25,6 @@ const Footer = () => {
 
      <div></div>
 
-          {/* Company */}
           <div>
             <p className="font-semibold text-white mb-5 text-sm tracking-wider">COMPANY</p>
             <div className="space-y-3 text-sm">
@@ -37,7 +35,6 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Resources */}
           <div>
             <p className="font-semibold text-white mb-5 text-sm tracking-wider">RESOURCES</p>
             <div className="space-y-3 text-sm">
@@ -48,7 +45,6 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Legal */}
           <div>
             <p className="font-semibold text-white mb-5 text-sm tracking-wider">LEGAL</p>
             <div className="space-y-3 text-sm">
@@ -59,9 +55,8 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-white/60">
-          <p>Made with ❤️ in Pristina, Kosovo</p>
+          <p>Made in Prishtina, Kosovo</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-white transition-colors">Facebook</a>
             <a href="#" className="hover:text-white transition-colors">LinkedIn</a>

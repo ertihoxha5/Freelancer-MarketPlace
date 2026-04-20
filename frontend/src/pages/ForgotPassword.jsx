@@ -52,7 +52,6 @@ function ForgotPassword() {
       <div className="flex min-h-[calc(100vh-76px)] items-center justify-center px-6 py-12">
         <div className="grid w-full max-w-5xl gap-16 md:grid-cols-2">
           
-          {/* Left Side - Information */}
           <div className="flex flex-col justify-center">
             <h1 className="text-5xl font-semibold text-slate-900 leading-tight">
               Reset your password
@@ -77,7 +76,6 @@ function ForgotPassword() {
             </div>
           </div>
 
-          {/* Right Side - Form */}
           <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-10">
             <h2 className="text-3xl font-semibold text-slate-900 mb-8">Change Password</h2>
 

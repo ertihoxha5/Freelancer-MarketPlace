@@ -63,14 +63,14 @@ export default function ClientDashboard() {
     {
       title: 'Browse Freelancers',
       description: 'Find and connect with skilled professionals.',
-      href: '/freelancers', // Assuming a route exists
+      href: '/freelancers', 
       icon: '👥',
       color: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
     },
     {
       title: 'Account Settings',
       description: 'Update your profile and preferences.',
-      href: '/settings', // Assuming a route exists
+      href: '/settings', 
       icon: '⚙️',
       color: 'bg-orange-50 hover:bg-orange-100 border-orange-200',
     },
@@ -106,7 +106,6 @@ export default function ClientDashboard() {
               </div>
             )}
 
-            {/* Stats Cards */}
             {loading ? (
               <div className="grid gap-4 xl:grid-cols-4 mb-8">
                 {[...Array(4)].map((_, i) => (
@@ -138,7 +137,6 @@ export default function ClientDashboard() {
               </div>
             )}
 
-            {/* Quick Actions */}
             <div className="mb-8">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Quick Actions</h2>
               <div className="grid gap-4 xl:grid-cols-2">
@@ -160,7 +158,6 @@ export default function ClientDashboard() {
               </div>
             </div>
 
-            {/* Recent Projects */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-slate-900">Recent Projects</h2>
@@ -205,7 +202,6 @@ export default function ClientDashboard() {
               )}
             </div>
 
-            {/* Tips */}
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">💡 Tips for Success</h2>
               <ul className="space-y-2">

@@ -86,7 +86,6 @@ function Register() {
             </div>
           </div>
 
-          {/* Register Form */}
           <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-10">
             <h2 className="text-3xl font-semibold text-slate-900 mb-8">Create your account</h2>
 
@@ -150,7 +149,6 @@ function Register() {
                 </div>
               </div>
 
-              {/* Role Selection */}
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-3">I want to join as</label>
                 <div className="grid grid-cols-2 gap-4">
