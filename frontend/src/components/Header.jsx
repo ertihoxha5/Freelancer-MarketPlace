@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useEffect, useState } from "react";
-import { fetchUnreadCount } from "../apiServices.js";
+import { fetchUnreadCount, fetchAdminUnreadCount } from "../apiServices.js";
 
 const roleLabel = (roleID) => {
   if (Number(roleID) === 1) return "Admin";
@@ -13,48 +13,81 @@ const roleLabel = (roleID) => {
 
 function NotificationBell({ user }) {
   const [unread, setUnread] = useState(0);
+  const roleID = Number(user?.roleID);
+  const isClient = roleID === 2;
+  const isAdmin = roleID === 1;
 
   useEffect(() => {
-    if (!user || Number(user.roleID) !== 2) return;
+    if (!user || (!isClient && !isAdmin)) return;
 
     let cancelled = false;
 
     async function load() {
       try {
-        const data = await fetchUnreadCount();
+        // Admin and client have separate API routes
+        const data = isAdmin
+          ? await fetchAdminUnreadCount()
+          : await fetchUnreadCount();
         if (!cancelled) setUnread(Number(data.count) || 0);
-      } catch {}
-    }
-
-    function onUnreadChanged(event) {
-      if (cancelled) return;
-      const count = Number(event?.detail?.count);
-      if (!Number.isNaN(count) && count >= 0) {
-        setUnread(count);
+      } catch {
+        // Never crash the header
       }
     }
 
-    load();
-    window.addEventListener("client-notifications-unread", onUnreadChanged);
+    // Listen for local badge updates dispatched from the notifications page
+    function onBadgeUpdate(event) {
+      if (cancelled) return;
+      const count = Number(event?.detail?.count);
+      if (!Number.isNaN(count) && count >= 0) setUnread(count);
+    }
 
-    const interval = setInterval(load, 60000);
+    load();
+
+    const eventName = isAdmin
+      ? "admin-notifications-unread"
+      : "client-notifications-unread";
+
+    window.addEventListener(eventName, onBadgeUpdate);
+    const interval = setInterval(load, 60_000);
+
     return () => {
       cancelled = true;
-      window.removeEventListener("client-notifications-unread", onUnreadChanged);
+      window.removeEventListener(eventName, onBadgeUpdate);
       clearInterval(interval);
     };
-  }, [user]);
+  }, [user, isClient, isAdmin]);
 
-  if (!user || Number(user.roleID) !== 2) return null;
+  if (!user || (!isClient && !isAdmin)) return null;
+
+  const href = isAdmin
+    ? "/adminDashboard/notifications"
+    : "/client/notifications";
 
   return (
     <Link
-      to="/client/notifications"
-      className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+      to={href}
+      title="Notifications"
+      className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
     >
-      🔔
+      {/* Bell SVG */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+        />
+      </svg>
+
+      {/* Unread badge */}
       {unread > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-[#1a3c2e]">
           {unread > 99 ? "99+" : unread}
         </span>
       )}
