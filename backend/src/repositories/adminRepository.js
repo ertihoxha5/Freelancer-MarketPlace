@@ -28,10 +28,11 @@ export async function deleteUser(id){
 }
 
 export async function updateUser({ id, fullName, roleID }) {
-    await db.beginTransaction();
+    const conn = await db.getConnection();
 
     try {
-        const [userResult] = await db.execute(
+        await conn.beginTransaction();
+        const [userResult] = await conn.execute(
             'UPDATE Users SET fullName = ? WHERE id = ?',
             [fullName, id]
         );
@@ -42,7 +43,7 @@ export async function updateUser({ id, fullName, roleID }) {
             throw err;
         }
 
-        const [roleResult] = await db.execute(
+        const [roleResult] = await conn.execute(
             'UPDATE UserRole SET roleID = ? WHERE userID = ?',
             [roleID, id]
         );
@@ -53,10 +54,12 @@ export async function updateUser({ id, fullName, roleID }) {
             throw err;
         }
 
-        await db.commit();
+        await conn.commit();
         return { id, fullName, roleID };
     } catch (err) {
-        await db.rollback();
+        await conn.rollback();
         throw err;
+    } finally {
+        conn.release();
     }
 }

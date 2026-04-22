@@ -1,5 +1,4 @@
 import { db } from '../config/db.js';
-import { createProfileForUser } from './profileRepository.js';
 
 export async function findUserByEmail(email) {
     const [rows] = await db.execute('SELECT id FROM Users WHERE email = ? LIMIT 1', [email]);
@@ -30,19 +29,26 @@ export async function findUserWithRoleById(id) {
 
 
 export async function createUserWithRole({ email, passwordHash, fullName, roleID }) {
-    await db.beginTransaction();
+    const conn = await db.getConnection();
     try {
-        const [result] = await db.execute(
+        await conn.beginTransaction();
+        const [result] = await conn.execute(
             'INSERT INTO Users (email, passwordHash, fullName) VALUES (?, ?, ?)', [email, passwordHash, fullName]
         );
         const userID = result.insertId;
-        await db.execute('INSERT INTO UserRole (userID, roleID) VALUES (?, ?)', [userID, roleID]);
-        await createProfileForUser(userID);
-        await db.commit();
+        await conn.execute('INSERT INTO UserRole (userID, roleID) VALUES (?, ?)', [userID, roleID]);
+        await conn.execute(
+            `INSERT INTO Profiles (userID, pictureID, hourlyRate, portofoliUrl, bio)
+             VALUES (?, NULL, NULL, NULL, NULL)`,
+            [userID],
+        );
+        await conn.commit();
         return { userID, email, fullName, roleID };
     } catch (err) {
-        await db.rollback();
+        await conn.rollback();
         throw err;
+    } finally {
+        conn.release();
     }
 }
 

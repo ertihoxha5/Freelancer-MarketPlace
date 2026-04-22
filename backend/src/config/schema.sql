@@ -1,5 +1,5 @@
--- Active: 1774977057822@@localhost@3306@freelancermarketplace
--- CREATE DATABASE IF NOT EXISTS freelancerMarketplace;
+CREATE DATABASE IF NOT EXISTS freelancerMarketplace;
+
 USE freelancerMarketplace;
 
 CREATE TABLE IF NOT EXISTS Users(
@@ -187,11 +187,13 @@ CREATE TABLE IF NOT EXISTS Review(
 
 CREATE TABLE IF NOT EXISTS Conversations(
     id INT PRIMARY KEY AUTO_INCREMENT,
+    conversationType ENUM('project', 'direct') NOT NULL DEFAULT 'project',
     cStatus ENUM('active', 'archived', 'closed') NOT NULL DEFAULT 'active',
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    projectID INT NOT NULL,
-    clientID INT NOT NULL,
-    freelancerID INT NOT NULL,
+    lastMessageAt DATETIME NULL,
+    projectID INT NULL,
+    clientID INT NULL,
+    freelancerID INT NULL,
 
     FOREIGN KEY (clientID) REFERENCES Users(id),
     FOREIGN KEY (freelancerID) REFERENCES Users(id),
@@ -202,16 +204,48 @@ CREATE TABLE IF NOT EXISTS Messages(
     id INT PRIMARY KEY AUTO_INCREMENT,
     conversationID INT NOT NULL,
     senderID INT NOT NULL,
-    content VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
     msgType ENUM('text', 'image', 'file', 'system') NOT NULL DEFAULT 'text',
     field VARCHAR(20),
     isRead BOOLEAN DEFAULT FALSE,
     isDeleted BOOLEAN DEFAULT FALSE,
+    deliveredAt DATETIME NULL,
     sentAt DATETIME DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (conversationID) REFERENCES Conversations(id),
     FOREIGN KEY (senderID) REFERENCES Users(id)
 );
+
+CREATE TABLE IF NOT EXISTS ConversationParticipants(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    conversationID INT NOT NULL,
+    userID INT NOT NULL,
+    roleInConversation ENUM('owner', 'member') NOT NULL DEFAULT 'member',
+    joinedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    leftAt DATETIME NULL,
+
+    FOREIGN KEY (conversationID) REFERENCES Conversations(id) ON DELETE CASCADE,
+    FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE,
+    UNIQUE KEY uniq_conversation_user (conversationID, userID),
+    KEY idx_participants_user (userID)
+);
+
+CREATE TABLE IF NOT EXISTS MessageStatus(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    messageID INT NOT NULL,
+    userID INT NOT NULL,
+    deliveredAt DATETIME NULL,
+    readAt DATETIME NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (messageID) REFERENCES Messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE,
+    UNIQUE KEY uniq_message_user (messageID, userID),
+    KEY idx_status_user_unread (userID, readAt)
+);
+
+CREATE INDEX idx_messages_conversation_sent ON Messages(conversationID, sentAt);
+CREATE INDEX idx_conversations_status_last ON Conversations(cStatus, lastMessageAt);
 
 CREATE TABLE IF NOT EXISTS Categories(
     id INT PRIMARY KEY AUTO_INCREMENT,

@@ -434,3 +434,45 @@ export function deleteAllAdminNotifications() {
     method: "DELETE",
   });
 }
+
+// ─── CHAT APIs ──────────────────────────────────────────────────────────────
+
+export function fetchChatConversations() {
+  return authedFetch(`${API_BASE}/api/chat/conversations`);
+}
+
+export function createOrGetChatConversation(payload) {
+  return authedFetch(`${API_BASE}/api/chat/conversations`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchConversationMessages(conversationID, options = {}) {
+  const params = new URLSearchParams();
+  if (options.limit) params.set("limit", String(options.limit));
+  if (options.beforeID) params.set("beforeID", String(options.beforeID));
+  const query = params.toString();
+  const suffix = query ? `?${query}` : "";
+  return authedFetch(
+    `${API_BASE}/api/chat/conversations/${conversationID}/messages${suffix}`,
+  );
+}
+
+export function markConversationRead(conversationID) {
+  return authedFetch(`${API_BASE}/api/chat/conversations/${conversationID}/read`, {
+    method: "PATCH",
+  });
+}
+
+export function searchChatUsers(query) {
+  const params = new URLSearchParams({ q: query });
+  return authedFetch(`${API_BASE}/api/chat/users?${params.toString()}`);
+}
+
+export function createOrGetDirectConversation(payload) {
+  return authedFetch(`${API_BASE}/api/chat/conversations/direct`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

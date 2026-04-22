@@ -25,6 +25,7 @@ import ClientPostProject from "./pages/ClientPostProject.jsx";
 import ClientProfile from "./pages/ClientProfile.jsx";
 import ClientNotifications from "./pages/ClientNotifications.jsx";
 import AdminNotifications from "./pages/adminDashboard/AdminNotifications.jsx";
+import ClientMessages from "./pages/ClientMessages.jsx";
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
 const router = createBrowserRouter([
@@ -84,6 +85,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ClientNotifications />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/client/messages",
+        element: (
+          <ProtectedRoute>
+            <ClientMessages />
           </ProtectedRoute>
         ),
       },

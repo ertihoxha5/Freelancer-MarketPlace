@@ -60,7 +60,7 @@ function Login() {
             <div className="mt-12 space-y-6">
               {highlights.map((item, i) => (
                 <div key={i} className="flex gap-4">
-                  <div className="mt-1 h-6 w-6 rounded-xl bg-olive-100 flex items-center justify-center flex-shrink-0">
+                  <div className="mt-1 h-6 w-6 rounded-xl bg-olive-100 flex items-center justify-center shrink-0">
                     <span className="text-olive-700 text-xl">✓</span>
                   </div>
                   <p className="text-slate-700">{item}</p>
