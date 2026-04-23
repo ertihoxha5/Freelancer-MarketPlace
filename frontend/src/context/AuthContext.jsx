@@ -1,58 +1,67 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import * as api from '../apiServices';
-import { disconnectSocket } from '../socket/socketClient.js';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import * as api from "../apiServices";
+import { connectSocket, disconnectSocket } from "../socket/socketClient.js";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    const refreshUser = useCallback(async () => {
-        if (!api.getAccessToken() && !api.getRefreshToken()) {
-            setUser(null);
-            setLoading(false);
-            return;
-        }
-        try {
-            const data = await api.fetchCurrentUser();
-            setUser(data.user);
-        } catch {
-            api.clearAuthTokens();
-            setUser(null);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  const refreshUser = useCallback(async () => {
+    if (!api.getAccessToken() && !api.getRefreshToken()) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+    try {
+      const data = await api.fetchCurrentUser();
+      setUser(data.user);
+      connectSocket();
+    } catch {
+      api.clearAuthTokens();
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    useEffect(() => {
-        refreshUser();
-    }, [refreshUser]);
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
 
-    const signIn = useCallback(async (payload) => {
-        const data = await api.login(payload);
-        setUser(data.user);
-        return data;
-    }, []);
+  const signIn = useCallback(async (payload) => {
+    const data = await api.login(payload);
+    setUser(data.user);
+    connectSocket();
+    return data;
+  }, []);
 
-    const signOut = useCallback(async () => {
-        await api.logout();
-        disconnectSocket();
-        setUser(null);
-    }, []);
+  const signOut = useCallback(async () => {
+    await api.logout();
+    disconnectSocket();
+    setUser(null);
+  }, []);
 
-    const value = useMemo(
-        () => ({ user, loading, signIn, signOut, refreshUser }),
-        [user, loading, signIn, signOut, refreshUser]
-    );
+  const value = useMemo(
+    () => ({ user, loading, signIn, signOut, refreshUser }),
+    [user, loading, signIn, signOut, refreshUser],
+  );
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-    const ctx = useContext(AuthContext);
-    if (!ctx) {
-        throw new Error('useAuth must be used within AuthProvider');
-    }
-    return ctx;
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+  return ctx;
 }

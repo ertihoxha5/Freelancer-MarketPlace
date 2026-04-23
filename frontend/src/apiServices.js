@@ -460,9 +460,12 @@ export function fetchConversationMessages(conversationID, options = {}) {
 }
 
 export function markConversationRead(conversationID) {
-  return authedFetch(`${API_BASE}/api/chat/conversations/${conversationID}/read`, {
-    method: "PATCH",
-  });
+  return authedFetch(
+    `${API_BASE}/api/chat/conversations/${conversationID}/read`,
+    {
+      method: "PATCH",
+    },
+  );
 }
 
 export function searchChatUsers(query) {
@@ -474,5 +477,39 @@ export function createOrGetDirectConversation(payload) {
   return authedFetch(`${API_BASE}/api/chat/conversations/direct`, {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+// ─── FREELANCER NOTIFICATION APIs ──────────────────────────────────────────
+
+export function fetchFreelancerNotifications() {
+  return authedFetch(`${API_BASE}/api/freelancer/notifications`);
+}
+
+export function fetchFreelancerUnreadCount() {
+  return authedFetch(`${API_BASE}/api/freelancer/notifications/unread-count`);
+}
+
+export function markFreelancerNotificationRead(id) {
+  return authedFetch(`${API_BASE}/api/freelancer/notifications/${id}/read`, {
+    method: "PATCH",
+  });
+}
+
+export function markAllFreelancerNotificationsRead() {
+  return authedFetch(`${API_BASE}/api/freelancer/notifications/read-all`, {
+    method: "PATCH",
+  });
+}
+
+export function deleteFreelancerNotification(id) {
+  return authedFetch(`${API_BASE}/api/freelancer/notifications/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function deleteAllFreelancerNotifications() {
+  return authedFetch(`${API_BASE}/api/freelancer/notifications/delete-all`, {
+    method: "DELETE",
   });
 }

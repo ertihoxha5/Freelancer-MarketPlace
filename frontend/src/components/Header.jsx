@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useEffect, useState } from "react";
 import { fetchUnreadCount, fetchAdminUnreadCount } from "../apiServices.js";
+import { getSocket } from "../socket/socketClient.js";
 
 const roleLabel = (roleID) => {
   if (Number(roleID) === 1) return "Admin";
@@ -16,6 +17,7 @@ function NotificationBell({ user }) {
   const roleID = Number(user?.roleID);
   const isClient = roleID === 2;
   const isAdmin = roleID === 1;
+  const isFreelancer = roleID === 3;
 
   useEffect(() => {
     if (!user || (!isClient && !isAdmin)) return;
@@ -24,14 +26,12 @@ function NotificationBell({ user }) {
 
     async function load() {
       try {
-        // Admin and client have separate API routes
-        const data = isAdmin
-          ? await fetchAdminUnreadCount()
-          : await fetchUnreadCount();
+        let data;
+        if (isAdmin) data = await fetchAdminUnreadCount();
+        else if (isFreelancer) data = await fetchFreelancerUnreadCount();
+        else data = await fetchUnreadCount();
         if (!cancelled) setUnread(Number(data.count) || 0);
-      } catch {
-        // Never crash the header
-      }
+      } catch {}
     }
 
     // Listen for local badge updates dispatched from the notifications page
@@ -41,14 +41,26 @@ function NotificationBell({ user }) {
       if (!Number.isNaN(count) && count >= 0) setUnread(count);
     }
 
+    function onNotificationNew() {
+      if (cancelled) return;
+      setUnread((prev) => prev + 1);
+    }
+
     load();
 
     const eventName = isAdmin
       ? "admin-notifications-unread"
-      : "client-notifications-unread";
+      : isFreelancer
+        ? "freelancer-notifications-unread"
+        : "client-notifications-unread";
 
     window.addEventListener(eventName, onBadgeUpdate);
     const interval = setInterval(load, 60_000);
+
+    const socket = getSocket();
+    if (socket) {
+      socket.on("notification:new", onNotificationNew);
+    }
 
     return () => {
       cancelled = true;
@@ -57,11 +69,13 @@ function NotificationBell({ user }) {
     };
   }, [user, isClient, isAdmin]);
 
-  if (!user || (!isClient && !isAdmin)) return null;
+  if (!user || (!isClient && !isAdmin && !isFreelancer)) return null;
 
   const href = isAdmin
     ? "/adminDashboard/notifications"
-    : "/client/notifications";
+    : isFreelancer
+      ? "/freelancer/notifications"
+      : "/client/notifications";
 
   return (
     <Link
