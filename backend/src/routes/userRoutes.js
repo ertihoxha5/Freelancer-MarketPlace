@@ -9,6 +9,6 @@ router.post('/auth/refresh', userController.refresh);
 router.post('/auth/logout', userController.logout);
 router.get('/auth/me', authMiddleware.authenticateToken, userController.me);
 router.post('/auth/register', userController.register);
-router.post('/auth/changePassword', userController.changePassword);
+router.post('/auth/changePassword', authMiddleware.authenticateToken, userController.changePassword);
 
 export default router;

@@ -6,7 +6,7 @@ import * as notificationController from "../controllers/notificationController.j
 
 const router = Router();
 
-router.use(authMiddleware.authenticateToken);
+router.use(authMiddleware.authenticateToken, authMiddleware.requireRole(1));
 
 router.get("/users", adminController.getUsers);
 router.patch("/users/:id", adminController.updateUser);

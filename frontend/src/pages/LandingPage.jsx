@@ -29,7 +29,7 @@ const LandingPage = () => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6500);
     return () => clearInterval(interval);
-  }, []);
+  }, [slides.length]);
 
   return (
     <div className="min-h-screen bg-white text-slate-900">

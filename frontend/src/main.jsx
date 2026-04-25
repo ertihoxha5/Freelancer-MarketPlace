@@ -43,7 +43,14 @@ const router = createBrowserRouter([
       { path: "/features", element: <Features /> },
       { path: "/login", element: <Login /> },
       { path: "/register", element: <Register /> },
-      { path: "/forgotpassword", element: <ForgotPassword /> },
+      {
+        path: "/forgotpassword",
+        element: (
+          <ProtectedRoute>
+            <ForgotPassword />
+          </ProtectedRoute>
+        ),
+      },
       { path: "/error", element: <ErrorPage /> },
       {
         path: "/demo-protected",

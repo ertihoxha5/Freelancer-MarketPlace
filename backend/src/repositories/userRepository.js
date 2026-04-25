@@ -27,6 +27,17 @@ export async function findUserWithRoleById(id) {
     return rows[0] ?? null;
 }
 
+export async function findUserWithPasswordById(id) {
+    const [rows] = await db.execute(
+        `SELECT id, email, passwordHash
+         FROM Users
+         WHERE id = ? AND isActive = TRUE
+         LIMIT 1`,
+        [id]
+    );
+    return rows[0] ?? null;
+}
+
 
 export async function createUserWithRole({ email, passwordHash, fullName, roleID }) {
     const conn = await db.getConnection();
@@ -54,16 +65,20 @@ export async function createUserWithRole({ email, passwordHash, fullName, roleID
 
 
 
-export async function changePassword({email, passwordHash}){
+export async function changePassword({id, passwordHash}){
     try{
-        const [result] = await db.execute('UPDATE Users SET passwordHash = ? WHERE email = ?', [passwordHash, email])
+        const [result] = await db.execute(
+            'UPDATE Users SET passwordHash = ? WHERE id = ?',
+            [passwordHash, id],
+        );
         
         if (result.affectedRows === 0) {
             const err = new Error('No matching user to update.');
             err.statusCode = 404; 
             throw err;
         }
-        return { email };
+        const user = await findUserWithRoleById(id);
+        return { email: user?.email };
     } catch (err) {
         throw err;
     }

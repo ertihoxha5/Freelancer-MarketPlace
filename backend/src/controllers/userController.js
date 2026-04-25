@@ -96,7 +96,7 @@ export async function register(req, res, next) {
 
 export async function changePassword(req, res, next) {
     try{
-        const result = await userService.changePassword(req.body);
+        const result = await userService.changePassword(req.body, req.user);
         return res.status(200).json({
             message: 'Password updated.',
             email: result.email,
@@ -108,6 +108,6 @@ export async function changePassword(req, res, next) {
         if (err.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ message: 'An account with this email already exists.' });
         }
-        next(err)
+        next(err);
     }
 }

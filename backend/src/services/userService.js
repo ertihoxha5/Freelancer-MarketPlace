@@ -96,30 +96,43 @@ export async function registerUser(input) {
 }
 
 /**
- * @param {{ email: string; password: string}} input
+ * @param {{ currentPassword: string; newPassword: string }} input
+ * @param {{ id: number }} authUser
  */
 
-export async function changePassword(input) {
-  const { email, password } = input ?? {};
+export async function changePassword(input, authUser) {
+  const { currentPassword, newPassword } = input ?? {};
+  const userID = Number(authUser?.id);
 
   if (
-    typeof email !== "string" ||
-    typeof password !== "string" ||
-    email.trim() === "" ||
-    password.length === 0
+    !Number.isInteger(userID) ||
+    typeof currentPassword !== "string" ||
+    typeof newPassword !== "string" ||
+    currentPassword.length === 0 ||
+    newPassword.length === 0
   ) {
-    throw validationError("Email and password is required.");
+    throw validationError("Current password and new password are required.");
   }
-  const emailNorm = email.trim().toLowerCase();
-  const existing = await userRepository.findUserByEmail(emailNorm);
-  if (!existing) {
-    throw conflictError("An account with this email does not exist.");
+
+  if (newPassword.length < 8) {
+    throw validationError("New password must be at least 8 characters.");
   }
-  const passwordHash = await hashPassword(password);
+
+  const user = await userRepository.findUserWithPasswordById(userID);
+  if (!user) {
+    throw unauthorized("Invalid session.");
+  }
+
+  const match = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!match) {
+    throw unauthorized("Current password is incorrect.");
+  }
+
+  const passwordHash = await hashPassword(newPassword);
 
   return userRepository.changePassword({
-    email: emailNorm,
-    passwordHash: passwordHash,
+    id: userID,
+    passwordHash,
   });
 }
 

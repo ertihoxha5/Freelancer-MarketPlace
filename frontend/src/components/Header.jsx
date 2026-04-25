@@ -35,7 +35,9 @@ function NotificationBell({ user }) {
         else if (isFreelancer) data = await fetchFreelancerUnreadCount();
         else data = await fetchUnreadCount();
         if (!cancelled) setUnread(Number(data.count) || 0);
-      } catch {}
+      } catch {
+        setUnread(0);
+      }
     }
 
     // Listen for local badge updates dispatched from the notifications page
@@ -115,7 +117,7 @@ function NotificationBell({ user }) {
 const Header = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
 
   const handleLogout = async () => {
     try {

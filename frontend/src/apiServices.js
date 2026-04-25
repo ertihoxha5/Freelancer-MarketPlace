@@ -92,23 +92,15 @@ export async function registerUser(payload) {
 }
 
 /**
- * @param {{email: string; password: string}} payload
- * accepts payload and changes password
+ * @param {{currentPassword: string; newPassword: string}} payload
+ * accepts payload and changes password for the authenticated user
  */
 
 export async function changeUserPassword(payload) {
-  const res = await fetch(`${API_BASE}/api/auth/changePassword`, {
+  return authedFetch(`${API_BASE}/api/auth/changePassword`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Change failed (${res.status})`,
-    );
-  }
-  return data;
 }
 
 /**

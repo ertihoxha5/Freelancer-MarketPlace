@@ -10,8 +10,8 @@ function ForgotPassword() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    currentPassword: '',
+    newPassword: '',
     confirmPassword: '',
   });
 
@@ -24,14 +24,14 @@ function ForgotPassword() {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.newPassword !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
     const payload = {
-      email: formData.email.trim().toLowerCase(),
-      password: formData.password,
+      currentPassword: formData.currentPassword,
+      newPassword: formData.newPassword,
     };
 
     setSubmitting(true);
@@ -51,13 +51,13 @@ function ForgotPassword() {
 
       <div className="flex min-h-[calc(100vh-76px)] items-center justify-center px-6 py-12">
         <div className="grid w-full max-w-5xl gap-16 md:grid-cols-2">
-          
+
           <div className="flex flex-col justify-center">
             <h1 className="text-5xl font-semibold text-slate-900 leading-tight">
-              Reset your password
+              Change your password
             </h1>
             <p className="mt-4 text-xl text-slate-600">
-              Enter your email and choose a new strong password.
+              Confirm your current password, then choose a new strong password.
             </p>
 
             <div className="mt-12 space-y-6 text-slate-700">
@@ -81,27 +81,15 @@ function ForgotPassword() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Email address</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => updateField('email', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 px-5 py-4 focus:border-olive-600 focus:ring-olive-600 outline-none transition"
-                  placeholder="you@company.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">New password</label>
+                <label className="block text-sm font-medium text-slate-600 mb-2">Current password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    value={formData.password}
-                    onChange={(e) => updateField('password', e.target.value)}
+                    value={formData.currentPassword}
+                    onChange={(e) => updateField('currentPassword', e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 px-5 py-4 pr-12 focus:border-olive-600 focus:ring-olive-600 outline-none transition"
-                    placeholder="Enter new password"
+                    placeholder="Enter current password"
                   />
                   <button
                     type="button"
@@ -114,11 +102,25 @@ function ForgotPassword() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-slate-600 mb-2">New password</label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={formData.newPassword}
+                  onChange={(e) => updateField('newPassword', e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 px-5 py-4 focus:border-olive-600 focus:ring-olive-600 outline-none transition"
+                  placeholder="Enter new password"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-slate-600 mb-2">Confirm new password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
+                    minLength={8}
                     value={formData.confirmPassword}
                     onChange={(e) => updateField('confirmPassword', e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 px-5 py-4 pr-12 focus:border-olive-600 focus:ring-olive-600 outline-none transition"

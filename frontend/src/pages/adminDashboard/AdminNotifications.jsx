@@ -4,7 +4,6 @@ import Sidebar from "../../components/Sidebar.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   fetchAdminNotifications,
-  fetchAdminUnreadCount,
   markAdminNotificationRead,
   markAllAdminNotificationsRead,
   deleteAdminNotification,
@@ -108,7 +107,8 @@ export default function AdminNotifications() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
-    } catch {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Update failed.");
     } finally {
       setProcessingId(null);
     }

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+/* eslint-disable no-dupe-keys, react-refresh/only-export-components */
 
 const translations = {
   en: {
