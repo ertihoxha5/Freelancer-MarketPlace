@@ -1,10 +1,18 @@
 import { Router } from "express";
 import * as authMiddleware from "../middleware/authMiddleware.js";
 import * as notificationController from "../controllers/notificationController.js";
+import * as freelancerController from "../controllers/freelancerController.js";
 
 const router = Router();
 
+router.get("/public/:id", freelancerController.getPublicProfile);
+
 router.use(authMiddleware.authenticateToken, authMiddleware.requireRole(3));
+
+router.get("/dashboard", freelancerController.getDashboard);
+router.get("/profile", freelancerController.getProfile);
+router.patch("/profile", freelancerController.updateProfile);
+router.get("/skills", freelancerController.getAvailableSkills);
 
 router.get(
   "/notifications/unread-count",

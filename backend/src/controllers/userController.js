@@ -1,4 +1,5 @@
 import * as userService from '../services/userService.js';
+import * as userRepository from '../repositories/userRepository.js';
 
 /**
  * POST /api/auth/login
@@ -21,8 +22,16 @@ export async function login(req, res, next) {
 }
 
 
-export function me(req, res) {
-    return res.json({ user: req.user });
+export async function me(req, res, next) {
+    try {
+        const user = await userRepository.findUserWithRoleById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+        return res.json({ user });
+    } catch (err) {
+        next(err);
+    }
 }
 
 /**
