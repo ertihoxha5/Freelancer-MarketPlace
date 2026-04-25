@@ -36,6 +36,16 @@ export default function FreelancerDashboard() {
   const stats = dashboard?.stats ?? {};
   const profile = dashboard?.profile ?? {};
   const previousProjects = dashboard?.previousProjects ?? [];
+  const profileCompletionItems = [
+    Boolean(profile.bio),
+    Boolean(profile.hourlyRate),
+    Boolean(profile.portofoliUrl),
+    (profile.skills?.length ?? 0) > 0,
+  ];
+  const profileCompletion = Math.round(
+    (profileCompletionItems.filter(Boolean).length / profileCompletionItems.length) *
+      100,
+  );
 
   return (
     <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden">
@@ -171,6 +181,21 @@ export default function FreelancerDashboard() {
                     <Snapshot label="Hourly rate" value={profile.hourlyRate ? `$${profile.hourlyRate}/hr` : "Not set"} />
                     <Snapshot label="Skills" value={String(profile.skills?.length ?? 0)} />
                   </div>
+                  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm font-medium text-slate-700">Profile completion</p>
+                      <span className="text-sm font-semibold text-slate-900">{profileCompletion}%</span>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                      <div
+                        className="h-full rounded-full bg-[#1a3c2e]"
+                        style={{ width: `${profileCompletion}%` }}
+                      />
+                    </div>
+                    <p className="mt-3 text-sm text-slate-500">
+                      Complete your profile so clients can understand your skills and past work faster.
+                    </p>
+                  </div>
                   <div className="mt-5 flex flex-wrap gap-2">
                     {(profile.skills ?? []).slice(0, 6).map((skill) => (
                       <span key={skill.skillID} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
@@ -178,6 +203,12 @@ export default function FreelancerDashboard() {
                       </span>
                     ))}
                   </div>
+                  <Link
+                    to="/freelancer/profile"
+                    className="mt-5 inline-flex rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Edit Profile
+                  </Link>
                 </div>
 
                 <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
