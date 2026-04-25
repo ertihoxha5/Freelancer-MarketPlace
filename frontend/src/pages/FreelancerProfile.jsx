@@ -344,11 +344,18 @@ export default function FreelancerProfile() {
                         <button
                           type="button"
                           onClick={addSkill}
-                          className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+                          disabled={!selectedSkillID}
+                          className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
                         >
                           Add Skill
                         </button>
                       </div>
+
+                      {availableSkills.length === 0 && (
+                        <p className="mt-3 text-sm text-slate-500">
+                          No platform skills are available yet. Add some records to the `Skills` table to populate this list.
+                        </p>
+                      )}
 
                       <div className="mt-4 flex flex-wrap gap-3">
                         {profile.skills.length === 0 ? (
@@ -379,6 +386,20 @@ export default function FreelancerProfile() {
                     </div>
 
                     <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPicturePreview(
+                            profile.picturePath ? `${API_BASE}${profile.picturePath}` : "",
+                          );
+                          setPictureBase64(null);
+                          setSuccess("");
+                          setError("");
+                        }}
+                        className="mr-3 rounded-2xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Reset Photo
+                      </button>
                       <button
                         type="submit"
                         disabled={saving}
