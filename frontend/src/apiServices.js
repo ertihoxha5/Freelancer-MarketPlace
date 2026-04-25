@@ -513,3 +513,33 @@ export function deleteAllFreelancerNotifications() {
     method: "DELETE",
   });
 }
+
+export function fetchFreelancerDashboard() {
+  return authedFetch(`${API_BASE}/api/freelancer/dashboard`);
+}
+
+export function fetchFreelancerProfile() {
+  return authedFetch(`${API_BASE}/api/freelancer/profile`);
+}
+
+export function updateFreelancerProfile(payload) {
+  return authedFetch(`${API_BASE}/api/freelancer/profile`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchFreelancerSkills() {
+  return authedFetch(`${API_BASE}/api/freelancer/skills`);
+}
+
+export async function fetchPublicFreelancerProfile(userID) {
+  const res = await fetch(`${API_BASE}/api/freelancer/public/${userID}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      data.message || data.error || `Request failed (${res.status})`,
+    );
+  }
+  return data;
+}

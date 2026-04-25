@@ -16,7 +16,6 @@ const sidebarConfigs = {
   ],
   freelancer: [
     { label: "Dashboard", href: "/freelancer/dashboard" },
-    { label: "My Jobs", href: "/freelancer/jobs" },
     { label: "Profile", href: "/freelancer/profile" },
     { label: "Notifications", href: "/freelancer/notifications" },
   ],

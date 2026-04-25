@@ -2,7 +2,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useEffect, useState } from "react";
-import { fetchUnreadCount, fetchAdminUnreadCount } from "../apiServices.js";
+import {
+  fetchUnreadCount,
+  fetchAdminUnreadCount,
+  fetchFreelancerUnreadCount,
+} from "../apiServices.js";
 import { getSocket } from "../socket/socketClient.js";
 
 const roleLabel = (roleID) => {
@@ -20,7 +24,7 @@ function NotificationBell({ user }) {
   const isFreelancer = roleID === 3;
 
   useEffect(() => {
-    if (!user || (!isClient && !isAdmin)) return;
+    if (!user || (!isClient && !isAdmin && !isFreelancer)) return;
 
     let cancelled = false;
 
@@ -67,7 +71,7 @@ function NotificationBell({ user }) {
       window.removeEventListener(eventName, onBadgeUpdate);
       clearInterval(interval);
     };
-  }, [user, isClient, isAdmin]);
+  }, [user, isClient, isAdmin, isFreelancer]);
 
   if (!user || (!isClient && !isAdmin && !isFreelancer)) return null;
 

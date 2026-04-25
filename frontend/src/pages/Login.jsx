@@ -30,11 +30,18 @@ function Login() {
 
     setSubmitting(true);
     try {
-      await signIn({
+      const result = await signIn({
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
       });
-      navigate('/adminDashboard', { replace: true });
+      const roleID = Number(result?.user?.roleID);
+      const redirectTo =
+        roleID === 1
+          ? '/adminDashboard'
+          : roleID === 3
+            ? '/freelancer/dashboard'
+            : '/client/dashboard';
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.message || 'Invalid email or password');
     } finally {

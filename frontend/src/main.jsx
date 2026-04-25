@@ -27,6 +27,10 @@ import ClientNotifications from "./pages/ClientNotifications.jsx";
 import AdminNotifications from "./pages/adminDashboard/AdminNotifications.jsx";
 import ClientMessages from "./pages/ClientMessages.jsx";
 import FreelancerNotifications from "./pages/FreelancerNotifications.jsx";
+import FreelancerRoute from "./routes/FreelancerRoute.jsx";
+import FreelancerDashboard from "./pages/FreelancerDashboard.jsx";
+import FreelancerPublicProfile from "./pages/FreelancerPublicProfile.jsx";
+import FreelancerProfile from "./pages/FreelancerProfile.jsx";
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
 const router = createBrowserRouter([
@@ -140,11 +144,28 @@ const router = createBrowserRouter([
       {
         path: "/freelancer/notifications",
         element: (
-          <ProtectedRoute>
+          <FreelancerRoute>
             <FreelancerNotifications />
-          </ProtectedRoute>
+          </FreelancerRoute>
         ),
       },
+      {
+        path: "/freelancer/dashboard",
+        element: (
+          <FreelancerRoute>
+            <FreelancerDashboard />
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/freelancer/profile",
+        element: (
+          <FreelancerRoute>
+            <FreelancerProfile />
+          </FreelancerRoute>
+        ),
+      },
+      { path: "/freelancers/:id", element: <FreelancerPublicProfile /> },
     ],
   },
 ]);
