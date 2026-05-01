@@ -257,3 +257,83 @@ export async function deleteClientProject(projectID, clientID) {
 
   return { id: projectID };
 }
+
+export async function getBrowseProjectsForFreelancer(filters = {}, freelancerID) {
+  const { sort, categoryID, skillIds } = filters;
+
+  let query = `
+    SELECT 
+      p.id,
+      p.title,
+      p.pDesc,
+      p.budget,
+      p.deadline,
+      p.pStatus,
+      u.fullName AS clientName,
+      CASE WHEN sp.projectID IS NOT NULL THEN 1 ELSE 0 END AS isSaved
+    FROM Project p
+    INNER JOIN Users u ON u.id = p.clientID
+    LEFT JOIN ProjectSkills ps ON ps.projectID = p.id
+    LEFT JOIN Skills s ON s.id = ps.skillID
+    LEFT JOIN SavedProjects sp 
+      ON sp.projectID = p.id AND sp.freelancerID = ?
+    WHERE p.pStatus IN ('pending', 'active')
+  `;
+
+  const params = [freelancerID];
+
+  if (categoryID) {
+    query += ` AND s.categoryID = ?`;
+    params.push(Number(categoryID));
+  }
+
+  if (skillIds) {
+    const ids = skillIds.split(",").map((id) => Number(id.trim()));
+    query += ` AND s.id IN (${ids.map(() => "?").join(",")})`;
+    params.push(...ids);
+  }
+
+  query += ` GROUP BY p.id`;
+
+  if (sort === "budget_desc") {
+    query += ` ORDER BY p.budget DESC`;
+  } else if (sort === "budget_asc") {
+    query += ` ORDER BY p.budget ASC`;
+  } else {
+    query += ` ORDER BY p.createdAt DESC`;
+  }
+
+  query += ` LIMIT 10`;
+
+  const [rows] = await db.execute(query, params);
+  return rows;
+}
+
+export async function createApplication(freelancerID, projectID, coverLetter, bidAmount, estimatedDays) {
+    const [result] = await db.execute(
+        `INSERT INTO Proposal (projectID, userID, coverLetter, bidAmount, estimatedDays, propStatus)
+         VALUES (?, ?, ?, ?, ?, 'pending')`,
+        [projectID, freelancerID, coverLetter, bidAmount || null, estimatedDays || null]
+    );
+    return { id: result.insertId };
+}
+
+export async function getMyApplications(freelancerID) {
+    const [rows] = await db.execute(`
+        SELECT 
+            p.id AS projectId,
+            p.title,
+            p.budget,
+            pr.id AS applicationId,
+            pr.coverLetter,
+            pr.bidAmount,
+            pr.estimatedDays,
+            pr.propStatus,
+            pr.createdAt
+        FROM Proposal pr
+        INNER JOIN Project p ON p.id = pr.projectID
+        WHERE pr.userID = ?
+        ORDER BY pr.createdAt DESC
+    `, [freelancerID]);
+    return rows;
+}

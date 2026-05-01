@@ -3,6 +3,7 @@ import app from './app.js';
 import './config/db.js';
 import { initSocketServer } from './socket/index.js';
 
+
 const PORT = Number(process.env.PORT) || 3000;
 
 const httpServer = http.createServer(app);

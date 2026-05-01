@@ -63,7 +63,7 @@ export default function ClientDashboard() {
     {
       title: 'Browse Freelancers',
       description: 'Find and connect with skilled professionals.',
-      href: '/freelancers', 
+      href: '/browse-freelancers', 
       icon: '👥',
       color: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
     },

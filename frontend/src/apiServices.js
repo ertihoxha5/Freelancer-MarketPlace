@@ -535,3 +535,40 @@ export async function fetchPublicFreelancerProfile(userID) {
   }
   return data;
 }
+
+export async function fetchBrowseProjects(params = {}, signal) {
+  const query = new URLSearchParams(params).toString();
+
+  const url = query
+    ? `${API_BASE}/api/freelancer/browse-projects?${query}`
+    : `${API_BASE}/api/freelancer/browse-projects`;
+
+  return authedFetch(url, { signal });
+}
+
+export async function fetchSavedProjects() {
+  return authedFetch(`${API_BASE}/api/saved-projects`);
+}
+
+export async function saveProject(projectID) {
+  return authedFetch(`${API_BASE}/api/saved-projects/${projectID}`, {
+    method: "POST",
+  });
+}
+
+export async function removeSavedProject(projectID) {
+  return authedFetch(`${API_BASE}/api/saved-projects/${projectID}`, {
+    method: "DELETE",
+  });
+}
+
+export async function submitApplication(projectId, payload) {
+  return authedFetch(`${API_BASE}/api/freelancer/projects/${projectId}/apply`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchMyApplications() {
+  return authedFetch(`${API_BASE}/api/freelancer/applications`);
+}

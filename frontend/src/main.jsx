@@ -31,6 +31,9 @@ import FreelancerRoute from "./routes/FreelancerRoute.jsx";
 import FreelancerDashboard from "./pages/FreelancerDashboard.jsx";
 import FreelancerPublicProfile from "./pages/FreelancerPublicProfile.jsx";
 import FreelancerProfile from "./pages/FreelancerProfile.jsx";
+import FreelancerBrowseProjects from "./pages/FreelancerBrowseProjects.jsx";
+import FreelancerFavorites from "./pages/FreelancerFavorites.jsx";
+import FreelancerMakeApplication from "./pages/FreelancerMakeApplication.jsx";
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
 const router = createBrowserRouter([
@@ -165,10 +168,34 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/freelancer/browse-projects",
+        element: (
+        <FreelancerRoute>
+          <FreelancerBrowseProjects/>
+        </FreelancerRoute>
+        ),
+      },
+      {
         path: "/freelancer/profile",
         element: (
           <FreelancerRoute>
             <FreelancerProfile />
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/projects/:projectId/apply",
+        element: (
+          <FreelancerRoute>
+            <FreelancerMakeApplication />
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/freelancer/favorites",
+        element: (
+          <FreelancerRoute>
+            <FreelancerFavorites />
           </FreelancerRoute>
         ),
       },

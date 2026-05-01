@@ -143,3 +143,36 @@ export async function deleteProject(id) {
 
   return result;
 }
+export async function browseProjectsForFreelancer(userID, queryParams = {}) {
+  const { sort, categoryID, skillIds } = queryParams;
+
+  const projects =
+    await projectRepository.getBrowseProjectsForFreelancer(
+      { sort, categoryID, skillIds },
+      userID
+    );
+
+  return {
+    projects,
+    pagination: { page: 1, limit: 10 },
+  };
+}
+
+export async function createApplication(userID, projectID, payload) {
+    const { coverLetter, bidAmount, estimatedDays } = payload;
+    if (!coverLetter || coverLetter.trim() === "") {
+        const err = new Error("Cover letter is required.");
+        err.statusCode = 400;
+        throw err;
+    }
+    return projectRepository.createApplication(
+        Number(userID),
+        Number(projectID),
+        coverLetter.trim(),
+        bidAmount ? Number(bidAmount) : null,
+        estimatedDays ? Number(estimatedDays) : null
+    );
+}
+export async function getMyApplications(userID) {
+    return projectRepository.getMyApplications(Number(userID));
+}

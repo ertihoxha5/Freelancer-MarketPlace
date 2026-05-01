@@ -1,0 +1,1 @@
+//Vetem e krijuar si klas duhet vazhduar me implementimin e funksionaliteteve te nevojshme

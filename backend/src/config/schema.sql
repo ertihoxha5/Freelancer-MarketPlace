@@ -41,24 +41,8 @@ CREATE TABLE IF NOT EXISTS RolePerms(
     permissionID INT NOT NULL,
 
     FOREIGN KEY (roleID) REFERENCES Roles(id),
-    FOREIGN KEY (permissionID) REFERENCES Permission(id),
-    UNIQUE KEY uniq_role_perm (roleID, permissionID)
+    FOREIGN KEY (permissionID) REFERENCES Permission(id)
 );
-
-INSERT IGNORE INTO Permission (permName, permDesc) VALUES
-    ('view_project', 'Can view projects'),
-    ('edit_project', 'Can update projects'),
-    ('delete_project', 'Can delete projects'),
-    ('view_profile', 'Can view profile data'),
-    ('edit_profile', 'Can update profile data'),
-    ('manage_users', 'Can manage user accounts');
-
-INSERT IGNORE INTO RolePerms (roleID, permissionID)
-    SELECT r.id, p.id FROM Roles r JOIN Permission p ON r.roleName = 'Admin' AND p.permName IN ('view_project', 'edit_project', 'delete_project', 'view_profile', 'edit_profile', 'manage_users')
-    UNION ALL
-    SELECT r.id, p.id FROM Roles r JOIN Permission p ON r.roleName = 'Client' AND p.permName IN ('view_project', 'edit_project', 'delete_project', 'view_profile', 'edit_profile')
-    UNION ALL
-    SELECT r.id, p.id FROM Roles r JOIN Permission p ON r.roleName = 'Freelancer' AND p.permName IN ('view_project', 'view_profile', 'edit_profile');
 
 CREATE TABLE IF NOT EXISTS RefreshTokens(
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -138,6 +122,24 @@ CREATE TABLE IF NOT EXISTS Project(
     FOREIGN KEY (clientID) REFERENCES Users(id)
 );
 
+ALTER TABLE Project
+    MODIFY title VARCHAR(150) NOT NULL,
+    MODIFY pDesc TEXT NOT NULL,
+    MODIFY budget DECIMAL(12,2) NOT NULL,
+    ADD COLUMN createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    ADD COLUMN categoryID INT NULL,
+    ADD COLUMN experienceLevel ENUM('beginner', 'intermediate', 'expert') DEFAULT 'intermediate',
+    ADD COLUMN isPublic BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE Project
+    ADD FOREIGN KEY (categoryID) REFERENCES Categories(id);
+
+CREATE INDEX idx_project_status_created ON Project(pStatus, createdAt DESC);
+CREATE INDEX idx_project_budget ON Project(budget);
+CREATE INDEX idx_project_category ON Project(categoryID);
+
+
 CREATE TABLE IF NOT EXISTS Proposal(
     id INT PRIMARY KEY AUTO_INCREMENT,
     projectID INT NOT NULL,
@@ -149,6 +151,21 @@ CREATE TABLE IF NOT EXISTS Proposal(
     FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE CASCADE,
     FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE
 );
+
+ALTER TABLE Proposal
+    ADD COLUMN bidAmount DECIMAL(12,2) NULL,
+    ADD COLUMN estimatedDays INT NULL,
+    ADD COLUMN attachmentID INT NULL,
+    ADD COLUMN reviewedAt TIMESTAMP NULL,
+    ADD COLUMN reviewedBy INT NULL,
+    ADD COLUMN notes TEXT NULL;
+ALTER TABLE Proposal
+    ADD FOREIGN KEY (attachmentID) REFERENCES Files(id),
+    ADD UNIQUE KEY unique_freelancer_project (userID, projectID); 
+    
+CREATE INDEX idx_proposal_user_project ON Proposal(userID, projectID);
+CREATE INDEX idx_projectskills_project ON ProjectSkills(projectID);
+CREATE INDEX idx_projectskills_skill ON ProjectSkills(skillID);
 
 CREATE TABLE IF NOT EXISTS Contracts(
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -187,13 +204,11 @@ CREATE TABLE IF NOT EXISTS Review(
 
 CREATE TABLE IF NOT EXISTS Conversations(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    conversationType ENUM('project', 'direct') NOT NULL DEFAULT 'project',
     cStatus ENUM('active', 'archived', 'closed') NOT NULL DEFAULT 'active',
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    lastMessageAt DATETIME NULL,
-    projectID INT NULL,
-    clientID INT NULL,
-    freelancerID INT NULL,
+    projectID INT NOT NULL,
+    clientID INT NOT NULL,
+    freelancerID INT NOT NULL,
 
     FOREIGN KEY (clientID) REFERENCES Users(id),
     FOREIGN KEY (freelancerID) REFERENCES Users(id),
@@ -204,48 +219,16 @@ CREATE TABLE IF NOT EXISTS Messages(
     id INT PRIMARY KEY AUTO_INCREMENT,
     conversationID INT NOT NULL,
     senderID INT NOT NULL,
-    content TEXT NOT NULL,
+    content VARCHAR(255) NOT NULL,
     msgType ENUM('text', 'image', 'file', 'system') NOT NULL DEFAULT 'text',
     field VARCHAR(20),
     isRead BOOLEAN DEFAULT FALSE,
     isDeleted BOOLEAN DEFAULT FALSE,
-    deliveredAt DATETIME NULL,
     sentAt DATETIME DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (conversationID) REFERENCES Conversations(id),
     FOREIGN KEY (senderID) REFERENCES Users(id)
 );
-
-CREATE TABLE IF NOT EXISTS ConversationParticipants(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    conversationID INT NOT NULL,
-    userID INT NOT NULL,
-    roleInConversation ENUM('owner', 'member') NOT NULL DEFAULT 'member',
-    joinedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    leftAt DATETIME NULL,
-
-    FOREIGN KEY (conversationID) REFERENCES Conversations(id) ON DELETE CASCADE,
-    FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE,
-    UNIQUE KEY uniq_conversation_user (conversationID, userID),
-    KEY idx_participants_user (userID)
-);
-
-CREATE TABLE IF NOT EXISTS MessageStatus(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    messageID INT NOT NULL,
-    userID INT NOT NULL,
-    deliveredAt DATETIME NULL,
-    readAt DATETIME NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (messageID) REFERENCES Messages(id) ON DELETE CASCADE,
-    FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE,
-    UNIQUE KEY uniq_message_user (messageID, userID),
-    KEY idx_status_user_unread (userID, readAt)
-);
-
-CREATE INDEX idx_messages_conversation_sent ON Messages(conversationID, sentAt);
-CREATE INDEX idx_conversations_status_last ON Conversations(cStatus, lastMessageAt);
 
 CREATE TABLE IF NOT EXISTS Categories(
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -316,6 +299,21 @@ CREATE TABLE IF NOT EXISTS Disputes(
     FOREIGN KEY (resolvedBy) REFERENCES Users(id),
     FOREIGN KEY (raisedBy) REFERENCES Users(id),
     FOREIGN KEY (raisedAgainst) REFERENCES Users(id)
+);
+
+CREATE TABLE IF NOT EXISTS SavedProjects (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    freelancerID INT NOT NULL,
+    projectID INT NOT NULL,
+    notes TEXT NULL,
+    savedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE CASCADE,
+    
+    UNIQUE KEY unique_save (freelancerID, projectID),
+    INDEX idx_saved_freelancer (freelancerID),
+    INDEX idx_saved_project (projectID)
 );
 
 INSERT INTO Roles(roleName, roleDescription) VALUES ('SysAdmin', 'System admin');

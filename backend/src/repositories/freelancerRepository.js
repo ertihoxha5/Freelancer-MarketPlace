@@ -82,7 +82,6 @@ export async function replaceFreelancerSkills(profileID, skills) {
     conn.release();
   }
 }
-
 export async function getFreelancerStats(userID) {
   const [rows] = await db.execute(
     `SELECT
@@ -121,10 +120,12 @@ export async function getFreelancerStats(userID) {
   );
   return rows[0] ?? null;
 }
-
 export async function listFreelancerPreviousProjects(userID, limit = 6) {
-  const [rows] = await db.execute(
-    `SELECT
+  if (!userID) {
+    throw new Error("UserID is required");
+  }
+  const safeLimit = Number(limit) || 6;
+  const query = `SELECT
         p.id,
         p.title,
         p.pDesc,
@@ -134,20 +135,14 @@ export async function listFreelancerPreviousProjects(userID, limit = 6) {
         uc.fullName AS clientName,
         ct.cStatus AS contractStatus,
         ct.totalAmount
-     FROM Proposal pr
-     INNER JOIN Project p ON p.id = pr.projectID
-     INNER JOIN Users uc ON uc.id = p.clientID
-     LEFT JOIN Contracts ct ON ct.proposalID = pr.id
-     WHERE pr.userID = ? AND pr.propStatus = 'accepted'
-     ORDER BY
-       CASE
-         WHEN ct.cStatus = 'completed' OR p.pStatus = 'completed' THEN 0
-         ELSE 1
-       END ASC,
-       COALESCE(ct.endDate, p.deadline, pr.updatedAt, pr.createdAt) DESC,
-       p.id DESC
-     LIMIT ?`,
-    [userID, Number(limit)],
-  );
+    FROM Proposal pr
+    INNER JOIN Project p ON p.id = pr.projectID
+    INNER JOIN Users uc ON uc.id = p.clientID
+    LEFT JOIN Contracts ct ON ct.proposalID = pr.id
+    WHERE pr.userID = ? 
+      AND pr.propStatus = 'accepted'
+    ORDER BY p.createdAt DESC, p.id DESC
+    LIMIT ${safeLimit}`;
+  const [rows] = await db.execute(query, [Number(userID)]);
   return rows;
 }

@@ -6,6 +6,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import clientRoutes from "./routes/clientRoutes.js";
 import freelancerRoutes from "./routes/freelancerRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import savedProjectRoutes from "./routes/savedProjectRoutes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -44,6 +45,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/client", clientRoutes);
 app.use("/api/freelancer", freelancerRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/saved-projects", savedProjectRoutes);
 
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);

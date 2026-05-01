@@ -71,3 +71,44 @@ export async function deleteProject(req, res, next) {
     next(err);
   }
 }
+
+
+export async function browseProjects(req, res, next) {
+  try {
+    const result = await projectService.browseProjectsForFreelancer(
+      req.user.id,
+      req.query
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: err.message });
+  }
+}
+
+export async function createApplication(req, res, next) {
+    try {
+        const result = await projectService.createApplication(
+            req.user.id,
+            req.params.projectId,
+            req.body
+        );
+        return res.status(201).json({ 
+            message: "Application submitted successfully.", 
+            ...result 
+        });
+    } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ message: err.message });
+        next(err);
+    }
+}
+
+export async function getMyApplications(req, res, next) {
+    try {
+        const applications = await projectService.getMyApplications(req.user.id);
+        return res.status(200).json({ applications });
+    } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ message: err.message });
+        next(err);
+    }
+}
