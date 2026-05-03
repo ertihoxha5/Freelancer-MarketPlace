@@ -27,6 +27,7 @@ const sidebarConfigs = {
     { label: "Dashboard", href: "/client/dashboard" },
     { label: "Post Project", href: "/client/post-project" },
     { label: "My Projects", href: "/client/projects" },
+    { label: "Applications", href: "/client/applications" },
     { label: "Notifications", href: "/client/notifications" },
     { label: "My Profile", href: "/client/profile" },
     { label: "Messages", href: "/client/messages" },

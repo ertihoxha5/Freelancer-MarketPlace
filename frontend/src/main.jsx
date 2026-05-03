@@ -24,6 +24,7 @@ import ClientProjects from "./pages/ClientProjects.jsx";
 import ClientPostProject from "./pages/ClientPostProject.jsx";
 import ClientProfile from "./pages/ClientProfile.jsx";
 import ClientNotifications from "./pages/ClientNotifications.jsx";
+import ClientApplications from "./pages/ClientApplications.jsx";
 import AdminNotifications from "./pages/adminDashboard/AdminNotifications.jsx";
 import ClientMessages from "./pages/ClientMessages.jsx";
 import FreelancerNotifications from "./pages/FreelancerNotifications.jsx";
@@ -77,6 +78,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ClientProjects />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/client/applications",
+        element: (
+          <ProtectedRoute>
+            <ClientApplications />
           </ProtectedRoute>
         ),
       },

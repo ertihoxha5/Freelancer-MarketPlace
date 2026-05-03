@@ -25,6 +25,38 @@ export async function getMyProject(req, res, next) {
   }
 }
 
+
+export async function getMyApplications(req, res, next) {
+  try {
+    const clientID = req.user.id;
+    const applications = await clientService.getMyApplications(clientID);
+    return res.status(200).json({ applications });
+  } catch (err) {
+    if (err.statusCode)
+      return res.status(err.statusCode).json({ message: err.message });
+    next(err);
+  }
+}
+
+export async function updateMyApplicationStatus(req, res, next) {
+  try {
+    const clientID = req.user.id;
+    const applicationID = Number(req.params.applicationId);
+    const application = await clientService.updateMyApplicationStatus(
+      clientID,
+      applicationID,
+      req.body,
+    );
+    return res.status(200).json({
+      message: "Application status updated successfully.",
+      application,
+    });
+  } catch (err) {
+    if (err.statusCode)
+      return res.status(err.statusCode).json({ message: err.message });
+    next(err);
+  }
+}
 export async function getMyProfile(req, res, next) {
   try {
     const clientID = req.user.id;
