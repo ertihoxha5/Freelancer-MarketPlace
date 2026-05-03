@@ -34,6 +34,7 @@ import FreelancerProfile from "./pages/FreelancerProfile.jsx";
 import FreelancerBrowseProjects from "./pages/FreelancerBrowseProjects.jsx";
 import FreelancerFavorites from "./pages/FreelancerFavorites.jsx";
 import FreelancerMakeApplication from "./pages/FreelancerMakeApplication.jsx";
+import FreelancerMyApplications from "./pages/FreelancerMyApplications.jsx";
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
 const router = createBrowserRouter([
@@ -196,6 +197,14 @@ const router = createBrowserRouter([
         element: (
           <FreelancerRoute>
             <FreelancerFavorites />
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/freelancer/applications",
+        element: (
+          <FreelancerRoute>
+            <FreelancerMyApplications />
           </FreelancerRoute>
         ),
       },

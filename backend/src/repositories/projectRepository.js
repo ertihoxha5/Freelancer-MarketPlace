@@ -309,6 +309,37 @@ export async function getBrowseProjectsForFreelancer(filters = {}, freelancerID)
   return rows;
 }
 
+export async function getFreelancerProjectDetails(projectID, freelancerID) {
+    const [rows] = await db.execute(
+        `SELECT
+            p.id,
+            p.title,
+            p.pDesc,
+            p.budget,
+            p.deadline,
+            p.pStatus,
+            p.createdAt,
+            p.updatedAt,
+            p.clientID,
+            u.fullName AS clientName,
+            u.email AS clientEmail,
+            COUNT(DISTINCT allPr.id) AS proposalCount,
+            MAX(CASE WHEN myPr.id IS NOT NULL THEN 1 ELSE 0 END) AS hasApplied
+        FROM Project p
+        INNER JOIN Users u ON u.id = p.clientID
+        LEFT JOIN Proposal allPr ON allPr.projectID = p.id
+        LEFT JOIN Proposal myPr ON myPr.projectID = p.id AND myPr.userID = ? AND myPr.isDeleted = FALSE
+        WHERE p.id = ?
+          AND (p.pStatus IN ('pending', 'active') OR myPr.id IS NOT NULL)
+        GROUP BY p.id, p.title, p.pDesc, p.budget, p.deadline, p.pStatus,
+                 p.createdAt, p.updatedAt, p.clientID, u.fullName, u.email
+        LIMIT 1`,
+        [freelancerID, projectID],
+    );
+
+    return rows[0] ?? null;
+}
+
 export async function createApplication(freelancerID, projectID, coverLetter, bidAmount, estimatedDays) {
     const [result] = await db.execute(
         `INSERT INTO Proposal (projectID, userID, coverLetter, bidAmount, estimatedDays, propStatus)
@@ -318,13 +349,55 @@ export async function createApplication(freelancerID, projectID, coverLetter, bi
     return { id: result.insertId };
 }
 
+export async function getApplicationByIdForFreelancer(applicationID, freelancerID) {
+  const [rows] = await db.execute(
+    `SELECT id, projectID, userID, coverLetter, bidAmount, estimatedDays, propStatus, isDeleted, createdAt, updatedAt
+     FROM Proposal
+     WHERE id = ? AND userID = ? AND isDeleted = FALSE
+     LIMIT 1`,
+    [applicationID, freelancerID],
+  );
+  return rows[0] ?? null;
+}
+
+export async function updateApplicationForFreelancer(
+  applicationID,
+  freelancerID,
+  { coverLetter, bidAmount, estimatedDays },
+) {
+  const [result] = await db.execute(
+    `UPDATE Proposal
+     SET coverLetter = ?, bidAmount = ?, estimatedDays = ?
+     WHERE id = ? AND userID = ? AND propStatus = 'pending' AND isDeleted = FALSE`,
+    [coverLetter, bidAmount ?? null, estimatedDays ?? null, applicationID, freelancerID],
+  );
+
+  return result.affectedRows;
+}
+
+export async function softDeleteApplicationForFreelancer(applicationID, freelancerID) {
+  const [result] = await db.execute(
+    `UPDATE Proposal
+     SET isDeleted = TRUE
+     WHERE id = ? AND userID = ?`,
+    [applicationID, freelancerID],
+  );
+
+  return result.affectedRows;
+}
+
 export async function getMyApplications(freelancerID) {
     const [rows] = await db.execute(`
         SELECT 
             p.id AS projectId,
             p.title,
+      p.pDesc,
             p.budget,
+      p.deadline,
+      p.pStatus AS projectStatus,
+      u.fullName AS clientName,
             pr.id AS applicationId,
+          pr.isDeleted,
             pr.coverLetter,
             pr.bidAmount,
             pr.estimatedDays,
@@ -332,7 +405,8 @@ export async function getMyApplications(freelancerID) {
             pr.createdAt
         FROM Proposal pr
         INNER JOIN Project p ON p.id = pr.projectID
-        WHERE pr.userID = ?
+    INNER JOIN Users u ON u.id = p.clientID
+        WHERE pr.userID = ? AND pr.isDeleted = FALSE
         ORDER BY pr.createdAt DESC
     `, [freelancerID]);
     return rows;

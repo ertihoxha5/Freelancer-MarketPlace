@@ -12,8 +12,11 @@ router.get("/profile", freelancerController.getProfile);
 router.patch("/profile", freelancerController.updateProfile);
 router.get("/skills", freelancerController.getAvailableSkills);
 router.get('/browse-projects', projectController.browseProjects);
+router.get('/projects/:projectId', projectController.getFreelancerProjectDetails);
 router.post('/projects/:projectId/apply', projectController.createApplication);
 router.get('/applications', projectController.getMyApplications);
+router.patch('/applications/:applicationId', projectController.updateMyApplication);
+router.delete('/applications/:applicationId', projectController.softDeleteMyApplication);
 
 
 router.get(
