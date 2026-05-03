@@ -190,6 +190,71 @@ export async function getClientProjectById(projectID, clientID) {
   return rows[0] ?? null;
 }
 
+export async function getClientApplications(clientID) {
+  const [rows] = await db.execute(
+    `SELECT
+            pr.id AS applicationId,
+            pr.projectID AS projectId,
+            pr.userID AS freelancerID,
+            pr.coverLetter,
+            pr.bidAmount,
+            pr.estimatedDays,
+            pr.propStatus,
+            pr.createdAt,
+            pr.updatedAt,
+            p.title AS projectTitle,
+            p.budget AS projectBudget,
+            p.pStatus AS projectStatus,
+            p.deadline AS projectDeadline,
+            u.fullName AS freelancerName,
+            u.email AS freelancerEmail
+         FROM Proposal pr
+         INNER JOIN Project p ON p.id = pr.projectID
+         INNER JOIN Users u ON u.id = pr.userID
+         WHERE p.clientID = ? AND pr.isDeleted = FALSE
+         ORDER BY pr.createdAt DESC`,
+    [clientID],
+  );
+  return rows;
+}
+
+export async function getClientApplicationById(applicationID, clientID) {
+  const [rows] = await db.execute(
+    `SELECT
+            pr.id AS applicationId,
+            pr.projectID AS projectId,
+            pr.userID AS freelancerID,
+            pr.coverLetter,
+            pr.bidAmount,
+            pr.estimatedDays,
+            pr.propStatus,
+            pr.isDeleted,
+            p.clientID
+         FROM Proposal pr
+         INNER JOIN Project p ON p.id = pr.projectID
+         WHERE pr.id = ? AND p.clientID = ? AND pr.isDeleted = FALSE
+         LIMIT 1`,
+    [applicationID, clientID],
+  );
+  return rows[0] ?? null;
+}
+
+export async function updateClientApplicationStatus(
+  applicationID,
+  clientID,
+  propStatus,
+) {
+  const [result] = await db.execute(
+    `UPDATE Proposal pr
+         INNER JOIN Project p ON p.id = pr.projectID
+         SET pr.propStatus = ?
+         WHERE pr.id = ? AND p.clientID = ? AND pr.isDeleted = FALSE`,
+    [propStatus, applicationID, clientID],
+  );
+
+  return result.affectedRows;
+}
+
 
 export async function createClientProject({
   title,

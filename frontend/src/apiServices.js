@@ -347,6 +347,17 @@ export function deleteClientProject(id) {
   });
 }
 
+export function fetchClientApplications() {
+  return authedFetch(`${API_BASE}/api/client/applications`);
+}
+
+export function updateClientApplicationStatus(applicationId, payload) {
+  return authedFetch(`${API_BASE}/api/client/applications/${applicationId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function fetchClientProfile() {
   return authedFetch(`${API_BASE}/api/client/profile`);
 }

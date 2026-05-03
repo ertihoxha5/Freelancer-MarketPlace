@@ -12,6 +12,8 @@ router.post("/projects", clientController.createMyProject);
 router.get("/projects/:id", clientController.getMyProject);
 router.patch("/projects/:id", clientController.updateMyProject);
 router.delete("/projects/:id", clientController.deleteMyProject);
+router.get("/applications", clientController.getMyApplications);
+router.patch("/applications/:applicationId/status", clientController.updateMyApplicationStatus);
 
 
 router.get(

@@ -49,6 +49,61 @@ export async function getMyProject(projectID, clientID) {
   return project;
 }
 
+export async function getMyApplications(clientID) {
+  const clientId = Number(clientID);
+  if (!Number.isInteger(clientId) || clientId <= 0) {
+    throw validationError("Valid client ID is required.");
+  }
+  return projectRepository.getClientApplications(clientId);
+}
+
+export async function updateMyApplicationStatus(clientID, applicationID, payload) {
+  const clientId = Number(clientID);
+  const appId = Number(applicationID);
+  const propStatus = typeof payload?.propStatus === "string" ? payload.propStatus.trim() : "";
+
+  if (!Number.isInteger(clientId) || clientId <= 0) {
+    throw validationError("Valid client ID is required.");
+  }
+  if (!Number.isInteger(appId) || appId <= 0) {
+    throw validationError("Valid application ID is required.");
+  }
+  if (!["pending", "accepted", "rejected"].includes(propStatus)) {
+    throw validationError("Status must be pending, accepted, or rejected.");
+  }
+
+  const existing = await projectRepository.getClientApplicationById(appId, clientId);
+  if (!existing) {
+    const err = new Error("Application not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (existing.propStatus === propStatus) {
+    return {
+      applicationId: appId,
+      propStatus,
+    };
+  }
+
+  const affected = await projectRepository.updateClientApplicationStatus(
+    appId,
+    clientId,
+    propStatus,
+  );
+
+  if (!affected) {
+    const err = new Error("Unable to update application status.");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  return {
+    applicationId: appId,
+    propStatus,
+  };
+}
+
 export async function getMyProfile(clientID) {
   const clientId = Number(clientID);
   if (!Number.isInteger(clientId) || clientId <= 0) {
