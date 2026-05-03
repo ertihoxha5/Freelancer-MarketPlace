@@ -572,3 +572,20 @@ export async function submitApplication(projectId, payload) {
 export async function fetchMyApplications() {
   return authedFetch(`${API_BASE}/api/freelancer/applications`);
 }
+
+export async function updateMyApplication(applicationId, payload) {
+  return authedFetch(`${API_BASE}/api/freelancer/applications/${applicationId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function softDeleteMyApplication(applicationId) {
+  return authedFetch(`${API_BASE}/api/freelancer/applications/${applicationId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function fetchFreelancerProjectDetails(projectId) {
+  return authedFetch(`${API_BASE}/api/freelancer/projects/${projectId}`);
+}

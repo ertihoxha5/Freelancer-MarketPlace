@@ -86,6 +86,20 @@ export async function browseProjects(req, res, next) {
   }
 }
 
+export async function getFreelancerProjectDetails(req, res, next) {
+  try {
+    const project = await projectService.getFreelancerProjectDetails(
+      req.user.id,
+      req.params.projectId,
+    );
+    return res.status(200).json({ project });
+  } catch (err) {
+    if (err.statusCode)
+      return res.status(err.statusCode).json({ message: err.message });
+    next(err);
+  }
+}
+
 export async function createApplication(req, res, next) {
     try {
         const result = await projectService.createApplication(
@@ -102,6 +116,39 @@ export async function createApplication(req, res, next) {
         next(err);
     }
 }
+
+    export async function updateMyApplication(req, res, next) {
+      try {
+        const application = await projectService.updateMyApplication(
+          req.user.id,
+          req.params.applicationId,
+          req.body,
+        );
+        return res.status(200).json({
+          message: "Application updated successfully.",
+          application,
+        });
+      } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ message: err.message });
+        next(err);
+      }
+    }
+
+    export async function softDeleteMyApplication(req, res, next) {
+      try {
+        const result = await projectService.softDeleteMyApplication(
+          req.user.id,
+          req.params.applicationId,
+        );
+        return res.status(200).json({
+          message: "Application withdrawn successfully.",
+          ...result,
+        });
+      } catch (err) {
+        if (err.statusCode) return res.status(err.statusCode).json({ message: err.message });
+        next(err);
+      }
+    }
 
 export async function getMyApplications(req, res, next) {
     try {

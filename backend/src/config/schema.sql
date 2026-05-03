@@ -162,6 +162,9 @@ ALTER TABLE Proposal
 ALTER TABLE Proposal
     ADD FOREIGN KEY (attachmentID) REFERENCES Files(id),
     ADD UNIQUE KEY unique_freelancer_project (userID, projectID); 
+
+ALTER TABLE Proposal
+ADD COLUMN isDeleted BOOLEAN DEFAULT FALSE;
     
 CREATE INDEX idx_proposal_user_project ON Proposal(userID, projectID);
 CREATE INDEX idx_projectskills_project ON ProjectSkills(projectID);

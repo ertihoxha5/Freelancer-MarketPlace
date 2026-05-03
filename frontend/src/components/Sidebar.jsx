@@ -19,11 +19,9 @@ const sidebarConfigs = {
     { label: "Profile", href: "/freelancer/profile" },
     { label: "Notifications", href: "/freelancer/notifications" },
     { label: "Browse Projects", href: "/freelancer/browse-projects" },
-    // Shtova kete rresht vetem per ta bere testim faqen e aplikimit te freelancerit, mund ta ndryshosh me vone
-    // Kur e bene pjesen e My Applications e largoni kete pasi kur e prek butonin "Apply Now" 
-    // do te navigoje ne faqen e aplikimit(Make Application)
-    { label: "Make Application(Test)", href: "/projects/:projectId/apply" },
     { label: "Favorite Projects", href: "/freelancer/favorites" },
+    { label: "My Applications", href: "/freelancer/applications" },
+
   ],
   client: [
     { label: "Dashboard", href: "/client/dashboard" },

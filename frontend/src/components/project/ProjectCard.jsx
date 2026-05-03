@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { saveProject, removeSavedProject } from "../../apiServices";
 
-export default function ProjectCard({ project, onUnsave }) {
+export default function ProjectCard({ project, onUnsave, onApplyNow }) {
   const [isSaved, setIsSaved] = useState(project.isSaved === true || project.isSaved === 1);
   const toggleSave = async () => {
     try {
@@ -27,7 +27,7 @@ export default function ProjectCard({ project, onUnsave }) {
         <div className="text-right">Deadline: <span className="font-medium">{new Date(project.deadline).toLocaleDateString()}</span></div>
       </div>
       <div className="mt-2 text-xs text-slate-500">Client: <span className="font-medium text-slate-700">{project.clientName}</span></div>
-      <button onClick={() => window.location.href = `/projects/${project.id}/apply`}
+      <button onClick={() => onApplyNow?.(project)}
         className="mt-6 w-full bg-[#1a3c2e] hover:bg-[#2a5c46] text-white font-semibold py-3 rounded-2xl text-sm transition">Apply Now</button>
       {/*Ketu e kom lan e vendos pastaj projektet qe do aplikoje freelanceri e rregullojm pasi te behet edhe My Applications - Freelancer*/}
     </div>
