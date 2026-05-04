@@ -352,10 +352,13 @@ export function fetchClientApplications() {
 }
 
 export function updateClientApplicationStatus(applicationId, payload) {
-  return authedFetch(`${API_BASE}/api/client/applications/${applicationId}/status`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+  return authedFetch(
+    `${API_BASE}/api/client/applications/${applicationId}/status`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function fetchClientProfile() {
@@ -585,18 +588,64 @@ export async function fetchMyApplications() {
 }
 
 export async function updateMyApplication(applicationId, payload) {
-  return authedFetch(`${API_BASE}/api/freelancer/applications/${applicationId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+  return authedFetch(
+    `${API_BASE}/api/freelancer/applications/${applicationId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function softDeleteMyApplication(applicationId) {
-  return authedFetch(`${API_BASE}/api/freelancer/applications/${applicationId}`, {
-    method: "DELETE",
-  });
+  return authedFetch(
+    `${API_BASE}/api/freelancer/applications/${applicationId}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 export async function fetchFreelancerProjectDetails(projectId) {
   return authedFetch(`${API_BASE}/api/freelancer/projects/${projectId}`);
+}
+
+export async function fetchActivityFeed(params = {}) {
+  const query = new URLSearchParams();
+
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.eventType) query.set("eventType", params.eventType);
+  if (params.onlyUnread) query.set("onlyUnread", "true");
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return authedFetch(`${API_BASE}/api/freelancer/activities${suffix}`);
+}
+
+export async function fetchActivityUnreadCount() {
+  return authedFetch(`${API_BASE}/api/freelancer/activities/unread-count`);
+}
+
+export async function markActivityRead(id) {
+  return authedFetch(`${API_BASE}/api/freelancer/activities/${id}/read`, {
+    method: "PATCH",
+  });
+}
+
+export async function markAllActivitiesRead() {
+  return authedFetch(`${API_BASE}/api/freelancer/activities/read-all`, {
+    method: "PATCH",
+  });
+}
+
+export async function deleteActivity(id) {
+  return authedFetch(`${API_BASE}/api/freelancer/activities/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteAllActivities() {
+  return authedFetch(`${API_BASE}/api/freelancer/activities`, {
+    method: "DELETE",
+  });
 }

@@ -7,6 +7,7 @@ import * as auditRepository from "../repositories/auditRepository.js";
 import * as profileRepository from "../repositories/profileRepository.js";
 import * as fileRepository from "../repositories/fileRepository.js";
 import { pushNotification, pushToAllAdmins } from "./notificationService.js";
+import { createActivity } from "./activityService.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
@@ -57,10 +58,15 @@ export async function getMyApplications(clientID) {
   return projectRepository.getClientApplications(clientId);
 }
 
-export async function updateMyApplicationStatus(clientID, applicationID, payload) {
+export async function updateMyApplicationStatus(
+  clientID,
+  applicationID,
+  payload,
+) {
   const clientId = Number(clientID);
   const appId = Number(applicationID);
-  const propStatus = typeof payload?.propStatus === "string" ? payload.propStatus.trim() : "";
+  const propStatus =
+    typeof payload?.propStatus === "string" ? payload.propStatus.trim() : "";
 
   if (!Number.isInteger(clientId) || clientId <= 0) {
     throw validationError("Valid client ID is required.");
@@ -72,13 +78,19 @@ export async function updateMyApplicationStatus(clientID, applicationID, payload
     throw validationError("Status must be pending, accepted, or rejected.");
   }
 
-  const existing = await projectRepository.getClientApplicationById(appId, clientId);
+  // Merr aplikimin ekzistues
+  const existing = await projectRepository.getClientApplicationById(
+    appId,
+    clientId,
+  );
+
   if (!existing) {
     const err = new Error("Application not found.");
     err.statusCode = 404;
     throw err;
   }
 
+  // Nëse statusi nuk ndryshon, kthe menjëherë
   if (existing.propStatus === propStatus) {
     return {
       applicationId: appId,
@@ -86,6 +98,7 @@ export async function updateMyApplicationStatus(clientID, applicationID, payload
     };
   }
 
+  // Përditëso statusin në MySQL
   const affected = await projectRepository.updateClientApplicationStatus(
     appId,
     clientId,
@@ -96,6 +109,45 @@ export async function updateMyApplicationStatus(clientID, applicationID, payload
     const err = new Error("Unable to update application status.");
     err.statusCode = 409;
     throw err;
+  }
+
+  // Dërgo njoftim vetëm kur aplikimi pranohet ose refuzohet
+  if (propStatus === "accepted" || propStatus === "rejected") {
+    const projectDetails = await projectRepository.getClientProjectById(
+      existing.projectId,
+      clientId,
+    );
+
+    const projectTitle = projectDetails?.title || "Projekt";
+
+    // Notification MySQL
+    pushNotification({
+      types: "system",
+      receiverID: existing.freelancerID,
+      title: propStatus === "accepted" ? "Aplikim Pranuar" : "Aplikim Refuzuar",
+      msg:
+        propStatus === "accepted"
+          ? `Projekti "${projectTitle}" - aplikimi juaj u pranua!`
+          : `Projekti "${projectTitle}" - aplikimi juaj u refuzua.`,
+    }).catch(() => {});
+
+    // Activity MongoDB
+    createActivity({
+      freelancerID: existing.freelancerID,
+      eventType:
+        propStatus === "accepted"
+          ? "application_accepted"
+          : "application_rejected",
+      metadata: {
+        projectID: existing.projectId,
+        projectTitle,
+        clientID: clientId,
+        clientName: "Klienti",
+        applicationID: appId,
+        bidAmount: existing.bidAmount ?? null,
+        estimatedDays: existing.estimatedDays ?? null,
+      },
+    }).catch(() => {});
   }
 
   return {

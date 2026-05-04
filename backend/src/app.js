@@ -7,9 +7,12 @@ import clientRoutes from "./routes/clientRoutes.js";
 import freelancerRoutes from "./routes/freelancerRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import savedProjectRoutes from "./routes/savedProjectRoutes.js";
+import { connectMongoDB } from "./config/mongodb.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+
+connectMongoDB();
 
 const VITE_ORIGINS = new Set([
   "http://localhost:5173",

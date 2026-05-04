@@ -1,6 +1,6 @@
 import * as projectRepository from "../repositories/projectRepository.js";
 import { pushNotification } from "./notificationService.js";
-
+import { createActivity } from "./activityService.js";
 function validationError(message) {
   const err = new Error(message);
   err.statusCode = 400;
@@ -8,7 +8,6 @@ function validationError(message) {
 }
 
 const VALID_STATUSES = ["pending", "active", "completed", "cancelled"];
-
 
 export async function getProjectsWithFreelancer() {
   return projectRepository.getProjectsWithFreelancer();
@@ -21,7 +20,6 @@ export async function getProjectsWithoutFreelancer() {
 export async function getClientList() {
   return projectRepository.getClientList();
 }
-
 
 export async function createProject(payload) {
   const { title, pDesc, budget, deadline, clientID, pStatus } = payload ?? {};
@@ -63,7 +61,6 @@ export async function createProject(payload) {
   return project;
 }
 
-
 export async function updateProject(id, payload) {
   const projectId = Number(id);
   if (!Number.isInteger(projectId) || projectId <= 0) {
@@ -102,9 +99,12 @@ export async function updateProject(id, payload) {
 
   const changes = [];
   if (existing.title !== updated.title) changes.push("title");
-  if (existing.pStatus !== updated.pStatus) changes.push(`status to "${updated.pStatus}"`);
-  if (String(existing.budget) !== String(updated.budget)) changes.push("budget");
-  if (String(existing.deadline) !== String(updated.deadline)) changes.push("deadline");
+  if (existing.pStatus !== updated.pStatus)
+    changes.push(`status to "${updated.pStatus}"`);
+  if (String(existing.budget) !== String(updated.budget))
+    changes.push("budget");
+  if (String(existing.deadline) !== String(updated.deadline))
+    changes.push("deadline");
 
   if (changes.length > 0) {
     const detail = changes.slice(0, 2).join(" and ");
@@ -118,7 +118,6 @@ export async function updateProject(id, payload) {
 
   return updated;
 }
-
 
 export async function deleteProject(id) {
   const projectId = Number(id);
@@ -146,11 +145,10 @@ export async function deleteProject(id) {
 export async function browseProjectsForFreelancer(userID, queryParams = {}) {
   const { sort, categoryID, skillIds } = queryParams;
 
-  const projects =
-    await projectRepository.getBrowseProjectsForFreelancer(
-      { sort, categoryID, skillIds },
-      userID
-    );
+  const projects = await projectRepository.getBrowseProjectsForFreelancer(
+    { sort, categoryID, skillIds },
+    userID,
+  );
 
   return {
     projects,
@@ -158,137 +156,174 @@ export async function browseProjectsForFreelancer(userID, queryParams = {}) {
   };
 }
 
-  export async function getFreelancerProjectDetails(userID, projectID) {
-    const freelancerId = Number(userID);
-    const projectId = Number(projectID);
+export async function getFreelancerProjectDetails(userID, projectID) {
+  const freelancerId = Number(userID);
+  const projectId = Number(projectID);
 
-    if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
-      throw validationError("Valid user id is required.");
-    }
-    if (!Number.isInteger(projectId) || projectId <= 0) {
-      throw validationError("Valid project id is required.");
-    }
-
-    const project = await projectRepository.getFreelancerProjectDetails(
-      projectId,
-      freelancerId,
-    );
-
-    if (!project) {
-      const err = new Error("Project not found.");
-      err.statusCode = 404;
-      throw err;
-    }
-
-    return project;
+  if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
+    throw validationError("Valid user id is required.");
+  }
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    throw validationError("Valid project id is required.");
   }
 
-export async function createApplication(userID, projectID, payload) {
-    const { coverLetter, bidAmount, estimatedDays } = payload;
-    if (!coverLetter || coverLetter.trim() === "") {
-        const err = new Error("Cover letter is required.");
-        err.statusCode = 400;
-        throw err;
-    }
-    return projectRepository.createApplication(
-        Number(userID),
-        Number(projectID),
-        coverLetter.trim(),
-        bidAmount ? Number(bidAmount) : null,
-        estimatedDays ? Number(estimatedDays) : null
-    );
+  const project = await projectRepository.getFreelancerProjectDetails(
+    projectId,
+    freelancerId,
+  );
+
+  if (!project) {
+    const err = new Error("Project not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return project;
 }
 
-    export async function updateMyApplication(userID, applicationID, payload) {
-      const freelancerId = Number(userID);
-      const appId = Number(applicationID);
-      const { coverLetter, bidAmount, estimatedDays } = payload ?? {};
+export async function createApplication(userID, projectID, payload) {
+  const { coverLetter, bidAmount, estimatedDays } = payload;
 
-      if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
-        throw validationError("Valid user id is required.");
-      }
-      if (!Number.isInteger(appId) || appId <= 0) {
-        throw validationError("Valid application id is required.");
-      }
-      if (!coverLetter || coverLetter.trim() === "") {
-        throw validationError("Cover letter is required.");
-      }
+  if (!coverLetter || coverLetter.trim() === "") {
+    const err = new Error("Cover letter is required.");
+    err.statusCode = 400;
+    throw err;
+  }
 
-      const existing = await projectRepository.getApplicationByIdForFreelancer(
-        appId,
-        freelancerId,
-      );
-      if (!existing) {
-        const err = new Error("Application not found.");
-        err.statusCode = 404;
-        throw err;
-      }
-      if (existing.propStatus !== "pending") {
-        throw validationError("Only pending applications can be edited.");
-      }
+  const result = await projectRepository.createApplication(
+    Number(userID),
+    Number(projectID),
+    coverLetter.trim(),
+    bidAmount ? Number(bidAmount) : null,
+    estimatedDays ? Number(estimatedDays) : null,
+  );
 
-      const affected = await projectRepository.updateApplicationForFreelancer(
-        appId,
-        freelancerId,
-        {
-          coverLetter: coverLetter.trim(),
-          bidAmount: bidAmount ? Number(bidAmount) : null,
-          estimatedDays: estimatedDays ? Number(estimatedDays) : null,
-        },
-      );
+  const projectDetails = await projectRepository.getProjectById(
+    Number(projectID),
+  );
 
-      if (!affected) {
-        const err = new Error("Unable to update application.");
-        err.statusCode = 409;
-        throw err;
-      }
+  createActivity({
+    freelancerID: Number(userID),
+    eventType: "application_submitted",
+    metadata: {
+      projectID: Number(projectID),
+      projectTitle: projectDetails?.title || "Projekt",
+      applicationID: result.id,
+      bidAmount: bidAmount ? Number(bidAmount) : null,
+      estimatedDays: estimatedDays ? Number(estimatedDays) : null,
+    },
+  }).catch(() => {});
 
-      return {
-        id: appId,
-        coverLetter: coverLetter.trim(),
-        bidAmount: bidAmount ? Number(bidAmount) : null,
-        estimatedDays: estimatedDays ? Number(estimatedDays) : null,
-        propStatus: "pending",
-      };
-    }
+  return result;
+}
 
-    export async function softDeleteMyApplication(userID, applicationID) {
-      const freelancerId = Number(userID);
-      const appId = Number(applicationID);
+export async function updateMyApplication(userID, applicationID, payload) {
+  const freelancerId = Number(userID);
+  const appId = Number(applicationID);
+  const { coverLetter, bidAmount, estimatedDays } = payload ?? {};
 
-      if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
-        throw validationError("Valid user id is required.");
-      }
-      if (!Number.isInteger(appId) || appId <= 0) {
-        throw validationError("Valid application id is required.");
-      }
+  if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
+    throw validationError("Valid user id is required.");
+  }
+  if (!Number.isInteger(appId) || appId <= 0) {
+    throw validationError("Valid application id is required.");
+  }
+  if (!coverLetter || coverLetter.trim() === "") {
+    throw validationError("Cover letter is required.");
+  }
 
-      const existing = await projectRepository.getApplicationByIdForFreelancer(
-        appId,
-        freelancerId,
-      );
-      if (!existing) {
-        const err = new Error("Application not found.");
-        err.statusCode = 404;
-        throw err;
-      }
-      if (existing.propStatus !== "pending") {
-        throw validationError("Only pending applications can be withdrawn.");
-      }
+  const existing = await projectRepository.getApplicationByIdForFreelancer(
+    appId,
+    freelancerId,
+  );
+  if (!existing) {
+    const err = new Error("Application not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+  if (existing.propStatus !== "pending") {
+    throw validationError("Only pending applications can be edited.");
+  }
 
-      const affected = await projectRepository.softDeleteApplicationForFreelancer(
-        appId,
-        freelancerId,
-      );
-      if (!affected) {
-        const err = new Error("Unable to withdraw application.");
-        err.statusCode = 409;
-        throw err;
-      }
+  const affected = await projectRepository.updateApplicationForFreelancer(
+    appId,
+    freelancerId,
+    {
+      coverLetter: coverLetter.trim(),
+      bidAmount: bidAmount ? Number(bidAmount) : null,
+      estimatedDays: estimatedDays ? Number(estimatedDays) : null,
+    },
+  );
 
-        return { id: appId, isDeleted: true };
-    }
+  if (!affected) {
+    const err = new Error("Unable to update application.");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  return {
+    id: appId,
+    coverLetter: coverLetter.trim(),
+    bidAmount: bidAmount ? Number(bidAmount) : null,
+    estimatedDays: estimatedDays ? Number(estimatedDays) : null,
+    propStatus: "pending",
+  };
+}
+
+export async function softDeleteMyApplication(userID, applicationID) {
+  const freelancerId = Number(userID);
+  const appId = Number(applicationID);
+
+  if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
+    throw validationError("Valid user id is required.");
+  }
+  if (!Number.isInteger(appId) || appId <= 0) {
+    throw validationError("Valid application id is required.");
+  }
+
+  const existing = await projectRepository.getApplicationByIdForFreelancer(
+    appId,
+    freelancerId,
+  );
+
+  if (!existing) {
+    const err = new Error("Application not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (existing.propStatus !== "pending") {
+    throw validationError("Only pending applications can be withdrawn.");
+  }
+
+  const affected = await projectRepository.softDeleteApplicationForFreelancer(
+    appId,
+    freelancerId,
+  );
+
+  if (!affected) {
+    const err = new Error("Unable to withdraw application.");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const projectDetails = await projectRepository.getProjectById(
+    existing.projectID,
+  );
+
+  createActivity({
+    freelancerID: freelancerId,
+    eventType: "application_withdrawn",
+    metadata: {
+      projectID: existing.projectID,
+      projectTitle: projectDetails?.title || "Projekt",
+      applicationID: appId,
+    },
+  }).catch(() => {});
+
+  return { id: appId, isDeleted: true };
+}
 
 export async function getMyApplications(userID) {
-    return projectRepository.getMyApplications(Number(userID));
+  return projectRepository.getMyApplications(Number(userID));
 }
