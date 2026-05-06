@@ -20,6 +20,7 @@ const sidebarConfigs = {
     { label: "Notifications", href: "/freelancer/notifications" },
     { label: "Browse Projects", href: "/freelancer/browse-projects" },
     { label: "Favorite Projects", href: "/freelancer/favorites" },
+    { label: "My Projects", href: "/freelancer/my-projects" },
     { label: "My Applications", href: "/freelancer/applications" },
 
   ],
