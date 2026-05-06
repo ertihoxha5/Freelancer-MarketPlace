@@ -122,6 +122,13 @@ export async function updateProject(
   return { id, title, pDesc, budget, deadline, pStatus };
 }
 
+export async function updateProjectStatus(projectID, pStatus) {
+  const [result] = await db.execute(
+    `UPDATE Project SET pStatus = ? WHERE id = ?`,
+    [pStatus, projectID],
+  );
+  return result.affectedRows > 0;
+}
 
 export async function deleteProject(id) {
   const [result] = await db.execute("DELETE FROM Project WHERE id = ?", [id]);

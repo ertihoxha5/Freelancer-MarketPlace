@@ -120,6 +120,11 @@ export async function updateMyApplicationStatus(
 
     const projectTitle = projectDetails?.title || "Projekt";
 
+    // If proposal is accepted, automatically set project status to active
+    if (propStatus === "accepted") {
+      await projectRepository.updateProjectStatus(existing.projectId, "active");
+    }
+
     // Notification MySQL
     pushNotification({
       types: "system",
