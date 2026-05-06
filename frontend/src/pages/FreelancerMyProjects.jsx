@@ -28,6 +28,9 @@ export default function FreelancerMyProjects() {
 	const [error, setError] = useState("");
 	const [query, setQuery] = useState("");
 	const [status, setStatus] = useState("all");
+	const [showAdvanced, setShowAdvanced] = useState(false);
+	const [dateFrom, setDateFrom] = useState("");
+	const [dateTo, setDateTo] = useState("");
 	const [expandedRows, setExpandedRows] = useState(() => new Set());
 	const [projectDetails, setProjectDetails] = useState({});
 	const [loadingDetails, setLoadingDetails] = useState({});
@@ -68,6 +71,21 @@ export default function FreelancerMyProjects() {
 			const projectStatus = String(item.projectStatus ?? "").toLowerCase();
 			const isProjectOpen = ["active", "completed", "cancelled"].includes(projectStatus);
 			const matchesStatus = status === "all" || projectStatus === status;
+			// Date range filter (applied on application createdAt)
+			if (dateFrom) {
+				const from = new Date(dateFrom);
+				const created = new Date(item.createdAt);
+				if (Number.isNaN(from.getTime()) || Number.isNaN(created.getTime()) || created < from) return false;
+			}
+			if (dateTo) {
+				const to = new Date(dateTo);
+				const created = new Date(item.createdAt);
+				if (!Number.isNaN(to.getTime()) && !Number.isNaN(created.getTime())) {
+					const toEnd = new Date(to);
+					toEnd.setHours(23,59,59,999);
+					if (created > toEnd) return false;
+				}
+			}
 			const matchesQuery =
 				!normalized ||
 				item.title?.toLowerCase().includes(normalized) ||
@@ -75,7 +93,7 @@ export default function FreelancerMyProjects() {
 				item.pDesc?.toLowerCase().includes(normalized);
 			return isVisible && isAccepted && isProjectOpen && matchesStatus && matchesQuery;
 		});
-	}, [applications, query, status]);
+	}, [applications, query, status, dateFrom, dateTo]);
 
 	const activeCount = filtered.filter((item) => String(item.projectStatus ?? "").toLowerCase() === "active").length;
 	const completedCount = filtered.filter((item) => String(item.projectStatus ?? "").toLowerCase() === "completed").length;
@@ -137,33 +155,76 @@ export default function FreelancerMyProjects() {
 							</div>
 						</div>
 
-						<div className="mb-6 grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
-							<div>
-								<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-									Search
-								</label>
-								<input
-									type="text"
-									value={query}
-									onChange={(e) => setQuery(e.target.value)}
-									placeholder="Project title, client, or description"
-									className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm focus:border-[#1a3c2e] focus:outline-none focus:ring-2 focus:ring-[#1a3c2e]/15"
-								/>
+							<div className="mb-6 grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+										Search
+									</label>
+									<input
+										type="text"
+										value={query}
+										onChange={(e) => setQuery(e.target.value)}
+										placeholder="Project title, client, or description"
+										className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#1a3c2e] focus:outline-none focus:ring-2 focus:ring-[#1a3c2e]/15"
+									/>
+									{/* Advanced filters toggle removed from here and placed with status select */}
+								</div>
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+										Project Status
+									</label>
+									<div className="flex items-end gap-2">
+										<select
+											value={status}
+											onChange={(e) => setStatus(e.target.value)}
+											className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#1a3c2e] focus:outline-none focus:ring-2 focus:ring-[#1a3c2e]/15"
+											>
+												<option value="all">All statuses</option>
+												<option value="active">Active</option>
+												<option value="completed">Completed</option>
+												<option value="cancelled">Cancelled</option>
+											</select>
+										<button
+											type="button"
+											onClick={() => setShowAdvanced((s) => !s)}
+											className="inline-flex w-auto items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+											>
+												{showAdvanced ? 'Hide Filters' : 'Add Advanced Filters'}
+											</button>
+									</div>
+								</div>
+								{showAdvanced && (
+									<div className="sm:col-span-2 mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+										<div>
+											<label className="block text-xs text-slate-500">Applied From</label>
+											<input
+												type="date"
+												value={dateFrom}
+												onChange={(e) => setDateFrom(e.target.value)}
+												className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+											/>
+										</div>
+										<div>
+											<label className="block text-xs text-slate-500">Applied To</label>
+											<input
+												type="date"
+												value={dateTo}
+												onChange={(e) => setDateTo(e.target.value)}
+												className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+											/>
+										</div>
+										<div className="flex items-end">
+											<button
+												type="button"
+												onClick={() => { setDateFrom(''); setDateTo(''); setShowAdvanced(false); }}
+												className="inline-flex w-auto rounded-md border border-slate-300 px-3 py-2 text-sm"
+											>
+												Clear Filters
+											</button>
+										</div>
+									</div>
+								)}
 							</div>
-							<div>
-								<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-									Project Status
-								</label>
-								<select
-									value={status}
-									onChange={(e) => setStatus(e.target.value)}
-									className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm focus:border-[#1a3c2e] focus:outline-none focus:ring-2 focus:ring-[#1a3c2e]/15"
-								>
-									<option value="all">All statuses</option>
-									<option value="active">Active</option>
-									<option value="completed">Completed</option>								<option value="cancelled">Cancelled</option>								</select>
-							</div>
-						</div>
 
 						{error && (
 							<div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -222,13 +283,13 @@ export default function FreelancerMyProjects() {
 														</td>
 														<td className="px-4 py-4 text-slate-700">{formatDate(item.createdAt)}</td>
 														<td className="px-4 py-4">
-															<button
-																type="button"
-																onClick={() => toggleRow(item.applicationId, item.projectId)}
-																className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-															>
-																{isExpanded ? "Hide" : "View"}
-															</button>
+																<button
+																	type="button"
+																	onClick={() => toggleRow(item.applicationId, item.projectId)}
+																	className="inline-flex w-auto rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+																>
+																	{isExpanded ? "Hide" : "View"}
+																</button>
 														</td>
 													</tr>
 													{isExpanded && (
