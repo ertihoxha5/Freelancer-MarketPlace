@@ -161,7 +161,7 @@ export default function ClientApplications() {
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Status
+                  Application Status
                 </label>
                 <select
                   value={status}
