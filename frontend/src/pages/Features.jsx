@@ -108,7 +108,7 @@ const Features = () => {
                 <ul className="space-y-5">
                   {benefit.points.map((point, idx) => (
                     <li key={idx} className="flex gap-4">
-                      <FiCheck className="text-[#1a3c2e] mt-1 flex-shrink-0" />
+                      <FiCheck className="text-[#1a3c2e] mt-1 shrink-0" />
                       <span className="text-slate-700">{point}</span>
                     </li>
                   ))}

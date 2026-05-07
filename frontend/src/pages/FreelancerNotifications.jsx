@@ -461,7 +461,7 @@ function TabButton({ active, onClick, badge, children }) {
     >
       {children}
       {badge > 0 && (
-        <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-700 px-1.5 text-[10px] font-bold text-white">
+        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-700 px-1.5 text-[10px] font-bold text-white">
           {badge > 99 ? "99+" : badge}
         </span>
       )}

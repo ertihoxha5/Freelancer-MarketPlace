@@ -47,8 +47,8 @@ const LandingPage = () => {
               alt="hero"
               className="absolute inset-0 w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/80"></div>
+            <div className="absolute inset-0 bg-linear-to-r from-white via-white/95 to-transparent"></div>
+            <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-white/80"></div>
           </div>
         ))}
 
