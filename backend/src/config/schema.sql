@@ -132,9 +132,6 @@ ALTER TABLE Project
     ADD COLUMN experienceLevel ENUM('beginner', 'intermediate', 'expert') DEFAULT 'intermediate',
     ADD COLUMN isPublic BOOLEAN DEFAULT TRUE;
 
-ALTER TABLE Project
-    ADD FOREIGN KEY (categoryID) REFERENCES Categories(id);
-
 CREATE INDEX idx_project_status_created ON Project(pStatus, createdAt DESC);
 CREATE INDEX idx_project_budget ON Project(budget);
 CREATE INDEX idx_project_category ON Project(categoryID);
@@ -165,10 +162,6 @@ ALTER TABLE Proposal
 
 ALTER TABLE Proposal
 ADD COLUMN isDeleted BOOLEAN DEFAULT FALSE;
-    
-CREATE INDEX idx_proposal_user_project ON Proposal(userID, projectID);
-CREATE INDEX idx_projectskills_project ON ProjectSkills(projectID);
-CREATE INDEX idx_projectskills_skill ON ProjectSkills(skillID);
 
 CREATE TABLE IF NOT EXISTS Contracts(
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -318,6 +311,14 @@ CREATE TABLE IF NOT EXISTS SavedProjects (
     INDEX idx_saved_freelancer (freelancerID),
     INDEX idx_saved_project (projectID)
 );
+
+ALTER TABLE Project
+    ADD FOREIGN KEY (categoryID) REFERENCES Categories(id);
+
+    
+CREATE INDEX idx_proposal_user_project ON Proposal(userID, projectID);
+CREATE INDEX idx_projectskills_project ON ProjectSkills(projectID);
+CREATE INDEX idx_projectskills_skill ON ProjectSkills(skillID);
 
 INSERT INTO Roles(roleName, roleDescription) VALUES ('SysAdmin', 'System admin');
 INSERT INTO Roles(roleName, roleDescription) VALUES ('Client', 'Client that can post projects');
