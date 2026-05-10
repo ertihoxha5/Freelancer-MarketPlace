@@ -1,17 +1,22 @@
 import { Router } from "express";
 import * as authMiddleware from "../middleware/authMiddleware.js";
-import * as notificationController from "../controllers/notificationController.js";
 import * as freelancerController from "../controllers/freelancerController.js";
 import * as projectController from "../controllers/projectController.js";
 import * as activityController from "../controllers/activityController.js";
 
+import * as freelancerNotifController from "../controllers/freelancerNotificationController.js";
+
 const router = Router();
+
 router.get("/public/:id", freelancerController.getPublicProfile);
+
 router.use(authMiddleware.authenticateToken, authMiddleware.requireRole(3));
+
 router.get("/dashboard", freelancerController.getDashboard);
 router.get("/profile", freelancerController.getProfile);
 router.patch("/profile", freelancerController.updateProfile);
 router.get("/skills", freelancerController.getAvailableSkills);
+
 router.get("/browse-projects", projectController.browseProjects);
 router.get(
   "/projects/:projectId",
@@ -30,16 +35,23 @@ router.delete(
 
 router.get(
   "/notifications/unread-count",
-  notificationController.getUnreadCount,
+  freelancerNotifController.getUnreadCount,
 );
-router.patch("/notifications/read-all", notificationController.markAllAsRead);
+router.patch(
+  "/notifications/read-all",
+  freelancerNotifController.markAllAsRead,
+);
 router.delete(
   "/notifications/delete-all",
-  notificationController.deleteAllNotifications,
+  freelancerNotifController.deleteAllNotifications,
 );
-router.get("/notifications", notificationController.getNotifications);
-router.patch("/notifications/:id/read", notificationController.markAsRead);
-router.delete("/notifications/:id", notificationController.deleteNotification);
+router.get("/notifications", freelancerNotifController.getNotifications);
+router.patch("/notifications/:id/read", freelancerNotifController.markAsRead);
+router.delete(
+  "/notifications/:id",
+  freelancerNotifController.deleteNotification,
+);
+
 router.get("/activities/unread-count", activityController.getUnreadCount);
 router.patch("/activities/read-all", activityController.markAllAsRead);
 router.delete("/activities", activityController.deleteAllActivities);

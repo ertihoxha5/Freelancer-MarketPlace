@@ -1,5 +1,6 @@
 import * as projectRepository from "../repositories/projectRepository.js";
-import { pushNotification } from "./notificationService.js";
+import { pushNotification, pushToAllAdmins } from "./notificationService.js";
+import { pushFreelancerNotification } from "./freelancerNotificationService.js";
 import { createActivity } from "./activityService.js";
 function validationError(message) {
   const err = new Error(message);
@@ -201,13 +202,27 @@ export async function createApplication(userID, projectID, payload) {
   const projectDetails = await projectRepository.getProjectById(
     Number(projectID),
   );
+  const projectTitle = projectDetails?.title || "Projekt";
+
+  pushFreelancerNotification({
+    types: "system",
+    receiverID: Number(userID),
+    title: "Aplikim i dërguar 📨",
+    msg: `Aplikimi juaj për projektin "${projectTitle}" u dërgua me sukses!`,
+    metadata: {
+      projectID: Number(projectID),
+      projectTitle,
+      applicationID: result.id,
+      actionUrl: "/freelancer/applications",
+    },
+  }).catch(() => {});
 
   createActivity({
     freelancerID: Number(userID),
     eventType: "application_submitted",
     metadata: {
       projectID: Number(projectID),
-      projectTitle: projectDetails?.title || "Projekt",
+      projectTitle,
       applicationID: result.id,
       bidAmount: bidAmount ? Number(bidAmount) : null,
       estimatedDays: estimatedDays ? Number(estimatedDays) : null,
@@ -310,13 +325,27 @@ export async function softDeleteMyApplication(userID, applicationID) {
   const projectDetails = await projectRepository.getProjectById(
     existing.projectID,
   );
+  const projectTitle = projectDetails?.title || "Projekt";
+
+  pushFreelancerNotification({
+    types: "system",
+    receiverID: freelancerId,
+    title: "Aplikim i tërhequr ↩️",
+    msg: `Aplikimi juaj për projektin "${projectTitle}" u tërhoq me sukses.`,
+    metadata: {
+      projectID: existing.projectID,
+      projectTitle,
+      applicationID: appId,
+      actionUrl: "/freelancer/applications",
+    },
+  }).catch(() => {});
 
   createActivity({
     freelancerID: freelancerId,
     eventType: "application_withdrawn",
     metadata: {
       projectID: existing.projectID,
-      projectTitle: projectDetails?.title || "Projekt",
+      projectTitle,
       applicationID: appId,
     },
   }).catch(() => {});

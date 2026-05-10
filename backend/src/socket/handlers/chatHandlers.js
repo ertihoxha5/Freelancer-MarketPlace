@@ -1,11 +1,24 @@
 import * as chatService from "../../services/chatService.js";
 import * as chatRepository from "../../repositories/chatRepository.js";
 import { pushNotification } from "../../services/notificationService.js";
+import { pushFreelancerNotification } from "../../services/freelancerNotificationService.js";
+import { db } from "../../config/db.js";
 
 function conversationRoom(conversationID) {
   return `conversation:${conversationID}`;
 }
+async function isFreelancer(userID) {
+  try {
+    const [rows] = await db.execute(
+      `SELECT ur.roleID FROM UserRole ur WHERE ur.userID = ? LIMIT 1`,
+      [userID],
+    );
 
+    return rows[0]?.roleID === 3;
+  } catch {
+    return false;
+  }
+}
 export function registerChatHandlers({ io, socket, presenceState }) {
   socket.on("conversation:join", async (payload = {}, ack) => {
     try {
@@ -42,27 +55,44 @@ export function registerChatHandlers({ io, socket, presenceState }) {
       const participants = await chatRepository.getConversationParticipants(
         message.conversationID,
       );
-      for (const participant of participants) {
-        if (participant.userID !== socket.user.id) {
-          io.to(`user:${participant.userID}`).emit("conversation:updated", {
-            conversationID: message.conversationID,
-            lastMessageAt: message.sentAt,
-          });
+      const preview = String(message.content).slice(0, 60);
 
-          const preview = String(message.content).slice(0, 40);
+      for (const participant of participants) {
+        if (participant.userID === socket.user.id) continue;
+
+        io.to(`user:${participant.userID}`).emit("conversation:updated", {
+          conversationID: message.conversationID,
+          lastMessageAt: message.sentAt,
+        });
+
+        const receiverIsFreelancer = await isFreelancer(participant.userID);
+
+        if (receiverIsFreelancer) {
+          await pushFreelancerNotification({
+            types: "message",
+            receiverID: participant.userID,
+            title: `Mesazh nga ${message.senderName}`,
+            msg: `"${preview}"`,
+            metadata: {
+              conversationID: message.conversationID,
+              senderName: message.senderName,
+              actionUrl: "/freelancer/messages",
+            },
+          }).catch(() => {});
+        } else {
           await pushNotification({
             types: "message",
             receiverID: participant.userID,
             title: "New Message",
             msg: `${message.senderName}: ${preview}`,
           }).catch(() => {});
-
-          io.to(`user:${participant.userID}`).emit("notification:new", {
-            type: "message",
-            senderName: message.senderName,
-            conversationID: message.conversationID,
-          });
         }
+
+        io.to(`user:${participant.userID}`).emit("notification:new", {
+          type: "message",
+          senderName: message.senderName,
+          conversationID: message.conversationID,
+        });
       }
 
       ack?.({ ok: true, message });

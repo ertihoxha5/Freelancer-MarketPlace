@@ -6,7 +6,11 @@ import * as projectRepository from "../repositories/projectRepository.js";
 import * as auditRepository from "../repositories/auditRepository.js";
 import * as profileRepository from "../repositories/profileRepository.js";
 import * as fileRepository from "../repositories/fileRepository.js";
-import { pushNotification, pushToAllAdmins } from "./notificationService.js";
+import {
+  pushNotification,
+  pushToAllAdmins,
+  pushFreelancerNotification,
+} from "./notificationService.js";
 import { createActivity } from "./activityService.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -125,15 +129,23 @@ export async function updateMyApplicationStatus(
       await projectRepository.updateProjectStatus(existing.projectId, "active");
     }
 
-    // Notification MySQL
-    pushNotification({
+    pushFreelancerNotification({
       types: "system",
       receiverID: existing.freelancerID,
-      title: propStatus === "accepted" ? "Aplikim Pranuar" : "Aplikim Refuzuar",
+      title:
+        propStatus === "accepted"
+          ? "Aplikimi Pranuar ✅"
+          : "Aplikimi Refuzuar ❌",
       msg:
         propStatus === "accepted"
-          ? `Projekti "${projectTitle}" - aplikimi juaj u pranua!`
-          : `Projekti "${projectTitle}" - aplikimi juaj u refuzua.`,
+          ? `Projekti "${projectTitle}" — aplikimi juaj u pranua! Punë të mbarë!`
+          : `Projekti "${projectTitle}" — aplikimi juaj nuk u zgjodh këtë herë.`,
+      metadata: {
+        projectID: existing.projectId,
+        projectTitle,
+        applicationID: appId,
+        actionUrl: "/freelancer/applications",
+      },
     }).catch(() => {});
 
     // Activity MongoDB

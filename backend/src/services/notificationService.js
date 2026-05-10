@@ -1,4 +1,7 @@
 import * as notificationRepository from "../repositories/notificationRepository.js";
+import { pushFreelancerNotification } from "./freelancerNotificationService.js";
+
+export { pushFreelancerNotification };
 
 function validationError(message) {
   const err = new Error(message);
