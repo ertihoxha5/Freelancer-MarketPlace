@@ -1,7 +1,7 @@
 import * as adminRepository from '../repositories/adminRepository.js';
 
-export async function getAllUsers() {
-	return adminRepository.getUsers();
+export async function getAllUsers({ page = 1, limit = 50 } = {}) {
+	return adminRepository.getUsers({ page, limit });
 }
 
 export async function updateUserById(id, payload) {

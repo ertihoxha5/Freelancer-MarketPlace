@@ -286,6 +286,12 @@ export default function ClientProjects() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex flex-wrap gap-2">
+                            <Link
+                              to={`/client/projects/${project.id}`}
+                              className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                            >
+                              View
+                            </Link>
                             <button
                               type="button"
                               onClick={() => openEdit(project)}

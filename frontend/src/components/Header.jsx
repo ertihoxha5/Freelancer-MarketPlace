@@ -6,6 +6,7 @@ import {
   fetchUnreadCount,
   fetchAdminUnreadCount,
   fetchFreelancerUnreadCount,
+  fetchActivityUnreadCount,
 } from "../apiServices.js";
 import { getSocket } from "../socket/socketClient.js";
 

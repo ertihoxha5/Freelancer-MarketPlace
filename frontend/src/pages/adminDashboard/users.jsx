@@ -40,7 +40,7 @@ export default function User() {
             setLoading(true);
             setError('');
             try {
-                const data = await fetchAdminUsers();
+                const data = await fetchAdminUsers({ page: 1, limit: 100 });
                 if (mounted) {
                     setUsers(Array.isArray(data.users) ? data.users : []);
                 }
@@ -114,7 +114,7 @@ export default function User() {
                 roleID: Number(addForm.roleID),
             });
 
-            const data = await fetchAdminUsers();
+            const data = await fetchAdminUsers({ page: 1, limit: 100 });
             setUsers(Array.isArray(data.users) ? data.users : []);
             setAddOpen(false);
         } catch (err) {

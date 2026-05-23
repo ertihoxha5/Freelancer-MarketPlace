@@ -22,6 +22,7 @@ export async function connectMongoDB() {
 
     console.log(`✅ MongoDB connected: ${dbName}`);
     console.log(`   Host: ${mongoose.connection.host || "atlas cluster"}`);
+    isConnected = true;
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err.message);
     console.error(

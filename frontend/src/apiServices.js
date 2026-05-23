@@ -1,4 +1,4 @@
-export const API_BASE = "http://localhost:3000";
+export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 const TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
 
@@ -193,14 +193,18 @@ export async function fetchCurrentUser() {
 }
 
 /** GET /api/admin/users — uses access token; on 401 tries refresh once then retries. */
-export async function fetchAdminUsers() {
-  let res = await fetch(`${API_BASE}/api/admin/users`, {
+export async function fetchAdminUsers(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  let res = await fetch(`${API_BASE}/api/admin/users${suffix}`, {
     headers: authHeaders(),
   });
   if (res.status === 401 && getRefreshToken()) {
     try {
       await refreshSession();
-      res = await fetch(`${API_BASE}/api/admin/users`, {
+      res = await fetch(`${API_BASE}/api/admin/users${suffix}`, {
         headers: authHeaders(),
       });
     } catch {

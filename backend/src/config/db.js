@@ -153,7 +153,12 @@ async function ensureChatSchema(pool) {
   `);
 }
 
-await ensureDatabaseFromSchema();
+try {
+  await ensureDatabaseFromSchema();
+} catch (err) {
+  console.error("❌ Failed to initialize database schema:", err.message);
+  process.exit(1);
+}
 
 export const db = mysql2.createPool({
   host: DB_HOST,
@@ -165,4 +170,9 @@ export const db = mysql2.createPool({
   queueLimit: 0,
 });
 
-await ensureChatSchema(db);
+try {
+  await ensureChatSchema(db);
+} catch (err) {
+  console.error("❌ Failed to apply chat schema:", err.message);
+  process.exit(1);
+}

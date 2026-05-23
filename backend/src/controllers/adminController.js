@@ -3,8 +3,12 @@ import * as userService from '../services/userService.js';
 
 export async function getUsers(req, res, next) {
     try {
-        const users = await adminService.getAllUsers();
-        return res.status(200).json({ users });
+        const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
+        const limit = req.query.limit
+            ? Math.min(100, Math.max(1, Number(req.query.limit)))
+            : 50;
+        const result = await adminService.getAllUsers({ page, limit });
+        return res.status(200).json(result);
     } catch (err) {
         if (err.statusCode) {
             return res.status(err.statusCode).json({ message: err.message });

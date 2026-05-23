@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-/* eslint-disable no-dupe-keys, react-refresh/only-export-components */
+/* eslint-disable react-refresh/only-export-components */
 
 const translations = {
   en: {
@@ -8,13 +8,10 @@ const translations = {
     about: 'About',
     contact: 'Contact',
     buildTeams: 'Build great teams',
-    login: 'Login',
     getStarted: 'Get Started',
     logout: 'Logout',
     hi: 'Hi',
     admin: 'Admin',
-    client: 'Client',
-    freelancer: 'Freelancer',
 
     hireTopTalent: 'Hire Top Talent',
     hireSubtitle: 'Connect with expert freelancers ready for your next project',
@@ -47,7 +44,6 @@ const translations = {
     whatClientsSay: 'What Our Clients Say',
     readyHire: 'Ready to hire or get hired?',
     joinUs: 'Join thousands of businesses and freelancers already growing with us.',
-    createAccount: 'Create Free Account',
 
     loginToAccount: 'Login to your account',
     email: 'Email',
@@ -73,13 +69,10 @@ const translations = {
     about: 'Rreth Nesh',
     contact: 'Kontakti',
     buildTeams: 'Ndërto ekipe të shkëlqyera',
-    login: 'Hyni',
     getStarted: 'Filloni',
     logout: 'Dilni',
     hi: 'Përshëndetje',
     admin: 'Admin',
-    client: 'Klient',
-    freelancer: 'Freelancer',
 
     hireTopTalent: 'Punësoni Talente të Larta',
     hireSubtitle: 'Lidhuni me freelancer ekspertë gati për projektin tuaj të ardhshëm',
@@ -112,7 +105,6 @@ const translations = {
     whatClientsSay: 'Çfarë Thonë Klientët Tanë',
     readyHire: 'Gati për të punësuar ose për t\'u punësuar?',
     joinUs: 'Bashkohuni me mijëra biznese dhe freelancer që po rriten me ne.',
-    createAccount: 'Krijoni Llogari Falas',
 
     loginToAccount: 'Hyni në llogarinë tuaj',
     email: 'Email',
@@ -138,13 +130,10 @@ const translations = {
     about: 'Über uns',
     contact: 'Kontakt',
     buildTeams: 'Großartige Teams aufbauen',
-    login: 'Anmelden',
     getStarted: 'Loslegen',
     logout: 'Abmelden',
     hi: 'Hallo',
     admin: 'Admin',
-    client: 'Kunde',
-    freelancer: 'Freelancer',
 
     hireTopTalent: 'Top-Talente einstellen',
     hireSubtitle: 'Verbinden Sie sich mit erfahrenen Freelancern für Ihr nächstes Projekt',
@@ -177,7 +166,6 @@ const translations = {
     whatClientsSay: 'Was unsere Kunden sagen',
     readyHire: 'Bereit einzustellen oder eingestellt zu werden?',
     joinUs: 'Treten Sie Tausenden von Unternehmen und Freelancern bei, die mit uns wachsen.',
-    createAccount: 'Kostenloses Konto erstellen',
 
     loginToAccount: 'In Ihr Konto einloggen',
     email: 'E-Mail',
@@ -203,13 +191,10 @@ const translations = {
     about: 'Chi siamo',
     contact: 'Contatto',
     buildTeams: 'Costruisci grandi team',
-    login: 'Accedi',
     getStarted: 'Inizia',
     logout: 'Esci',
     hi: 'Ciao',
     admin: 'Admin',
-    client: 'Cliente',
-    freelancer: 'Freelancer',
 
     hireTopTalent: 'Assumi Talenti di Alto Livello',
     hireSubtitle: 'Connettiti con freelancer esperti pronti per il tuo prossimo progetto',
@@ -242,7 +227,6 @@ const translations = {
     whatClientsSay: 'Cosa Dicono i Nostri Clienti',
     readyHire: 'Pronto ad assumere o essere assunto?',
     joinUs: 'Unisciti a migliaia di aziende e freelancer che stanno crescendo con noi.',
-    createAccount: 'Crea Account Gratuito',
 
     loginToAccount: 'Accedi al tuo account',
     email: 'Email',
@@ -268,13 +252,10 @@ const translations = {
     about: 'À propos',
     contact: 'Contact',
     buildTeams: 'Construire de grandes équipes',
-    login: 'Se connecter',
     getStarted: 'Commencer',
     logout: 'Se déconnecter',
     hi: 'Salut',
     admin: 'Admin',
-    client: 'Client',
-    freelancer: 'Freelancer',
 
     hireTopTalent: 'Embaucher les Meilleurs Talents',
     hireSubtitle: 'Connectez-vous avec des freelancers experts prêts pour votre prochain projet',
@@ -307,7 +288,6 @@ const translations = {
     whatClientsSay: 'Ce Que Disent Nos Clients',
     readyHire: 'Prêt à embaucher ou être embauché?',
     joinUs: 'Rejoignez des milliers d\'entreprises et de freelancers qui grandissent avec nous.',
-    createAccount: 'Créer un Compte Gratuit',
 
     loginToAccount: 'Connectez-vous à votre compte',
     email: 'Email',
@@ -333,13 +313,10 @@ const translations = {
     about: 'Acerca de',
     contact: 'Contacto',
     buildTeams: 'Construir grandes equipos',
-    login: 'Iniciar sesión',
     getStarted: 'Comenzar',
     logout: 'Cerrar sesión',
     hi: 'Hola',
     admin: 'Admin',
-    client: 'Cliente',
-    freelancer: 'Freelancer',
 
     hireTopTalent: 'Contratar Talentos de Alto Nivel',
     hireSubtitle: 'Conéctate con freelancers expertos listos para tu próximo proyecto',
@@ -372,7 +349,6 @@ const translations = {
     whatClientsSay: 'Qué Dicen Nuestros Clientes',
     readyHire: '¿Listo para contratar o ser contratado?',
     joinUs: 'Únete a miles de empresas y freelancers que ya están creciendo con nosotros.',
-    createAccount: 'Crear Cuenta Gratuita',
 
     loginToAccount: 'Inicia sesión en tu cuenta',
     email: 'Correo electrónico',

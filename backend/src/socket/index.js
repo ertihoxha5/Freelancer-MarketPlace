@@ -2,6 +2,13 @@ import { Server } from "socket.io";
 import { authenticateSocket } from "./middleware/authSocket.js";
 import { registerChatHandlers } from "./handlers/chatHandlers.js";
 
+const SOCKET_CORS_ORIGINS = (
+  process.env.ALLOWED_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173"
+)
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const presenceState = new Map();
 
 function markOnline(io, userID, socketID) {
@@ -31,24 +38,24 @@ export function getIO() {
 export function initSocketServer(httpServer) {
   _io = new Server(httpServer, {
     cors: {
-      origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+      origin: SOCKET_CORS_ORIGINS,
       methods: ["GET", "POST"],
     },
   });
 
-  io.use(authenticateSocket);
+  _io.use(authenticateSocket);
 
-  io.on("connection", (socket) => {
+  _io.on("connection", (socket) => {
     const userID = socket.user.id;
     socket.join(`user:${userID}`);
-    markOnline(io, userID, socket.id);
+    markOnline(_io, userID, socket.id);
 
-    registerChatHandlers({ io, socket, presenceState });
+    registerChatHandlers({ io: _io, socket, presenceState });
 
     socket.on("disconnect", () => {
-      markOffline(io, userID, socket.id);
+      markOffline(_io, userID, socket.id);
     });
   });
 
-  return io;
+  return _io;
 }

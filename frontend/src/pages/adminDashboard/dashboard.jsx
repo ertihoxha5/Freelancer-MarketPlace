@@ -29,13 +29,12 @@ export default function AdminDashboard() {
         const [withFL, withoutFL, users] = await Promise.all([
           fetchProjectsWithFreelancer(),
           fetchProjectsWithoutFreelancer(),
-          fetchAdminUsers(),
+          fetchAdminUsers({ page: 1, limit: 1 }),
         ]);
 
         if (alive) {
           const projectsWithFL = Array.isArray(withFL.projects) ? withFL.projects : [];
           const projectsWithoutFL = Array.isArray(withoutFL.projects) ? withoutFL.projects : [];
-          const allUsers = Array.isArray(users.users) ? users.users : [];
 
           const activeCount = projectsWithFL.filter(
             (p) => p.pStatus === 'active'
@@ -46,7 +45,7 @@ export default function AdminDashboard() {
             projectsWithFreelancer: projectsWithFL.length,
             projectsWithoutFreelancer: projectsWithoutFL.length,
             activeProjects: activeCount,
-            totalUsers: allUsers.length,
+            totalUsers: Number(users.total) || 0,
           });
         }
       } catch (err) {

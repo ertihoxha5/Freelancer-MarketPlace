@@ -1,8 +1,7 @@
-import http from 'http';
-import app from './app.js';
-import './config/db.js';
-import { initSocketServer } from './socket/index.js';
-
+import http from "http";
+import app from "./app.js";
+import { db } from "./config/db.js";
+import { initSocketServer } from "./socket/index.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -10,5 +9,21 @@ const httpServer = http.createServer(app);
 initSocketServer(httpServer);
 
 httpServer.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
+
+function gracefulShutdown(signal) {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  httpServer.close(async () => {
+    try {
+      await db.end();
+      console.log("MySQL pool closed.");
+    } catch (e) {
+      console.error("Error closing MySQL:", e.message);
+    }
+    process.exit(0);
+  });
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));

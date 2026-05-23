@@ -1,6 +1,14 @@
 {
-  "dependencies": {
-    "dotenv": "^17.3.1",
-    "react-icons": "^5.6.0"
-  }
+  "name": "freelancer-marketplace",
+  "private": true,
+  "scripts": {
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && npm run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {}
 }

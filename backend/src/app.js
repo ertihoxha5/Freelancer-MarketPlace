@@ -10,6 +10,7 @@ import freelancerRoutes from "./routes/freelancerRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import savedProjectRoutes from "./routes/savedProjectRoutes.js";
 import { connectMongoDB } from "./config/mongodb.js";
+import { db } from "./config/db.js";
 import rateLimit from "express-rate-limit";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,14 +21,15 @@ app.disable("x-powered-by");
 
 connectMongoDB();
 
-const VITE_ORIGINS = new Set([
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-]);
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173")
+    .split(",")
+    .map((o) => o.trim()),
+);
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && VITE_ORIGINS.has(origin)) {
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader(
@@ -45,10 +47,6 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-app.get("/", (req, res) => {
-  res.send("API is running");
-});
-
 const loginLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -61,6 +59,26 @@ const apiLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 100,
   message: { message: "Too many requests." },
+});
+
+app.use("/api/auth/login", loginLimit);
+app.use("/api/auth/refresh", loginLimit);
+app.use("/api", apiLimit);
+
+app.get("/", (req, res) => res.send("API is running"));
+app.get("/health", async (req, res) => {
+  try {
+    await db.query("SELECT 1");
+    res.json({
+      status: "ok",
+      db: "connected",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    res
+      .status(503)
+      .json({ status: "error", db: "disconnected", error: err.message });
+  }
 });
 
 app.use("/api", userRoutes);

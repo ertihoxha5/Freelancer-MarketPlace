@@ -1,15 +1,24 @@
 import { db } from '../config/db.js';
 
-export async function getUsers() {
+export async function getUsers({ page = 1, limit = 50 } = {}) {
+    const offset = (page - 1) * limit;
     const [rows] = await db.execute(
         `SELECT u.id, u.email, u.fullName, u.createdAt, u.updatedAt, ur.roleID, r.roleName
          FROM Users u
-        inner JOIN UserRole ur ON ur.userID = u.id
-         inner JOIN Roles r ON r.id = ur.roleID
-         where (r.roleName = 'Freelancer' OR r.roleName = 'Client') and u.isActive = 1
-         order by u.id ASC`
+         INNER JOIN UserRole ur ON ur.userID = u.id
+         INNER JOIN Roles r ON r.id = ur.roleID
+         WHERE (r.roleName = 'Freelancer' OR r.roleName = 'Client') AND u.isActive = 1
+         ORDER BY u.id ASC
+         LIMIT ? OFFSET ?`,
+        [limit, offset]
     );
-    return rows;
+    const [[{ total }]] = await db.execute(
+        `SELECT COUNT(*) as total FROM Users u
+         INNER JOIN UserRole ur ON ur.userID = u.id
+         INNER JOIN Roles r ON r.id = ur.roleID
+         WHERE (r.roleName = 'Freelancer' OR r.roleName = 'Client') AND u.isActive = 1`
+    );
+    return { users: rows, total, page, limit };
 }
 
 export async function deleteUser(id){

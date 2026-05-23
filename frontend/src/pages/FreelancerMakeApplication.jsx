@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { submitApplication } from '../apiServices.js';
+import { fetchFreelancerProjectDetails, submitApplication } from '../apiServices.js';
 import Header from '../components/Header.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 
@@ -22,8 +22,20 @@ export default function FreelancerMakeApplication() {
     estimatedDays: '',
   });
   useEffect(() => {
-    setProject({ title: `Project #${projectId}` });
-    setLoading(false);
+    let active = true;
+    async function load() {
+      setLoading(true);
+      try {
+        const data = await fetchFreelancerProjectDetails(projectId);
+        if (active) setProject(data?.project ?? { title: `Project #${projectId}` });
+      } catch {
+        if (active) setProject({ title: `Project #${projectId}` });
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
   }, [projectId]);
   const handleSubmit = async (e) => {
     e.preventDefault();

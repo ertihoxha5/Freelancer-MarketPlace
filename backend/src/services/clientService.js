@@ -214,6 +214,10 @@ function parseBase64Image(data) {
     throw validationError("Unsupported image type.");
   }
   const buffer = Buffer.from(payload, "base64");
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  if (buffer.length > MAX_SIZE) {
+    throw validationError("Image must be smaller than 5MB.");
+  }
   return { buffer, extension };
 }
 

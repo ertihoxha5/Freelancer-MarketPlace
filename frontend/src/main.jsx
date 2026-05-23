@@ -4,6 +4,13 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import AppLayout from './routes/AppLayout.jsx';
+import ProtectedRoute from './routes/ProtectedRoute.jsx';
+import AdminRoute from './routes/AdminRoute.jsx';
+import FreelancerRoute from './routes/FreelancerRoute.jsx';
+import DemoProtected from './pages/DemoProtected.jsx';
+import FreelancerMakeApplication from './pages/FreelancerMakeApplication.jsx';
 
 const LandingPage = lazy(() => import("./pages/LandingPage.jsx"));
 const About = lazy(() => import("./pages/About.jsx"));
@@ -27,6 +34,7 @@ const AdminNotifications = lazy(
 );
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard.jsx"));
 const ClientProjects = lazy(() => import("./pages/ClientProjects.jsx"));
+const ClientProjectDetail = lazy(() => import("./pages/ClientProjectDetail.jsx"));
 const ClientPostProject = lazy(() => import("./pages/ClientPostProject.jsx"));
 const ClientProfile = lazy(() => import("./pages/ClientProfile.jsx"));
 const ClientNotifications = lazy(
@@ -106,6 +114,16 @@ const router = createBrowserRouter([
           <ProtectedRoute>
             <Suspense fallback={<Loading />}>
               <ClientProjects />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/client/projects/:id",
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}>
+              <ClientProjectDetail />
             </Suspense>
           </ProtectedRoute>
         ),
@@ -237,7 +255,6 @@ const router = createBrowserRouter([
             <Suspense fallback={<Loading />}>
               <FreelancerBrowseProjects />
             </Suspense>
-            <FreelancerBrowseProjects />
           </FreelancerRoute>
         ),
       },
@@ -293,14 +310,17 @@ const router = createBrowserRouter([
         ),
       },
       { path: "/freelancers/:id", element: <FreelancerPublicProfile /> },
+      { path: "*", element: <Suspense fallback={<Loading />}><ErrorPage /></Suspense> },
     ],
   },
 ]);
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <Suspense fallback={<Loading />}>
-      <RouterProvider router={router} />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<Loading />}>
+        <RouterProvider router={router} />
+      </Suspense>
+    </ErrorBoundary>
   </StrictMode>,
 );
