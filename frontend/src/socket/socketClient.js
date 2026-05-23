@@ -5,14 +5,26 @@ let socket = null;
 
 export function connectSocket() {
   const token = getAccessToken();
-  if (!token) return null;
+  if (!token) {
+    disconnectSocket();
+    return null;
+  }
 
-  if (socket?.connected) return socket;
+  if (socket) {
+    const currentToken = socket.auth?.token;
+    if (currentToken !== token) {
+      disconnectSocket();
+    } else if (socket.connected) {
+      return socket;
+    }
+  }
 
   socket = io(API_BASE, {
-    transports: ["websocket", "polling"],
+    path: "/socket.io",
+    transports: ["polling", "websocket"],
     auth: { token },
-    withCredentials: true,
+    reconnection: true,
+    reconnectionAttempts: 5,
   });
 
   return socket;

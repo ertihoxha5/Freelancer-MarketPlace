@@ -24,10 +24,16 @@ export function AuthProvider({ children }) {
     }
     try {
       const data = await api.fetchCurrentUser();
-      setUser(data.user);
-      connectSocket();
+      if (data?.user) {
+        setUser(data.user);
+        connectSocket();
+      } else {
+        disconnectSocket();
+        setUser(null);
+      }
     } catch {
       api.clearAuthTokens();
+      disconnectSocket();
       setUser(null);
     } finally {
       setLoading(false);

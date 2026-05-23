@@ -38,60 +38,112 @@ async function ensureDatabaseFromSchema() {
   }
 }
 
-async function ensureChatSchema(pool) {
-  async function columnExists(tableName, columnName) {
-    const [rows] = await pool.query(
-      `SELECT 1
-       FROM INFORMATION_SCHEMA.COLUMNS
-       WHERE TABLE_SCHEMA = ?
-         AND TABLE_NAME = ?
-         AND COLUMN_NAME = ?
-       LIMIT 1`,
-      [DB_NAME, tableName, columnName]
-    );
-    return rows.length > 0;
+async function columnExists(pool, tableName, columnName) {
+  const [rows] = await pool.query(
+    `SELECT 1
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = ?
+       AND COLUMN_NAME = ?
+     LIMIT 1`,
+    [DB_NAME, tableName, columnName]
+  );
+  return rows.length > 0;
+}
+
+async function indexExists(pool, tableName, indexName) {
+  const [rows] = await pool.query(
+    `SELECT 1
+     FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = ?
+       AND INDEX_NAME = ?
+     LIMIT 1`,
+    [DB_NAME, tableName, indexName]
+  );
+  return rows.length > 0;
+}
+
+async function ensureProposalSchema(pool) {
+  if (!(await columnExists(pool, 'Proposal', 'bidAmount'))) {
+    await pool.query(`
+      ALTER TABLE Proposal
+      ADD COLUMN bidAmount DECIMAL(12,2) NULL
+    `);
   }
 
-  async function indexExists(tableName, indexName) {
-    const [rows] = await pool.query(
-      `SELECT 1
-       FROM INFORMATION_SCHEMA.STATISTICS
-       WHERE TABLE_SCHEMA = ?
-         AND TABLE_NAME = ?
-         AND INDEX_NAME = ?
-       LIMIT 1`,
-      [DB_NAME, tableName, indexName]
-    );
-    return rows.length > 0;
+  if (!(await columnExists(pool, 'Proposal', 'estimatedDays'))) {
+    await pool.query(`
+      ALTER TABLE Proposal
+      ADD COLUMN estimatedDays INT NULL
+    `);
   }
+
+  if (!(await columnExists(pool, 'Proposal', 'isDeleted'))) {
+    await pool.query(`
+      ALTER TABLE Proposal
+      ADD COLUMN isDeleted BOOLEAN NOT NULL DEFAULT FALSE
+    `);
+  }
+
+  if (!(await columnExists(pool, 'Proposal', 'attachmentID'))) {
+    await pool.query(`
+      ALTER TABLE Proposal
+      ADD COLUMN attachmentID INT NULL
+    `);
+  }
+
+  if (!(await columnExists(pool, 'Proposal', 'reviewedAt'))) {
+    await pool.query(`
+      ALTER TABLE Proposal
+      ADD COLUMN reviewedAt TIMESTAMP NULL
+    `);
+  }
+
+  if (!(await columnExists(pool, 'Proposal', 'reviewedBy'))) {
+    await pool.query(`
+      ALTER TABLE Proposal
+      ADD COLUMN reviewedBy INT NULL
+    `);
+  }
+
+  if (!(await columnExists(pool, 'Proposal', 'notes'))) {
+    await pool.query(`
+      ALTER TABLE Proposal
+      ADD COLUMN notes TEXT NULL
+    `);
+  }
+}
+
+async function ensureChatSchema(pool) {
 
   await pool.query(`
     ALTER TABLE Messages
     MODIFY COLUMN content TEXT NOT NULL
   `);
 
-  if (!(await columnExists('Messages', 'deliveredAt'))) {
+  if (!(await columnExists(pool, 'Messages', 'deliveredAt'))) {
     await pool.query(`
       ALTER TABLE Messages
       ADD COLUMN deliveredAt DATETIME NULL AFTER isDeleted
     `);
   }
 
-  if (!(await indexExists('Messages', 'idx_messages_conversation_sent'))) {
+  if (!(await indexExists(pool, 'Messages', 'idx_messages_conversation_sent'))) {
     await pool.query(`
       ALTER TABLE Messages
       ADD INDEX idx_messages_conversation_sent (conversationID, sentAt)
     `);
   }
 
-  if (!(await columnExists('Conversations', 'lastMessageAt'))) {
+  if (!(await columnExists(pool, 'Conversations', 'lastMessageAt'))) {
     await pool.query(`
       ALTER TABLE Conversations
       ADD COLUMN lastMessageAt DATETIME NULL AFTER createdAt
     `);
   }
 
-  if (!(await columnExists('Conversations', 'conversationType'))) {
+  if (!(await columnExists(pool, 'Conversations', 'conversationType'))) {
     await pool.query(`
       ALTER TABLE Conversations
       ADD COLUMN conversationType ENUM('project', 'direct') NOT NULL DEFAULT 'project' AFTER id
@@ -105,7 +157,7 @@ async function ensureChatSchema(pool) {
     MODIFY COLUMN freelancerID INT NULL
   `);
 
-  if (!(await indexExists('Conversations', 'idx_conversations_status_last'))) {
+  if (!(await indexExists(pool, 'Conversations', 'idx_conversations_status_last'))) {
     await pool.query(`
       ALTER TABLE Conversations
       ADD INDEX idx_conversations_status_last (cStatus, lastMessageAt)
@@ -171,8 +223,9 @@ export const db = mysql2.createPool({
 });
 
 try {
+  await ensureProposalSchema(db);
   await ensureChatSchema(db);
 } catch (err) {
-  console.error("❌ Failed to apply chat schema:", err.message);
+  console.error("❌ Failed to apply database migrations:", err.message);
   process.exit(1);
 }

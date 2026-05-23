@@ -172,18 +172,41 @@ export async function logout() {
   clearAuthTokens();
 }
 
-/** GET /api/auth/me — uses access token; on 401 tries refresh once then retries. */
+/** GET /api/auth/me — silent when logged out; refreshes once on 401 if possible. */
 export async function fetchCurrentUser() {
+  if (!getAccessToken() && !getRefreshToken()) {
+    return { user: null };
+  }
+
+  if (!getAccessToken() && getRefreshToken()) {
+    try {
+      await refreshSession();
+    } catch {
+      clearAuthTokens();
+      return { user: null };
+    }
+  }
+
+  if (!getAccessToken()) {
+    return { user: null };
+  }
+
   let res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
   if (res.status === 401 && getRefreshToken()) {
     try {
       await refreshSession();
       res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
     } catch {
-      throw new Error("Session expired. Please log in again.");
+      clearAuthTokens();
+      return { user: null };
     }
   }
+
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    clearAuthTokens();
+    return { user: null };
+  }
   if (!res.ok) {
     throw new Error(
       data.message || data.error || `Request failed (${res.status})`,

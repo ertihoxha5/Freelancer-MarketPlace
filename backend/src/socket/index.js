@@ -37,9 +37,11 @@ export function getIO() {
 }
 export function initSocketServer(httpServer) {
   _io = new Server(httpServer, {
+    path: "/socket.io",
     cors: {
       origin: SOCKET_CORS_ORIGINS,
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
