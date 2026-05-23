@@ -2,6 +2,7 @@ import * as projectRepository from "../repositories/projectRepository.js";
 import { pushNotification, pushToAllAdmins } from "./notificationService.js";
 import { pushFreelancerNotification } from "./freelancerNotificationService.js";
 import { createActivity } from "./activityService.js";
+import { getIO } from "../socket/index.js";
 function validationError(message) {
   const err = new Error(message);
   err.statusCode = 400;
@@ -228,6 +229,20 @@ export async function createApplication(userID, projectID, payload) {
       estimatedDays: estimatedDays ? Number(estimatedDays) : null,
     },
   }).catch(() => {});
+  pushNotification({
+    types: "system",
+    receiverID: projectDetails.clientID,
+    title: "New Application",
+    msg: `A freelancer applied to your project "${projectTitle}".`,
+  }).catch(() => {});
+
+  const io = getIO();
+  if (io) {
+    io.to(`user:${projectDetails.clientID}`).emit("notification:new", {
+      type: "system",
+      title: "New application",
+    });
+  }
 
   return result;
 }

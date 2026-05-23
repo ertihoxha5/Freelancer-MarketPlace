@@ -61,7 +61,17 @@ export async function registerUser(input) {
   ) {
     throw validationError("fullName, email, and password are required.");
   }
-
+  if (password.length < 8) {
+    throw validationError("Password must be at least 8 characters.");
+  }
+  if (!/[A-Z]/.test(password)) {
+    throw validationError(
+      "Password must contain at least one uppercase letter.",
+    );
+  }
+  if (!/[0-9]/.test(password)) {
+    throw validationError("Password must contain at least one number.");
+  }
   const role = Number(roleID);
   if (!Number.isInteger(role) || !ALLOWED_ROLE_IDS.has(role)) {
     throw validationError("roleID must be 2 (Client) or 3 (Freelancer).");

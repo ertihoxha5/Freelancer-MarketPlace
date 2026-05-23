@@ -1,5 +1,6 @@
-import 'dotenv/config';
+import "dotenv/config";
 import express from "express";
+import helmet from "helmet";
 import path from "path";
 import { fileURLToPath } from "url";
 import userRoutes from "./routes/userRoutes.js";
@@ -9,9 +10,13 @@ import freelancerRoutes from "./routes/freelancerRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import savedProjectRoutes from "./routes/savedProjectRoutes.js";
 import { connectMongoDB } from "./config/mongodb.js";
+import rateLimit from "express-rate-limit";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+app.use(helmet());
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // për /uploads imazhet
+app.disable("x-powered-by");
 
 connectMongoDB();
 
@@ -42,6 +47,20 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/", (req, res) => {
   res.send("API is running");
+});
+
+const loginLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many login attempts. Try again in 15 minutes." },
+});
+
+const apiLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { message: "Too many requests." },
 });
 
 app.use("/api", userRoutes);

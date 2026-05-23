@@ -141,7 +141,7 @@ export async function listFreelancerPreviousProjects(userID, limit = 6) {
     LEFT JOIN Contracts ct ON ct.proposalID = pr.id
     WHERE pr.userID = ? 
       AND pr.propStatus = 'accepted'
-    ORDER BY p.createdAt DESC, p.id DESC
+    ORDER BY p.id DESC
     LIMIT ${safeLimit}`;
   const [rows] = await db.execute(query, [Number(userID)]);
   return rows;

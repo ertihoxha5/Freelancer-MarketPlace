@@ -27,6 +27,7 @@ export default function ClientMessages() {
   const [error, setError] = useState("");
   const activeConversationIDRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const [typingUsers, setTypingUsers] = useState({});
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeConversationID) ?? null,
@@ -50,7 +51,9 @@ export default function ClientMessages() {
 
     setMessagesByConversation((prev) => {
       const current = prev[conversationID] ?? [];
-      const exists = current.some((item) => Number(item.id) === Number(message.id));
+      const exists = current.some(
+        (item) => Number(item.id) === Number(message.id),
+      );
       if (exists) return prev;
       return { ...prev, [conversationID]: [...current, message] };
     });
@@ -58,7 +61,11 @@ export default function ClientMessages() {
     setConversations((prev) =>
       prev.map((conv) =>
         Number(conv.id) === conversationID
-          ? { ...conv, lastMessageAt: message.sentAt, lastMessagePreview: message.content }
+          ? {
+              ...conv,
+              lastMessageAt: message.sentAt,
+              lastMessagePreview: message.content,
+            }
           : conv,
       ),
     );
@@ -77,7 +84,9 @@ export default function ClientMessages() {
         setActiveConversationID(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load conversations.");
+      setError(
+        err instanceof Error ? err.message : "Failed to load conversations.",
+      );
     } finally {
       setLoading(false);
     }
@@ -85,9 +94,14 @@ export default function ClientMessages() {
 
   const loadMessages = useCallback(async (conversationID) => {
     try {
-      const data = await fetchConversationMessages(conversationID, { limit: 30 });
+      const data = await fetchConversationMessages(conversationID, {
+        limit: 30,
+      });
       const items = Array.isArray(data.messages) ? data.messages : [];
-      setMessagesByConversation((prev) => ({ ...prev, [conversationID]: items }));
+      setMessagesByConversation((prev) => ({
+        ...prev,
+        [conversationID]: items,
+      }));
       await markConversationRead(conversationID).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load messages.");
@@ -109,14 +123,18 @@ export default function ClientMessages() {
     if (!socket) return undefined;
 
     socket.on("connect_error", () => {
-      setError("Realtime connection failed. Refresh token/session may be expired.");
+      setError(
+        "Realtime connection failed. Refresh token/session may be expired.",
+      );
     });
 
     socket.on("message:new", upsertMessageInConversation);
 
     socket.on("connect", () => {
       if (activeConversationIDRef.current) {
-        socket.emit("conversation:join", { conversationID: activeConversationIDRef.current });
+        socket.emit("conversation:join", {
+          conversationID: activeConversationIDRef.current,
+        });
       }
     });
 
@@ -143,7 +161,6 @@ export default function ClientMessages() {
       socket.off("connect");
       socket.off("presence:online");
       socket.off("presence:offline");
-      disconnectSocket();
     };
   }, [upsertMessageInConversation]);
 
@@ -223,7 +240,9 @@ export default function ClientMessages() {
       setUserQuery("");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not start direct conversation.",
+        err instanceof Error
+          ? err.message
+          : "Could not start direct conversation.",
       );
     } finally {
       setCreatingConversation(false);
@@ -264,7 +283,9 @@ export default function ClientMessages() {
                       className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2"
                     >
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">{entry.fullName}</p>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {entry.fullName}
+                        </p>
                         <p className="text-xs text-slate-500">{entry.email}</p>
                       </div>
                       <button
@@ -290,9 +311,13 @@ export default function ClientMessages() {
             <div className="grid h-[calc(100%-6rem)] grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
               <aside className="rounded-2xl border border-slate-200 bg-white p-3 overflow-auto">
                 {loading ? (
-                  <p className="text-sm text-slate-500">Loading conversations...</p>
+                  <p className="text-sm text-slate-500">
+                    Loading conversations...
+                  </p>
                 ) : conversations.length === 0 ? (
-                  <p className="text-sm text-slate-500">No conversations yet.</p>
+                  <p className="text-sm text-slate-500">
+                    No conversations yet.
+                  </p>
                 ) : (
                   conversations.map((conv) => (
                     <button
@@ -326,11 +351,16 @@ export default function ClientMessages() {
               <div className="rounded-2xl border border-slate-200 bg-white flex flex-col min-h-0">
                 <div className="border-b border-slate-200 p-4">
                   <p className="text-sm font-semibold text-slate-900">
-                    {activeConversation ? `Conversation #${activeConversation.id}` : "Select a conversation"}
+                    {activeConversation
+                      ? `Conversation #${activeConversation.id}`
+                      : "Select a conversation"}
                   </p>
                 </div>
 
-                <div ref={messagesContainerRef} className="flex-1 overflow-auto p-4 space-y-3">
+                <div
+                  ref={messagesContainerRef}
+                  className="flex-1 overflow-auto p-4 space-y-3"
+                >
                   {activeMessages.length === 0 ? (
                     <p className="text-sm text-slate-500">No messages yet.</p>
                   ) : (
@@ -346,8 +376,11 @@ export default function ClientMessages() {
                               : "bg-slate-100 text-slate-900"
                           }`}
                         >
-                          <p className={`text-xs mb-1 ${mine ? "text-slate-300" : "text-slate-500"}`}>
-                            {mine ? "You" : msg.senderName} {isOnline ? "• online" : "• offline"}
+                          <p
+                            className={`text-xs mb-1 ${mine ? "text-slate-300" : "text-slate-500"}`}
+                          >
+                            {mine ? "You" : msg.senderName}{" "}
+                            {isOnline ? "• online" : "• offline"}
                           </p>
                           <p>{msg.content}</p>
                         </div>
@@ -356,7 +389,10 @@ export default function ClientMessages() {
                   )}
                 </div>
 
-                <form onSubmit={handleSendMessage} className="border-t border-slate-200 p-3 flex gap-2">
+                <form
+                  onSubmit={handleSendMessage}
+                  className="border-t border-slate-200 p-3 flex gap-2"
+                >
                   <input
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}

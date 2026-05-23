@@ -32,8 +32,18 @@ function NotificationBell({ user }) {
       try {
         let data;
         if (isAdmin) data = await fetchAdminUnreadCount();
-        else if (isFreelancer) data = await fetchFreelancerUnreadCount();
-        else data = await fetchUnreadCount();
+        else if (isFreelancer) {
+          const [notifData, activityData] = await Promise.all([
+            fetchFreelancerUnreadCount(),
+            fetchActivityUnreadCount(),
+          ]);
+          if (!cancelled) {
+            setUnread(
+              (Number(notifData.count) || 0) +
+                (Number(activityData.count) || 0),
+            );
+          }
+        } else data = await fetchUnreadCount();
         if (!cancelled) setUnread(Number(data.count) || 0);
       } catch {
         setUnread(0);
