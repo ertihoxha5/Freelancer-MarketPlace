@@ -14,6 +14,12 @@ import {
 import { createActivity } from "./activityService.js";
 import { getIO } from "../socket/index.js";
 import {
+  emitContractCreated,
+  emitProjectStatusChanged,
+  emitProposalAccepted,
+  emitProposalRejected,
+} from "../socket/handlers/businessHandlers.js";
+import {
   PROJECT_STATUSES,
   validateStatusTransition,
 } from "../utils/statusTransition.js";
@@ -184,6 +190,18 @@ export async function updateMyApplicationStatus(
           }),
         ),
       );
+
+      const io = getIO();
+      if (io) {
+        for (const application of rejectedApplications) {
+          emitProposalRejected(io, {
+            freelancerID: application.freelancerID,
+            projectID: existing.projectId,
+            projectTitle,
+            proposalID: application.applicationID,
+          });
+        }
+      }
     }
 
     pushFreelancerNotification({
@@ -235,11 +253,29 @@ export async function updateMyApplicationStatus(
           totalAmount: contract.totalAmount ?? existing.bidAmount ?? null,
           cStatus: contract.cStatus ?? "active",
         };
-        io.to(`user:${clientId}`).emit("contract:created", payload);
-        io.to(`user:${existing.freelancerID}`).emit(
-          "contract:created",
-          payload,
-        );
+        emitProposalAccepted(io, {
+          freelancerID: existing.freelancerID,
+          ...payload,
+        });
+        emitContractCreated(io, payload);
+        emitProjectStatusChanged(io, {
+          projectID: existing.projectId,
+          projectTitle,
+          clientID: clientId,
+          freelancerID: existing.freelancerID,
+          oldStatus: existing.projectStatus,
+          newStatus: "active",
+        });
+      }
+    } else if (propStatus === "rejected") {
+      const io = getIO();
+      if (io) {
+        emitProposalRejected(io, {
+          freelancerID: existing.freelancerID,
+          projectID: existing.projectId,
+          projectTitle,
+          proposalID: appId,
+        });
       }
     }
   }
@@ -566,6 +602,21 @@ export async function updateMyProject(projectID, clientID, payload) {
       title: "Project Updated",
       msg: `Your project "${title.trim().slice(0, 50)}" has been updated successfully.`,
     }).catch(() => {});
+  }
+
+  if (existing.pStatus !== updated.pStatus) {
+    const io = getIO();
+    if (io) {
+      const contract = await projectRepository.getContractByProjectId(projectId);
+      emitProjectStatusChanged(io, {
+        projectID: projectId,
+        projectTitle: updated.title,
+        clientID,
+        freelancerID: contract?.freelancerID ?? null,
+        oldStatus: existing.pStatus,
+        newStatus: updated.pStatus,
+      });
+    }
   }
 
   return updated;

@@ -6,6 +6,7 @@ import {
 } from "./notificationService.js";
 import { createActivity } from "./activityService.js";
 import { getIO } from "../socket/index.js";
+import { emitReviewReceived } from "../socket/handlers/businessHandlers.js";
 
 function validationError(message) {
   const err = new Error(message);
@@ -150,7 +151,7 @@ export async function createReview(contractID, reviewerID, role, payload) {
 
   const io = getIO();
   if (io) {
-    io.to(`user:${partyContext.receiverID}`).emit("review:received", {
+    emitReviewReceived(io, {
       contractID: contractId,
       reviewID: review.id,
       reviewerID: reviewerId,

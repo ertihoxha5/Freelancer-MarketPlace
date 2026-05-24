@@ -390,6 +390,14 @@ export async function getContractById(contractID) {
   return rows[0] ?? null;
 }
 
+export async function getContractByProjectId(projectID) {
+  const [rows] = await db.execute(
+    `${contractSelectSql("WHERE p.id = ?")} ORDER BY c.id DESC LIMIT 1`,
+    [projectID],
+  );
+  return rows[0] ?? null;
+}
+
 export async function updateContractStatus(contractID, cStatus) {
   const endDateSql = cStatus === "completed" || cStatus === "terminated"
     ? ", endDate = COALESCE(endDate, CURDATE())"

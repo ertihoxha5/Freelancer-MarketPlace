@@ -4,6 +4,10 @@ import { pushFreelancerNotification } from "./freelancerNotificationService.js";
 import { createActivity } from "./activityService.js";
 import { getIO } from "../socket/index.js";
 import {
+  emitProjectStatusChanged,
+  emitProposalNew,
+} from "../socket/handlers/businessHandlers.js";
+import {
   PROJECT_STATUSES,
   validateStatusTransition,
 } from "../utils/statusTransition.js";
@@ -123,6 +127,21 @@ export async function updateProject(id, payload) {
       title: "Project Updated",
       msg: `Admin updated your project "${updated.title}" (${detail}).`,
     }).catch(() => {});
+  }
+
+  if (existing.pStatus !== updated.pStatus) {
+    const contract = await projectRepository.getContractByProjectId(projectId);
+    const io = getIO();
+    if (io) {
+      emitProjectStatusChanged(io, {
+        projectID: projectId,
+        projectTitle: updated.title,
+        clientID: existing.clientID,
+        freelancerID: contract?.freelancerID ?? null,
+        oldStatus: existing.pStatus,
+        newStatus: updated.pStatus,
+      });
+    }
   }
 
   return updated;
@@ -285,6 +304,15 @@ export async function createApplication(userID, projectID, payload) {
 
   const io = getIO();
   if (io) {
+    emitProposalNew(io, {
+      clientID: projectDetails.clientID,
+      projectID: projectId,
+      projectTitle,
+      proposalID: result.id,
+      freelancerID: freelancerId,
+      bidAmount: bidAmount ? Number(bidAmount) : null,
+      estimatedDays: estimatedDays ? Number(estimatedDays) : null,
+    });
     io.to(`user:${projectDetails.clientID}`).emit("notification:new", {
       type: "system",
       title: "New application",

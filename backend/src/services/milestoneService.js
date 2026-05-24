@@ -6,6 +6,12 @@ import {
 } from "./notificationService.js";
 import { createActivity } from "./activityService.js";
 import { getIO } from "../socket/index.js";
+import {
+  emitMilestoneApproved,
+  emitMilestoneRejected,
+  emitMilestoneSubmitted,
+  emitProjectStatusChanged,
+} from "../socket/handlers/businessHandlers.js";
 import { validateStatusTransition } from "../utils/statusTransition.js";
 
 const VALID_MILESTONE_STATUSES = [
@@ -191,6 +197,17 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
   }
 
   if (mStatus === "submitted") {
+    const io = getIO();
+    if (io) {
+      emitMilestoneSubmitted(io, {
+        clientID: contract.clientID,
+        contractID: contract.id,
+        milestoneID: milestoneId,
+        projectID: contract.projectID,
+        projectTitle: contract.projectTitle,
+        freelancerID: contract.freelancerID,
+      });
+    }
     notifyParties(contract, {
       title: "Milestone Submitted",
       msg: `A milestone was submitted for "${contract.projectTitle}".`,
@@ -201,10 +218,12 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
   if (mStatus === "approved") {
     const io = getIO();
     if (io) {
-      io.to(`user:${contract.freelancerID}`).emit("milestone:approved", {
+      emitMilestoneApproved(io, {
+        freelancerID: contract.freelancerID,
         contractID: contract.id,
         milestoneID: milestoneId,
         projectID: contract.projectID,
+        projectTitle: contract.projectTitle,
       });
     }
 
@@ -224,6 +243,17 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
       validateStatusTransition(contract.projectStatus, "completed");
       await projectRepository.updateContractStatus(contract.id, "completed");
       await projectRepository.updateProjectStatus(contract.projectID, "completed");
+
+      if (io) {
+        emitProjectStatusChanged(io, {
+          projectID: contract.projectID,
+          projectTitle: contract.projectTitle,
+          clientID: contract.clientID,
+          freelancerID: contract.freelancerID,
+          oldStatus: contract.projectStatus,
+          newStatus: "completed",
+        });
+      }
 
       pushFreelancerNotification({
         types: "system",
@@ -256,6 +286,16 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
   }
 
   if (mStatus === "rejected") {
+    const io = getIO();
+    if (io) {
+      emitMilestoneRejected(io, {
+        freelancerID: contract.freelancerID,
+        contractID: contract.id,
+        milestoneID: milestoneId,
+        projectID: contract.projectID,
+        projectTitle: contract.projectTitle,
+      });
+    }
     notifyParties(contract, {
       title: "Milestone Rejected",
       msg: `A milestone needs revisions for "${contract.projectTitle}".`,

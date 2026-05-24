@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useRealtime } from "../context/RealtimeContext.jsx";
 
 const sidebarConfigs = {
   admin: [
@@ -22,16 +23,18 @@ const sidebarConfigs = {
     { label: "Notifications", href: "/freelancer/notifications" },
     { label: "Browse Projects", href: "/freelancer/browse-projects" },
     { label: "Favorite Projects", href: "/freelancer/favorites" },
-    { label: "My Projects", href: "/freelancer/my-projects" },
-    { label: "My Applications", href: "/freelancer/applications" },
-    { label: "My Reports", href: "/freelancer/reports" },
+    { label: "My Projects", href: "/freelancer/my-projects", badge: "projects" },
+    { label: "Contracts", href: "/search", badge: "contracts" },
+    { label: "My Applications", href: "/freelancer/applications", badge: "applications" },
+    { label: "My Reports", href: "/freelancer/reports", badge: "reviews" },
 
   ],
   client: [
     { label: "Dashboard", href: "/client/dashboard" },
     { label: "Post Project", href: "/client/post-project" },
-    { label: "My Projects", href: "/client/projects" },
-    { label: "Applications", href: "/client/applications" },
+    { label: "My Projects", href: "/client/projects", badge: "projects" },
+    { label: "Applications", href: "/client/applications", badge: "applications" },
+    { label: "Contracts", href: "/search", badge: "contracts" },
     { label: "Notifications", href: "/client/notifications" },
     { label: "My Profile", href: "/client/profile" },
     { label: "Messages", href: "/client/messages" },
@@ -56,6 +59,7 @@ function getRoleLabel(roleID) {
 
 export default function Sidebar({ roleID }) {
   const config = getRoleConfig(roleID);
+  const { badges, clearBadge } = useRealtime();
 
   return (
     <aside className="h-full w-72 shrink-0 border-r border-slate-200 bg-white hidden lg:block overflow-y-auto">
@@ -73,6 +77,7 @@ export default function Sidebar({ roleID }) {
           <NavLink
             key={item.href}
             to={item.href}
+            onClick={() => item.badge && clearBadge(item.badge)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-6 py-3.5 text-sm font-medium transition-all ${
                 isActive
@@ -81,7 +86,14 @@ export default function Sidebar({ roleID }) {
               }`
             }
           >
-            {item.label}
+            <span className="min-w-0 flex-1">{item.label}</span>
+            {item.badge && Number(badges[item.badge] || 0) > 0 ? (
+              <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+                {Number(badges[item.badge]) > 99
+                  ? "99+"
+                  : Number(badges[item.badge])}
+              </span>
+            ) : null}
           </NavLink>
         ))}
       </nav>

@@ -44,8 +44,9 @@ function NotificationBell({ user }) {
                 (Number(activityData.count) || 0),
             );
           }
+          return;
         } else data = await fetchUnreadCount();
-        if (!cancelled) setUnread(Number(data.count) || 0);
+        if (!cancelled && data) setUnread(Number(data.count) || 0);
       } catch {
         setUnread(0);
       }
@@ -83,6 +84,9 @@ function NotificationBell({ user }) {
       cancelled = true;
       window.removeEventListener(eventName, onBadgeUpdate);
       clearInterval(interval);
+      if (socket) {
+        socket.off("notification:new", onNotificationNew);
+      }
     };
   }, [user, isClient, isAdmin, isFreelancer]);
 
