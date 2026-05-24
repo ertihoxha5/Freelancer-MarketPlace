@@ -676,3 +676,100 @@ export async function deleteAllActivities() {
     method: "DELETE",
   });
 }
+
+function qs(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      search.set(key, value);
+    }
+  });
+  const text = search.toString();
+  return text ? `?${text}` : "";
+}
+
+export function searchList(type, params = {}) {
+  return authedFetch(`${API_BASE}/api/search/${type}${qs(params)}`);
+}
+
+export async function downloadExport(kind, format = "csv", params = {}) {
+  const url = `${API_BASE}/api/export/${kind}${qs({ ...params, format })}`;
+  let res = await fetch(url, { headers: authHeaders() });
+  if (res.status === 401 && getRefreshToken()) {
+    await refreshSession();
+    res = await fetch(url, { headers: authHeaders() });
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || `Export failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = `${kind}.${format === "xlsx" ? "xlsx" : format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+}
+
+export async function downloadProjectReport(format = "json", params = {}) {
+  const url = `${API_BASE}/api/reports/projects${qs({ ...params, format })}`;
+  let res = await fetch(url, { headers: authHeaders() });
+  if (res.status === 401 && getRefreshToken()) {
+    await refreshSession();
+    res = await fetch(url, { headers: authHeaders() });
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || `Report export failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = `project-report.${format === "xlsx" ? "xlsx" : format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+}
+
+export async function importFile(kind, file, extra = {}) {
+  const form = new FormData();
+  form.append("file", file);
+  Object.entries(extra).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      form.append(key, value);
+    }
+  });
+  let res = await fetch(`${API_BASE}/api/import/${kind}`, {
+    method: "POST",
+    headers: getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {},
+    body: form,
+  });
+  if (res.status === 401 && getRefreshToken()) {
+    await refreshSession();
+    res = await fetch(`${API_BASE}/api/import/${kind}`, {
+      method: "POST",
+      headers: getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {},
+      body: form,
+    });
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || `Import failed (${res.status})`);
+  return data;
+}
+
+export function fetchPlatformSummaryReport() {
+  return authedFetch(`${API_BASE}/api/reports/platform-summary`);
+}
+
+export function fetchClientReport(id) {
+  return authedFetch(`${API_BASE}/api/reports/client/${id}`);
+}
+
+export function fetchFreelancerReport(id) {
+  return authedFetch(`${API_BASE}/api/reports/freelancer/${id}`);
+}

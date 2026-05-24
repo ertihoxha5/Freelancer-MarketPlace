@@ -236,7 +236,9 @@ export async function getClientApplicationById(applicationID, clientID) {
             pr.estimatedDays,
             pr.propStatus,
             pr.isDeleted,
-            p.clientID
+            p.clientID,
+            p.title AS projectTitle,
+            p.pStatus AS projectStatus
          FROM Proposal pr
          INNER JOIN Project p ON p.id = pr.projectID
          WHERE pr.id = ? AND p.clientID = ? AND pr.isDeleted = FALSE
@@ -260,6 +262,143 @@ export async function updateClientApplicationStatus(
   );
 
   return result.affectedRows;
+}
+
+export async function rejectOtherProposals(projectID, acceptedProposalID) {
+  const [rows] = await db.execute(
+    `SELECT
+        id AS applicationID,
+        userID AS freelancerID,
+        bidAmount,
+        estimatedDays
+     FROM Proposal
+     WHERE projectID = ?
+       AND id != ?
+       AND propStatus = 'pending'
+       AND isDeleted = FALSE`,
+    [projectID, acceptedProposalID],
+  );
+
+  await db.execute(
+    `UPDATE Proposal
+     SET propStatus = 'rejected'
+     WHERE projectID = ?
+       AND id != ?
+       AND propStatus = 'pending'
+       AND isDeleted = FALSE`,
+    [projectID, acceptedProposalID],
+  );
+
+  return rows;
+}
+
+export async function createContract({
+  proposalID,
+  clientID,
+  freelancerID,
+  totalAmount,
+}) {
+  const [result] = await db.execute(
+    `INSERT INTO Contracts
+       (proposalID, clientID, freelancerID, totalAmount, cStatus, startDate)
+     VALUES (?, ?, ?, ?, 'active', CURDATE())`,
+    [proposalID, clientID, freelancerID, totalAmount ?? 0],
+  );
+
+  const contract = await getContractByProposalId(proposalID);
+  return contract ?? {
+    id: result.insertId,
+    proposalID,
+    clientID,
+    freelancerID,
+    totalAmount,
+    cStatus: "active",
+  };
+}
+
+export async function getContractByProposalId(proposalID) {
+  const [rows] = await db.execute(
+    `SELECT
+        c.*,
+        p.id AS projectID,
+        p.title AS projectTitle,
+        p.pStatus AS projectStatus,
+        uc.fullName AS clientName,
+        uf.fullName AS freelancerName
+     FROM Contracts c
+     INNER JOIN Proposal pr ON pr.id = c.proposalID
+     INNER JOIN Project p ON p.id = pr.projectID
+     INNER JOIN Users uc ON uc.id = c.clientID
+     INNER JOIN Users uf ON uf.id = c.freelancerID
+     WHERE c.proposalID = ?
+     LIMIT 1`,
+    [proposalID],
+  );
+  return rows[0] ?? null;
+}
+
+function contractSelectSql(whereClause) {
+  return `
+    SELECT
+      c.id,
+      c.proposalID,
+      c.clientID,
+      c.freelancerID,
+      c.totalAmount,
+      c.cStatus,
+      c.startDate,
+      c.endDate,
+      p.id AS projectID,
+      p.title AS projectTitle,
+      p.pDesc AS projectDescription,
+      p.pStatus AS projectStatus,
+      p.deadline AS projectDeadline,
+      uc.fullName AS clientName,
+      uc.email AS clientEmail,
+      uf.fullName AS freelancerName,
+      uf.email AS freelancerEmail
+    FROM Contracts c
+    INNER JOIN Proposal pr ON pr.id = c.proposalID
+    INNER JOIN Project p ON p.id = pr.projectID
+    INNER JOIN Users uc ON uc.id = c.clientID
+    INNER JOIN Users uf ON uf.id = c.freelancerID
+    ${whereClause}
+  `;
+}
+
+export async function getContractsByFreelancerId(freelancerID) {
+  const [rows] = await db.execute(
+    `${contractSelectSql("WHERE c.freelancerID = ?")} ORDER BY c.id DESC`,
+    [freelancerID],
+  );
+  return rows;
+}
+
+export async function getContractsByClientId(clientID) {
+  const [rows] = await db.execute(
+    `${contractSelectSql("WHERE c.clientID = ?")} ORDER BY c.id DESC`,
+    [clientID],
+  );
+  return rows;
+}
+
+export async function getContractById(contractID) {
+  const [rows] = await db.execute(
+    `${contractSelectSql("WHERE c.id = ?")} LIMIT 1`,
+    [contractID],
+  );
+  return rows[0] ?? null;
+}
+
+export async function updateContractStatus(contractID, cStatus) {
+  const endDateSql = cStatus === "completed" || cStatus === "terminated"
+    ? ", endDate = COALESCE(endDate, CURDATE())"
+    : "";
+  const [result] = await db.execute(
+    `UPDATE Contracts SET cStatus = ?${endDateSql} WHERE id = ?`,
+    [cStatus, contractID],
+  );
+  return result.affectedRows > 0;
 }
 
 
@@ -419,6 +558,19 @@ export async function createApplication(freelancerID, projectID, coverLetter, bi
         [projectID, freelancerID, coverLetter, bidAmount || null, estimatedDays || null]
     );
     return { id: result.insertId };
+}
+
+export async function getExistingApplication(freelancerID, projectID) {
+  const [rows] = await db.execute(
+    `SELECT id
+     FROM Proposal
+     WHERE projectID = ?
+       AND userID = ?
+       AND isDeleted = FALSE
+     LIMIT 1`,
+    [projectID, freelancerID],
+  );
+  return rows[0] ?? null;
 }
 
 export async function getApplicationByIdForFreelancer(applicationID, freelancerID) {

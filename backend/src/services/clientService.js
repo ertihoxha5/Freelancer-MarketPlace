@@ -12,6 +12,11 @@ import {
   pushFreelancerNotification,
 } from "./notificationService.js";
 import { createActivity } from "./activityService.js";
+import { getIO } from "../socket/index.js";
+import {
+  PROJECT_STATUSES,
+  validateStatusTransition,
+} from "../utils/statusTransition.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
@@ -34,7 +39,7 @@ function coercePositiveInt(value, label) {
   return num;
 }
 
-const VALID_STATUSES = ["pending", "active", "completed", "cancelled"];
+const VALID_STATUSES = PROJECT_STATUSES;
 
 export async function getMyProjects(clientID) {
   return projectRepository.getClientProjects(clientID);
@@ -102,6 +107,21 @@ export async function updateMyApplicationStatus(
     };
   }
 
+  if (existing.propStatus !== "pending") {
+    const err = new Error("Only pending applications can change status.");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  if (propStatus === "accepted") {
+    if (existing.projectStatus !== "pending") {
+      const err = new Error("Only pending projects can accept a proposal.");
+      err.statusCode = 409;
+      throw err;
+    }
+    validateStatusTransition(existing.projectStatus, "active");
+  }
+
   // Përditëso statusin në MySQL
   const affected = await projectRepository.updateClientApplicationStatus(
     appId,
@@ -122,11 +142,48 @@ export async function updateMyApplicationStatus(
       clientId,
     );
 
-    const projectTitle = projectDetails?.title || "Projekt";
+    const projectTitle =
+      projectDetails?.title || existing.projectTitle || "Projekt";
+    let contract = null;
 
     // If proposal is accepted, automatically set project status to active
     if (propStatus === "accepted") {
+      const rejectedApplications = await projectRepository.rejectOtherProposals(
+        existing.projectId,
+        appId,
+      );
+      try {
+        contract = await projectRepository.createContract({
+          proposalID: appId,
+          clientID: clientId,
+          freelancerID: existing.freelancerID,
+          totalAmount: existing.bidAmount,
+        });
+      } catch (err) {
+        if (err?.code === "ER_DUP_ENTRY") {
+          contract = await projectRepository.getContractByProposalId(appId);
+        } else {
+          throw err;
+        }
+      }
       await projectRepository.updateProjectStatus(existing.projectId, "active");
+
+      await Promise.allSettled(
+        rejectedApplications.map((application) =>
+          pushFreelancerNotification({
+            types: "system",
+            receiverID: application.freelancerID,
+            title: "Application Rejected",
+            msg: `Project "${projectTitle}" has been awarded to another freelancer.`,
+            metadata: {
+              projectID: existing.projectId,
+              projectTitle,
+              applicationID: application.applicationID,
+              actionUrl: "/freelancer/applications",
+            },
+          }),
+        ),
+      );
     }
 
     pushFreelancerNotification({
@@ -165,6 +222,26 @@ export async function updateMyApplicationStatus(
         estimatedDays: existing.estimatedDays ?? null,
       },
     }).catch(() => {});
+
+    if (propStatus === "accepted" && contract) {
+      const io = getIO();
+      if (io) {
+        const payload = {
+          contractID: contract.id,
+          proposalID: appId,
+          projectID: existing.projectId,
+          clientID: clientId,
+          freelancerID: existing.freelancerID,
+          totalAmount: contract.totalAmount ?? existing.bidAmount ?? null,
+          cStatus: contract.cStatus ?? "active",
+        };
+        io.to(`user:${clientId}`).emit("contract:created", payload);
+        io.to(`user:${existing.freelancerID}`).emit(
+          "contract:created",
+          payload,
+        );
+      }
+    }
   }
 
   return {
@@ -418,12 +495,20 @@ export async function updateMyProject(projectID, clientID, payload) {
     throw err;
   }
 
+  const nextStatus = pStatus || existing.pStatus;
+  if (pStatus && pStatus !== existing.pStatus && pStatus !== "cancelled") {
+    throw validationError(
+      "Clients can only cancel active projects; projects become active or completed through proposals and milestones.",
+    );
+  }
+  validateStatusTransition(existing.pStatus, nextStatus);
+
   const updatePayload = {
     title: title.trim(),
     pDesc: pDesc?.trim() || null,
     budget: budget != null ? Number(budget) : null,
     deadline: deadline || null,
-    pStatus: pStatus || "pending",
+    pStatus: nextStatus,
   };
 
   const updated = await projectRepository.updateClientProject(

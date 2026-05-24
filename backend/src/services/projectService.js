@@ -3,13 +3,17 @@ import { pushNotification, pushToAllAdmins } from "./notificationService.js";
 import { pushFreelancerNotification } from "./freelancerNotificationService.js";
 import { createActivity } from "./activityService.js";
 import { getIO } from "../socket/index.js";
+import {
+  PROJECT_STATUSES,
+  validateStatusTransition,
+} from "../utils/statusTransition.js";
 function validationError(message) {
   const err = new Error(message);
   err.statusCode = 400;
   return err;
 }
 
-const VALID_STATUSES = ["pending", "active", "completed", "cancelled"];
+const VALID_STATUSES = PROJECT_STATUSES;
 
 export async function getProjectsWithFreelancer() {
   return projectRepository.getProjectsWithFreelancer();
@@ -91,12 +95,15 @@ export async function updateProject(id, payload) {
     throw err;
   }
 
+  const nextStatus = pStatus || existing.pStatus;
+  validateStatusTransition(existing.pStatus, nextStatus);
+
   const updated = await projectRepository.updateProject(projectId, {
     title: title.trim(),
     pDesc: pDesc?.trim() || null,
     budget: budget != null ? Number(budget) : null,
     deadline: deadline || null,
-    pStatus: pStatus || "pending",
+    pStatus: nextStatus,
   });
 
   const changes = [];
@@ -184,7 +191,9 @@ export async function getFreelancerProjectDetails(userID, projectID) {
 }
 
 export async function createApplication(userID, projectID, payload) {
-  const { coverLetter, bidAmount, estimatedDays } = payload;
+  const { coverLetter, bidAmount, estimatedDays } = payload ?? {};
+  const freelancerId = Number(userID);
+  const projectId = Number(projectID);
 
   if (!coverLetter || coverLetter.trim() === "") {
     const err = new Error("Cover letter is required.");
@@ -192,26 +201,64 @@ export async function createApplication(userID, projectID, payload) {
     throw err;
   }
 
-  const result = await projectRepository.createApplication(
-    Number(userID),
-    Number(projectID),
-    coverLetter.trim(),
-    bidAmount ? Number(bidAmount) : null,
-    estimatedDays ? Number(estimatedDays) : null,
-  );
+  if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
+    throw validationError("Valid user id is required.");
+  }
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    throw validationError("Valid project id is required.");
+  }
 
-  const projectDetails = await projectRepository.getProjectById(
-    Number(projectID),
+  const projectDetails = await projectRepository.getProjectById(projectId);
+  if (!projectDetails) {
+    const err = new Error("Project not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+  if (projectDetails.pStatus !== "pending") {
+    const err = new Error("Applications are only open for pending projects.");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const duplicateError = () => {
+    const err = new Error("You have already applied to this project.");
+    err.statusCode = 409;
+    return err;
+  };
+
+  const existingApplication = await projectRepository.getExistingApplication(
+    freelancerId,
+    projectId,
   );
+  if (existingApplication) {
+    throw duplicateError();
+  }
+
+  let result;
+  try {
+    result = await projectRepository.createApplication(
+      freelancerId,
+      projectId,
+      coverLetter.trim(),
+      bidAmount ? Number(bidAmount) : null,
+      estimatedDays ? Number(estimatedDays) : null,
+    );
+  } catch (err) {
+    if (err?.code === "ER_DUP_ENTRY") {
+      throw duplicateError();
+    }
+    throw err;
+  }
+
   const projectTitle = projectDetails?.title || "Projekt";
 
   pushFreelancerNotification({
     types: "system",
-    receiverID: Number(userID),
+    receiverID: freelancerId,
     title: "Aplikim i dërguar 📨",
     msg: `Aplikimi juaj për projektin "${projectTitle}" u dërgua me sukses!`,
     metadata: {
-      projectID: Number(projectID),
+      projectID: projectId,
       projectTitle,
       applicationID: result.id,
       actionUrl: "/freelancer/applications",
@@ -219,10 +266,10 @@ export async function createApplication(userID, projectID, payload) {
   }).catch(() => {});
 
   createActivity({
-    freelancerID: Number(userID),
+    freelancerID: freelancerId,
     eventType: "application_submitted",
     metadata: {
-      projectID: Number(projectID),
+      projectID: projectId,
       projectTitle,
       applicationID: result.id,
       bidAmount: bidAmount ? Number(bidAmount) : null,

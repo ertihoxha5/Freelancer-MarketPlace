@@ -164,6 +164,11 @@ const Header = () => {
             <Link to="/contact" className="hover:text-white transition-colors">
               Contact
             </Link>
+            {user ? (
+              <Link to="/search" className="hover:text-white transition-colors">
+                Search
+              </Link>
+            ) : null}
           </div>
 
           <div className="relative">

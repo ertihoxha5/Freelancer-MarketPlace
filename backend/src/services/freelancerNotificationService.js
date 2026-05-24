@@ -104,6 +104,9 @@ export async function pushFreelancerNotification({
         conversationID: metadata.conversationID ?? null,
         senderName: metadata.senderName ?? null,
         applicationID: metadata.applicationID ?? null,
+        contractID: metadata.contractID ?? null,
+        milestoneID: metadata.milestoneID ?? null,
+        reviewID: metadata.reviewID ?? null,
         actionUrl: metadata.actionUrl ?? null,
       },
     });

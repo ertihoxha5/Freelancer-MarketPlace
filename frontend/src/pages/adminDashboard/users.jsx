@@ -2,7 +2,14 @@ import Header from '../../components/Header.jsx';
 import Sidebar from '../../components/Sidebar.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useEffect, useState } from 'react';
-import { deleteAdminUser, fetchAdminUsers, registerUser, updateAdminUser } from '../../apiServices.js';
+import {
+    deleteAdminUser,
+    downloadExport,
+    fetchAdminUsers,
+    importFile,
+    registerUser,
+    updateAdminUser,
+} from '../../apiServices.js';
 
 export default function User() {
     const { user } = useAuth();
@@ -20,6 +27,9 @@ export default function User() {
     const [editOpen, setEditOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
+    const [importOpen, setImportOpen] = useState(false);
+    const [importFileValue, setImportFileValue] = useState(null);
+    const [importing, setImporting] = useState(false);
     const [addForm, setAddForm] = useState({
         fullName: '',
         email: '',
@@ -187,6 +197,24 @@ export default function User() {
         }
     }
 
+    async function handleImportUsers(e) {
+        e.preventDefault();
+        if (!importFileValue) return;
+        setImporting(true);
+        setError('');
+        try {
+            await importFile('users', importFileValue);
+            const data = await fetchAdminUsers({ page: 1, limit: 100 });
+            setUsers(Array.isArray(data.users) ? data.users : []);
+            setImportOpen(false);
+            setImportFileValue(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to import users.');
+        } finally {
+            setImporting(false);
+        }
+    }
+
     const filteredUsers = users.filter((row) => {
         const term = search.trim().toLowerCase();
         if (!term) return true;
@@ -234,13 +262,19 @@ export default function User() {
                     <section className="min-h-full min-w-0 flex-1 overflow-auto p-6 sm:p-8">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <h1 className="text-3xl font-semibold text-slate-900">Users</h1>
-                            <button
-                                type="button"
-                                onClick={openAddModal}
-                                className="inline-flex w-auto rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-                            >
-                                + Add User
-                            </button>
+                            <div className="flex flex-wrap gap-2">
+                                <button type="button" onClick={() => downloadExport('users', 'csv').catch((err) => setError(err.message))} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">CSV</button>
+                                <button type="button" onClick={() => downloadExport('users', 'xlsx').catch((err) => setError(err.message))} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">Excel</button>
+                                <button type="button" onClick={() => downloadExport('users', 'json').catch((err) => setError(err.message))} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">JSON</button>
+                                <button type="button" onClick={() => setImportOpen(true)} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">Import</button>
+                                <button
+                                    type="button"
+                                    onClick={openAddModal}
+                                    className="inline-flex w-auto rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                                >
+                                    + Add User
+                                </button>
+                            </div>
                         </div>
 
                         <div className="mt-4 w-full flex flex-col gap-2">
@@ -506,6 +540,28 @@ export default function User() {
                                     className="inline-flex w-auto rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
                                 >
                                     {adding ? 'Creating...' : 'Create User'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            ) : null}
+
+            {importOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+                        <h2 className="text-xl font-semibold text-slate-900">Import Users</h2>
+                        <form className="mt-4 space-y-4" onSubmit={handleImportUsers}>
+                            <input
+                                type="file"
+                                accept=".csv,.json"
+                                onChange={(e) => setImportFileValue(e.target.files?.[0] || null)}
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button type="button" onClick={() => setImportOpen(false)} className="rounded-md border border-slate-300 px-4 py-2 text-sm">Cancel</button>
+                                <button disabled={!importFileValue || importing} className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-60">
+                                    {importing ? 'Importing...' : 'Import'}
                                 </button>
                             </div>
                         </form>

@@ -32,6 +32,11 @@ const JobsWithoutFreelancer = lazy(
 const AdminNotifications = lazy(
   () => import("./pages/adminDashboard/AdminNotifications.jsx"),
 );
+const AdminReports = lazy(() => import("./pages/adminDashboard/Reports.jsx"));
+const ExportImport = lazy(
+  () => import("./pages/adminDashboard/ExportImport.jsx"),
+);
+const SearchPage = lazy(() => import("./pages/SearchPage.jsx"));
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard.jsx"));
 const ClientProjects = lazy(() => import("./pages/ClientProjects.jsx"));
 const ClientProjectDetail = lazy(() => import("./pages/ClientProjectDetail.jsx"));
@@ -64,6 +69,7 @@ const FreelancerMyProjects = lazy(
 const FreelancerNotifications = lazy(
   () => import("./pages/FreelancerNotifications.jsx"),
 );
+const FreelancerReports = lazy(() => import("./pages/FreelancerReports.jsx"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage.jsx"));
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
@@ -88,6 +94,16 @@ const router = createBrowserRouter([
         ),
       },
       { path: "/error", element: <ErrorPage /> },
+      {
+        path: "/search",
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}>
+              <SearchPage />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
       {
         path: "/demo-protected",
         element: (
@@ -229,6 +245,26 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/adminDashboard/export-import",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <ExportImport />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/reports",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminReports />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
         path: "/freelancer/notifications",
         element: (
           <FreelancerRoute>
@@ -305,6 +341,16 @@ const router = createBrowserRouter([
           <FreelancerRoute>
             <Suspense fallback={<Loading />}>
               <FreelancerMyProjects />
+            </Suspense>
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/freelancer/reports",
+        element: (
+          <FreelancerRoute>
+            <Suspense fallback={<Loading />}>
+              <FreelancerReports />
             </Suspense>
           </FreelancerRoute>
         ),

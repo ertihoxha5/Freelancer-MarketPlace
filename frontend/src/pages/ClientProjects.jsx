@@ -7,6 +7,7 @@ import {
   fetchClientProjects,
   updateClientProject,
   deleteClientProject,
+  downloadExport,
 } from "../apiServices.js";
 import { exportCSV, exportJSON } from "../utils/export.js";
 
@@ -175,6 +176,12 @@ export default function ClientProjects() {
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
               >
                 Export JSON
+              </button>
+              <button
+                onClick={() => downloadExport("projects", "xlsx").catch((err) => setError(err.message))}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                Export Excel
               </button>
             </div>
 

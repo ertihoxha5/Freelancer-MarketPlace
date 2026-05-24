@@ -9,6 +9,10 @@ import clientRoutes from "./routes/clientRoutes.js";
 import freelancerRoutes from "./routes/freelancerRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import savedProjectRoutes from "./routes/savedProjectRoutes.js";
+import searchRoutes from "./routes/searchRoutes.js";
+import exportRoutes from "./routes/exportRoutes.js";
+import importRoutes from "./routes/importRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 import { connectMongoDB } from "./config/mongodb.js";
 import { db } from "./config/db.js";
 import rateLimit from "express-rate-limit";
@@ -87,6 +91,10 @@ app.use("/api/client", clientRoutes);
 app.use("/api/freelancer", freelancerRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/saved-projects", savedProjectRoutes);
+app.use("/api/search", searchRoutes);
+app.use("/api/export", exportRoutes);
+app.use("/api/import", importRoutes);
+app.use("/api/reports", reportRoutes);
 
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);

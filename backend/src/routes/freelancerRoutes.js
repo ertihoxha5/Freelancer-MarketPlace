@@ -3,6 +3,9 @@ import * as authMiddleware from "../middleware/authMiddleware.js";
 import * as freelancerController from "../controllers/freelancerController.js";
 import * as projectController from "../controllers/projectController.js";
 import * as activityController from "../controllers/activityController.js";
+import * as contractController from "../controllers/contractController.js";
+import * as milestoneController from "../controllers/milestoneController.js";
+import * as reviewController from "../controllers/reviewController.js";
 
 import * as freelancerNotifController from "../controllers/freelancerNotificationController.js";
 
@@ -32,6 +35,19 @@ router.delete(
   "/applications/:applicationId",
   projectController.softDeleteMyApplication,
 );
+
+router.get("/contracts", contractController.getMyContracts);
+router.get("/contracts/:id", contractController.getMyContractById);
+router.get(
+  "/contracts/:contractId/milestones",
+  milestoneController.getMilestones,
+);
+router.patch(
+  "/milestones/:id/status",
+  milestoneController.updateMilestoneStatus,
+);
+router.post("/contracts/:contractId/reviews", reviewController.createReview);
+router.get("/reviews", reviewController.getMyReceivedReviews);
 
 router.get(
   "/notifications/unread-count",

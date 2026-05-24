@@ -12,6 +12,8 @@ const sidebarConfigs = {
       label: "Jobs without Freelancer",
       href: "/adminDashboard/jobs-without-freelancer",
     },
+    { label: "Export/Import", href: "/adminDashboard/export-import" },
+    { label: "Reports", href: "/adminDashboard/reports" },
     { label: "Notifications", href: "/adminDashboard/notifications" },
   ],
   freelancer: [
@@ -22,6 +24,7 @@ const sidebarConfigs = {
     { label: "Favorite Projects", href: "/freelancer/favorites" },
     { label: "My Projects", href: "/freelancer/my-projects" },
     { label: "My Applications", href: "/freelancer/applications" },
+    { label: "My Reports", href: "/freelancer/reports" },
 
   ],
   client: [

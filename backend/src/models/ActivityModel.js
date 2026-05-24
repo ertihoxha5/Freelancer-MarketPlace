@@ -68,6 +68,11 @@ const activitySchema = new mongoose.Schema(
       // Për reviews
       stars: Number,
       reviewerName: String,
+      contractID: Number,
+      reviewerID: Number,
+      receiverID: Number,
+      averageRating: Number,
+      reviewCount: Number,
 
       // URL ku mund të navigojë
       actionUrl: String,
