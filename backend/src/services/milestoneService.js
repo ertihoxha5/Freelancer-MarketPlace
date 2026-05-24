@@ -169,12 +169,20 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     throw conflictError("Approved milestones cannot change status.");
   }
 
-  if (role === "freelancer" && mStatus !== "submitted") {
-    throw forbiddenError("Freelancers can only submit milestones.");
+  if (role === "freelancer" && !["in_progress", "submitted"].includes(mStatus)) {
+    throw forbiddenError("Freelancers can only start or submit milestones.");
   }
 
   if (role === "freelancer" && milestone.mStatus === "approved") {
     throw conflictError("Approved milestones cannot be submitted again.");
+  }
+
+  if (role === "freelancer" && mStatus === "in_progress" && milestone.mStatus !== "pending") {
+    throw conflictError("Only pending milestones can be started.");
+  }
+
+  if (role === "freelancer" && mStatus === "submitted" && !["in_progress", "rejected"].includes(milestone.mStatus)) {
+    throw conflictError("Only in-progress or rejected milestones can be submitted.");
   }
 
   if (role === "client" && !["pending", "in_progress", "approved", "rejected"].includes(mStatus)) {

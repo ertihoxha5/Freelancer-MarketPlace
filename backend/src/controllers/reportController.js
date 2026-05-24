@@ -99,10 +99,12 @@ export async function clientReport(req, res, next) {
 
 export async function freelancerReport(req, res, next) {
   try {
-    if (!canViewUserReport(req, req.params.id) || Number(req.user.roleID) === 2) {
+    const freelancerID = req.params.id === "me"
+      ? Number(req.user.id)
+      : Number(req.params.id);
+    if (!canViewUserReport(req, freelancerID) || Number(req.user.roleID) === 2) {
       return res.status(403).json({ message: "You cannot view this freelancer report." });
     }
-    const freelancerID = Number(req.params.id);
     const [[summary]] = await db.execute(
       `SELECT
         COALESCE((SELECT SUM(totalAmount) FROM Contracts WHERE freelancerID = ? AND cStatus IN ('active', 'completed')), 0) AS totalEarned,

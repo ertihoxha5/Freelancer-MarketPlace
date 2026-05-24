@@ -47,6 +47,7 @@ const ClientNotifications = lazy(
 );
 const ClientApplications = lazy(() => import("./pages/ClientApplications.jsx"));
 const ClientMessages = lazy(() => import("./pages/ClientMessages.jsx"));
+const ClientContracts = lazy(() => import("./pages/ClientContracts.jsx"));
 const FreelancerDashboard = lazy(
   () => import("./pages/FreelancerDashboard.jsx"),
 );
@@ -70,6 +71,8 @@ const FreelancerNotifications = lazy(
   () => import("./pages/FreelancerNotifications.jsx"),
 );
 const FreelancerReports = lazy(() => import("./pages/FreelancerReports.jsx"));
+const FreelancerContracts = lazy(() => import("./pages/FreelancerContracts.jsx"));
+const FreelancerReviews = lazy(() => import("./pages/FreelancerReviews.jsx"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage.jsx"));
 
 // Shtoni faqe të reja si fëmijë të layout-it më poshtë.
@@ -190,6 +193,16 @@ const router = createBrowserRouter([
           <ProtectedRoute>
             <Suspense fallback={<Loading />}>
               <ClientMessages />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/client/contracts",
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}>
+              <ClientContracts />
             </Suspense>
           </ProtectedRoute>
         ),
@@ -351,6 +364,26 @@ const router = createBrowserRouter([
           <FreelancerRoute>
             <Suspense fallback={<Loading />}>
               <FreelancerReports />
+            </Suspense>
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/freelancer/contracts",
+        element: (
+          <FreelancerRoute>
+            <Suspense fallback={<Loading />}>
+              <FreelancerContracts />
+            </Suspense>
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/freelancer/reviews",
+        element: (
+          <FreelancerRoute>
+            <Suspense fallback={<Loading />}>
+              <FreelancerReviews />
             </Suspense>
           </FreelancerRoute>
         ),

@@ -771,5 +771,72 @@ export function fetchClientReport(id) {
 }
 
 export function fetchFreelancerReport(id) {
-  return authedFetch(`${API_BASE}/api/reports/freelancer/${id}`);
+  return authedFetch(`${API_BASE}/api/reports/freelancer/${id || "me"}`);
+}
+
+// Contracts
+export function fetchMyContracts() {
+  return authedFetch(`${API_BASE}/api/client/contracts`);
+}
+
+export function fetchMyContract(id) {
+  return authedFetch(`${API_BASE}/api/client/contracts/${id}`);
+}
+
+export function fetchFreelancerContracts() {
+  return authedFetch(`${API_BASE}/api/freelancer/contracts`);
+}
+
+export function fetchFreelancerContract(id) {
+  return authedFetch(`${API_BASE}/api/freelancer/contracts/${id}`);
+}
+
+// Milestones
+export function createMilestone(contractId, payload) {
+  return authedFetch(
+    `${API_BASE}/api/client/contracts/${contractId}/milestones`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+export function fetchMilestones(contractId, role = "client") {
+  return authedFetch(`${API_BASE}/api/${role}/contracts/${contractId}/milestones`);
+}
+
+export function updateMilestoneStatus(id, status, role = "client") {
+  return authedFetch(`${API_BASE}/api/${role}/milestones/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ mStatus: status }),
+  });
+}
+
+// Reviews
+export function createReview(contractId, payload, role = "client") {
+  return authedFetch(`${API_BASE}/api/${role}/contracts/${contractId}/reviews`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchMyReviews() {
+  return authedFetch(`${API_BASE}/api/freelancer/reviews`);
+}
+
+// Search
+export function searchProjects(params = {}) {
+  return authedFetch(`${API_BASE}/api/search/projects${qs(params)}`);
+}
+
+export function searchFreelancers(params = {}) {
+  return authedFetch(`${API_BASE}/api/search/freelancers${qs(params)}`);
+}
+
+// Reports
+export function fetchPlatformReport() {
+  return authedFetch(`${API_BASE}/api/reports/platform-summary`);
+}
+
+// Export
+export function exportData(resource, format = "csv") {
+  return downloadExport(resource, format);
 }

@@ -24,9 +24,10 @@ const sidebarConfigs = {
     { label: "Browse Projects", href: "/freelancer/browse-projects" },
     { label: "Favorite Projects", href: "/freelancer/favorites" },
     { label: "My Projects", href: "/freelancer/my-projects", badge: "projects" },
-    { label: "Contracts", href: "/search", badge: "contracts" },
+    { label: "Contracts", href: "/freelancer/contracts", badge: "contracts" },
     { label: "My Applications", href: "/freelancer/applications", badge: "applications" },
-    { label: "My Reports", href: "/freelancer/reports", badge: "reviews" },
+    { label: "My Reports", href: "/freelancer/reports" },
+    { label: "Reviews", href: "/freelancer/reviews", badge: "reviews" },
 
   ],
   client: [
@@ -34,7 +35,7 @@ const sidebarConfigs = {
     { label: "Post Project", href: "/client/post-project" },
     { label: "My Projects", href: "/client/projects", badge: "projects" },
     { label: "Applications", href: "/client/applications", badge: "applications" },
-    { label: "Contracts", href: "/search", badge: "contracts" },
+    { label: "Contracts", href: "/client/contracts", badge: "contracts" },
     { label: "Notifications", href: "/client/notifications" },
     { label: "My Profile", href: "/client/profile" },
     { label: "Messages", href: "/client/messages" },

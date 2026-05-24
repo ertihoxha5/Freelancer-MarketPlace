@@ -1,5 +1,6 @@
 import * as projectRepository from "../repositories/projectRepository.js";
 import * as milestoneRepository from "../repositories/milestoneRepository.js";
+import * as reviewRepository from "../repositories/reviewRepository.js";
 
 function notFoundError(message) {
   const err = new Error(message);
@@ -47,9 +48,18 @@ async function getContractForRequest(req) {
 
 export async function getMyContracts(req, res, next) {
   try {
-    const contracts = isClient(req)
+    const contractsRaw = isClient(req)
       ? await projectRepository.getContractsByClientId(req.user.id)
       : await projectRepository.getContractsByFreelancerId(req.user.id);
+    const contracts = await Promise.all(
+      contractsRaw.map(async (contract) => ({
+        ...contract,
+        hasReviewed: await reviewRepository.hasReviewedAlready(
+          contract.id,
+          req.user.id,
+        ),
+      })),
+    );
 
     return res.status(200).json({ contracts });
   } catch (err) {
@@ -66,8 +76,14 @@ export async function getMyContractById(req, res, next) {
     const milestones = await milestoneRepository.getMilestonesByContractId(
       contract.id,
     );
+    const hasReviewed = await reviewRepository.hasReviewedAlready(
+      contract.id,
+      req.user.id,
+    );
 
-    return res.status(200).json({ contract: { ...contract, milestones } });
+    return res.status(200).json({
+      contract: { ...contract, hasReviewed, milestones },
+    });
   } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({ message: err.message });

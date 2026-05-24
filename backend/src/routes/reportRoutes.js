@@ -12,6 +12,7 @@ router.get(
   reportController.platformSummary,
 );
 router.get("/client/:id", reportController.clientReport);
+router.get("/freelancer/me", reportController.freelancerReport);
 router.get("/freelancer/:id", reportController.freelancerReport);
 router.get(
   "/projects",
