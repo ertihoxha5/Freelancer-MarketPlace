@@ -1,6 +1,7 @@
 import { verifyAccessToken } from '../utils/jwt.js';
+import * as userRepository from '../repositories/userRepository.js';
 
-export function authenticateToken(req, res, next) {
+export async function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
     if (!token) {
@@ -8,10 +9,15 @@ export function authenticateToken(req, res, next) {
     }
     try {
         const decoded = verifyAccessToken(token);
+        const user = await userRepository.findActiveAuthUserById(Number(decoded.sub));
+        if (!user || Number(user.tokenVersion) !== Number(decoded.tokenVersion ?? 0)) {
+            return res.status(401).json({ message: 'Invalid or expired token.' });
+        }
         req.user = {
-            id: Number(decoded.sub),
-            email: decoded.email,
-            roleID: Number(decoded.roleID),
+            id: Number(user.id),
+            email: user.email,
+            roleID: Number(user.roleID),
+            tokenVersion: Number(user.tokenVersion),
         };
         next();
     } catch {

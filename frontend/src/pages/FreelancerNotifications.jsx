@@ -14,7 +14,6 @@ import {
   markAllActivitiesRead,
   deleteActivity,
   deleteAllActivities,
-  fetchActivityUnreadCount,
 } from "../apiServices.js";
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────

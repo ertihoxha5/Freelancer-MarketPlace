@@ -1,5 +1,7 @@
 import { Router } from "express";
 import * as authMiddleware from "../middleware/authMiddleware.js";
+import { validateRequest } from "../middleware/validateRequest.js";
+import { importSchemas } from "../validation/schemas.js";
 import {
   importProjects,
   importUsers,
@@ -10,7 +12,13 @@ const router = Router();
 
 router.use(authMiddleware.authenticateToken);
 
-router.post("/projects", uploadImportFile.single("file"), importProjects);
+router.post(
+  "/projects",
+  authMiddleware.requireRole(1, 2),
+  uploadImportFile.single("file"),
+  validateRequest({ body: importSchemas.projects }),
+  importProjects,
+);
 router.post(
   "/users",
   authMiddleware.requireRole(1),

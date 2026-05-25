@@ -1,5 +1,6 @@
 import { db } from "../config/db.js";
 import { sendRows } from "./exportController.js";
+import { validatedParams, validatedQuery } from "../middleware/validateRequest.js";
 
 function canViewUserReport(req, id) {
   return Number(req.user.roleID) === 1 || Number(req.user.id) === Number(id);
@@ -57,10 +58,10 @@ export async function platformSummary(req, res, next) {
 
 export async function clientReport(req, res, next) {
   try {
-    if (!canViewUserReport(req, req.params.id) || Number(req.user.roleID) === 3) {
+    const { id: clientID } = validatedParams(req);
+    if (!canViewUserReport(req, clientID) || Number(req.user.roleID) === 3) {
       return res.status(403).json({ message: "You cannot view this client report." });
     }
-    const clientID = Number(req.params.id);
     const [[summary]] = await db.execute(
       `SELECT
         COALESCE(SUM(c.totalAmount), 0) AS totalSpent,
@@ -99,9 +100,9 @@ export async function clientReport(req, res, next) {
 
 export async function freelancerReport(req, res, next) {
   try {
-    const freelancerID = req.params.id === "me"
+    const freelancerID = req.params?.id === "me"
       ? Number(req.user.id)
-      : Number(req.params.id);
+      : Number(validatedParams(req).id);
     if (!canViewUserReport(req, freelancerID) || Number(req.user.roleID) === 2) {
       return res.status(403).json({ message: "You cannot view this freelancer report." });
     }
@@ -150,17 +151,18 @@ export async function projectReport(req, res, next) {
   try {
     const whereParts = ["1=1"];
     const params = [];
-    if (req.query.from) {
+    const query = validatedQuery(req);
+    if (query.from) {
       whereParts.push("p.createdAt >= ?");
-      params.push(req.query.from);
+      params.push(query.from);
     }
-    if (req.query.to) {
+    if (query.to) {
       whereParts.push("p.createdAt <= ?");
-      params.push(req.query.to);
+      params.push(query.to);
     }
-    if (req.query.status) {
+    if (query.status) {
       whereParts.push("p.pStatus = ?");
-      params.push(req.query.status);
+      params.push(query.status);
     }
     const [rows] = await db.execute(
       `SELECT p.id, p.title, p.budget, p.deadline, p.pStatus,
@@ -174,8 +176,8 @@ export async function projectReport(req, res, next) {
        ORDER BY p.createdAt DESC`,
       params,
     );
-    const format = ["csv", "xlsx", "json"].includes(req.query.format)
-      ? req.query.format
+    const format = ["csv", "xlsx", "json"].includes(query.format)
+      ? query.format
       : "json";
     return sendRows(res, rows, format, "project-report");
   } catch (err) {

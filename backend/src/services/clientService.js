@@ -19,10 +19,9 @@ import {
   emitProposalAccepted,
   emitProposalRejected,
 } from "../socket/handlers/businessHandlers.js";
-import {
-  PROJECT_STATUSES,
-  validateStatusTransition,
-} from "../utils/statusTransition.js";
+import { validateStatusTransition } from "../utils/statusTransition.js";
+import { validate } from "../validation/validate.js";
+import { projectSchemas, proposalSchemas } from "../validation/schemas.js";
 import { conflictError, notFoundError, validationError } from "../utils/errors.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,8 +38,6 @@ function coercePositiveInt(value, label) {
   }
   return num;
 }
-
-const VALID_STATUSES = PROJECT_STATUSES;
 
 export async function getMyProjects(clientID) {
   return projectRepository.getClientProjects(clientID);
@@ -73,8 +70,7 @@ export async function updateMyApplicationStatus(
 ) {
   const clientId = Number(clientID);
   const appId = Number(applicationID);
-  const propStatus =
-    typeof payload?.propStatus === "string" ? payload.propStatus.trim() : "";
+  const { propStatus } = validate(proposalSchemas.status, payload ?? {});
 
   if (!Number.isInteger(clientId) || clientId <= 0) {
     throw validationError("Valid client ID is required.");
@@ -82,10 +78,6 @@ export async function updateMyApplicationStatus(
   if (!Number.isInteger(appId) || appId <= 0) {
     throw validationError("Valid application ID is required.");
   }
-  if (!["pending", "accepted", "rejected"].includes(propStatus)) {
-    throw validationError("Status must be pending, accepted, or rejected.");
-  }
-
   // Get the existing application.
   const existing = await projectRepository.getClientApplicationById(
     appId,
@@ -115,15 +107,16 @@ export async function updateMyApplicationStatus(
     validateStatusTransition(existing.projectStatus, "active");
   }
 
-  // Update status in MySQL.
-  const affected = await projectRepository.updateClientApplicationStatus(
-    appId,
-    clientId,
-    propStatus,
-  );
+  if (propStatus !== "accepted") {
+    const affected = await projectRepository.updateClientApplicationStatus(
+      appId,
+      clientId,
+      propStatus,
+    );
 
-  if (!affected) {
-    throw conflictError("Unable to update application status.");
+    if (!affected) {
+      throw conflictError("Unable to update application status.");
+    }
   }
 
   // Notify the freelancer only when the application is accepted or rejected.
@@ -139,25 +132,15 @@ export async function updateMyApplicationStatus(
 
     // If proposal is accepted, automatically set project status to active
     if (propStatus === "accepted") {
-      const rejectedApplications = await projectRepository.rejectOtherProposals(
-        existing.projectId,
-        appId,
-      );
-      try {
-        contract = await projectRepository.createContract({
-          proposalID: appId,
-          clientID: clientId,
-          freelancerID: existing.freelancerID,
-          totalAmount: existing.bidAmount,
-        });
-      } catch (err) {
-        if (err?.code === "ER_DUP_ENTRY") {
-          contract = await projectRepository.getContractByProposalId(appId);
-        } else {
-          throw err;
-        }
-      }
-      await projectRepository.updateProjectStatus(existing.projectId, "active");
+      const workflow = await projectRepository.acceptProposalAndCreateContract({
+        applicationID: appId,
+        clientID: clientId,
+        projectID: existing.projectId,
+        freelancerID: existing.freelancerID,
+        totalAmount: existing.bidAmount,
+      });
+      const rejectedApplications = workflow.rejectedApplications;
+      contract = workflow.contract;
 
       await Promise.allSettled(
         rejectedApplications.map((application) =>
@@ -432,35 +415,25 @@ export async function updateMyProfile(clientID, payload) {
 }
 
 export async function createMyProject(payload) {
-  const { title, pDesc, budget, deadline, clientID } = payload ?? {};
-
-  if (typeof title !== "string" || title.trim() === "") {
-    throw validationError("Title is required.");
-  }
-  if (title.trim().length > 100) {
-    throw validationError("Title must be 100 characters or fewer.");
-  }
+  const { title, pDesc, budget, deadline } = validate(
+    projectSchemas.clientCreateOrUpdate,
+    payload ?? {},
+  );
+  const { clientID } = payload ?? {};
 
   if (typeof clientID !== "number" || clientID <= 0) {
     throw validationError("Valid client ID is required.");
   }
 
-  if (budget != null) {
-    const budgetNum = Number(budget);
-    if (Number.isNaN(budgetNum) || budgetNum < 0) {
-      throw validationError("Budget must be a non-negative number.");
-    }
-  }
-
   const project = await projectRepository.createClientProject({
-    title: title.trim(),
-    pDesc: pDesc?.trim() || null,
+    title,
+    pDesc,
     budget: budget != null ? Number(budget) : null,
-    deadline: deadline || null,
+    deadline,
     clientID,
   });
 
-  const trimmedTitle = title.trim().slice(0, 50);
+  const trimmedTitle = title.slice(0, 50);
 
   pushNotification({
     types: "system",
@@ -484,27 +457,10 @@ export async function updateMyProject(projectID, clientID, payload) {
     throw validationError("Valid client ID is required.");
   }
 
-  const { title, pDesc, budget, deadline, pStatus } = payload ?? {};
-
-  if (typeof title !== "string" || title.trim() === "") {
-    throw validationError("Title is required.");
-  }
-  if (title.trim().length > 100) {
-    throw validationError("Title must be 100 characters or fewer.");
-  }
-
-  if (pStatus && !VALID_STATUSES.includes(pStatus)) {
-    throw validationError(
-      `pStatus must be one of: ${VALID_STATUSES.join(", ")}.`,
-    );
-  }
-
-  if (budget != null) {
-    const budgetNum = Number(budget);
-    if (Number.isNaN(budgetNum) || budgetNum < 0) {
-      throw validationError("Budget must be a non-negative number.");
-    }
-  }
+  const { title, pDesc, budget, deadline, pStatus } = validate(
+    projectSchemas.clientCreateOrUpdate,
+    payload ?? {},
+  );
 
   const existing = await projectRepository.getClientProjectById(
     projectId,
@@ -523,10 +479,10 @@ export async function updateMyProject(projectID, clientID, payload) {
   validateStatusTransition(existing.pStatus, nextStatus);
 
   const updatePayload = {
-    title: title.trim(),
-    pDesc: pDesc?.trim() || null,
+    title,
+    pDesc,
     budget: budget != null ? Number(budget) : null,
-    deadline: deadline || null,
+    deadline,
     pStatus: nextStatus,
   };
 
@@ -583,7 +539,7 @@ export async function updateMyProject(projectID, clientID, payload) {
       types: "system",
       receiverID: clientID,
       title: "Project Updated",
-      msg: `Your project "${title.trim().slice(0, 50)}" has been updated successfully.`,
+      msg: `Your project "${title.slice(0, 50)}" has been updated successfully.`,
     }).catch(() => {});
   }
 

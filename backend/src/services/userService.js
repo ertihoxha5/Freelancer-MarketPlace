@@ -4,11 +4,19 @@ import * as userRepository from "../repositories/userRepository.js";
 import * as refreshTokenRepository from "../repositories/refreshTokenRepository.js";
 import { signAccessToken } from "../utils/jwt.js";
 import { pushToAllAdmins } from "./notificationService.js";
+import { validate } from "../validation/validate.js";
+import { authSchemas, userSchemas } from "../validation/schemas.js";
 import {
   conflictError,
   unauthorizedError,
   validationError,
 } from "../utils/errors.js";
+import {
+  clearFailedLogins,
+  getLockoutMessage,
+  isAccountLocked,
+  recordFailedLogin,
+} from "../security/accountLockout.js";
 
 const ALLOWED_ROLE_IDS = new Set([2, 3]);
 const BCRYPT_ROUNDS = 10;
@@ -40,36 +48,13 @@ async function issueNewRefreshToken(userID) {
  * @param {{ fullName: string; email: string; password: string; roleID: number }} input
  */
 export async function registerUser(input) {
-  const { fullName, email, password, roleID } = input ?? {};
-
-  if (
-    typeof fullName !== "string" ||
-    typeof email !== "string" ||
-    typeof password !== "string" ||
-    fullName.trim() === "" ||
-    email.trim() === "" ||
-    password.length === 0
-  ) {
-    throw validationError("fullName, email, and password are required.");
-  }
-  if (password.length < 8) {
-    throw validationError("Password must be at least 8 characters.");
-  }
-  if (!/[A-Z]/.test(password)) {
-    throw validationError(
-      "Password must contain at least one uppercase letter.",
-    );
-  }
-  if (!/[0-9]/.test(password)) {
-    throw validationError("Password must contain at least one number.");
-  }
+  const { fullName, email, password, roleID } = validate(
+    userSchemas.register,
+    input ?? {},
+  );
   const role = Number(roleID);
-  if (!Number.isInteger(role) || !ALLOWED_ROLE_IDS.has(role)) {
-    throw validationError("roleID must be 2 (Client) or 3 (Freelancer).");
-  }
-
-  const emailNorm = email.trim().toLowerCase();
-  const nameNorm = fullName.trim();
+  const emailNorm = email;
+  const nameNorm = fullName;
 
   const existing = await userRepository.findUserByEmail(emailNorm);
   if (existing) {
@@ -102,21 +87,14 @@ export async function registerUser(input) {
  */
 
 export async function changePassword(input, authUser) {
-  const { currentPassword, newPassword } = input ?? {};
+  const { currentPassword, newPassword } = validate(
+    authSchemas.changePassword,
+    input ?? {},
+  );
   const userID = Number(authUser?.id);
 
-  if (
-    !Number.isInteger(userID) ||
-    typeof currentPassword !== "string" ||
-    typeof newPassword !== "string" ||
-    currentPassword.length === 0 ||
-    newPassword.length === 0
-  ) {
-    throw validationError("Current password and new password are required.");
-  }
-
-  if (newPassword.length < 8) {
-    throw validationError("New password must be at least 8 characters.");
+  if (!Number.isInteger(userID)) {
+    throw validationError("Valid user id is required.");
   }
 
   const user = await userRepository.findUserWithPasswordById(userID);
@@ -131,42 +109,46 @@ export async function changePassword(input, authUser) {
 
   const passwordHash = await hashPassword(newPassword);
 
-  return userRepository.changePassword({
+  const result = await userRepository.changePassword({
     id: userID,
     passwordHash,
   });
+
+  await refreshTokenRepository.revokeAllRefreshTokensForUser(userID);
+
+  return result;
 }
 
 /**
  * @param {{ email: string; password: string }} input
  */
 export async function loginUser(input) {
-  const { email, password } = input ?? {};
+  const { email, password } = validate(authSchemas.login, input ?? {});
+  const emailNorm = email;
 
-  if (
-    typeof email !== "string" ||
-    typeof password !== "string" ||
-    email.trim() === "" ||
-    password.length === 0
-  ) {
-    throw validationError("Email and password are required.");
+  if (isAccountLocked(emailNorm)) {
+    throw unauthorized(getLockoutMessage(emailNorm));
   }
 
-  const emailNorm = email.trim().toLowerCase();
   const user = await userRepository.findUserWithPasswordByEmail(emailNorm);
   if (!user) {
+    recordFailedLogin(emailNorm);
     throw unauthorized();
   }
 
   const match = await bcrypt.compare(password, user.passwordHash);
   if (!match) {
-    throw unauthorized();
+    recordFailedLogin(emailNorm);
+    throw unauthorized(isAccountLocked(emailNorm) ? getLockoutMessage(emailNorm) : undefined);
   }
+
+  clearFailedLogins(emailNorm);
 
   const token = signAccessToken({
     sub: user.id,
     email: user.email,
     roleID: user.roleID,
+    tokenVersion: user.tokenVersion,
   });
 
   const refreshToken = await issueNewRefreshToken(user.id);
@@ -187,7 +169,7 @@ export async function loginUser(input) {
  * @param {{ refreshToken: string }} input
  */
 export async function refreshAccessSession(input) {
-  const { refreshToken } = input ?? {};
+  const { refreshToken } = validate(authSchemas.refresh, input ?? {});
   if (typeof refreshToken !== "string" || refreshToken.length === 0) {
     throw validationError("refreshToken is required.");
   }
@@ -212,6 +194,7 @@ export async function refreshAccessSession(input) {
     sub: user.id,
     email: user.email,
     roleID: user.roleID,
+    tokenVersion: user.tokenVersion,
   });
 
   return {
@@ -230,9 +213,9 @@ export async function refreshAccessSession(input) {
  * @param {{ refreshToken: string }} input
  */
 export async function logoutSession(input) {
-  const { refreshToken } = input ?? {};
+  const { refreshToken } = validate(authSchemas.logout, input ?? {});
   if (typeof refreshToken !== "string" || refreshToken.length === 0) {
-    throw validationError("refreshToken is required.");
+    return { ok: true };
   }
 
   const tokenHash = refreshTokenRepository.hashRefreshToken(refreshToken);

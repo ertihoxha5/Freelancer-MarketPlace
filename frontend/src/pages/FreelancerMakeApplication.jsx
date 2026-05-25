@@ -69,7 +69,9 @@ export default function FreelancerMakeApplication() {
           <Sidebar roleID={user?.roleID} />
           <section className="min-h-full min-w-0 flex-1 overflow-auto p-8">
             <h1 className="text-3xl font-semibold mb-1">Make an Application</h1>
-            <p className="text-slate-600 mb-8">Project ID: {projectId}</p>
+            <p className="text-slate-600 mb-8">
+              {loading ? "Loading project..." : project?.title || `Project #${projectId}`}
+            </p>
             {success && <div className="mb-6 p-4 bg-green-100 border border-green-300 text-green-800 rounded-2xl">{success}</div>}
             {error && <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-800 rounded-2xl">{error}</div>}
             <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">

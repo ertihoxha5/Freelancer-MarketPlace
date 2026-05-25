@@ -1,4 +1,5 @@
 import * as reviewService from "../services/reviewService.js";
+import { validatedBody, validatedParams } from "../middleware/validateRequest.js";
 
 function roleFromRequest(req) {
   return Number(req.user?.roleID) === 2 ? "client" : "freelancer";
@@ -6,11 +7,12 @@ function roleFromRequest(req) {
 
 export async function createReview(req, res, next) {
   try {
+    const { contractId } = validatedParams(req);
     const result = await reviewService.createReview(
-      req.params.contractId,
+      contractId,
       req.user.id,
       roleFromRequest(req),
-      req.body,
+      validatedBody(req),
     );
 
     return res

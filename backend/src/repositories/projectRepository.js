@@ -292,6 +292,111 @@ export async function rejectOtherProposals(projectID, acceptedProposalID) {
   return rows;
 }
 
+export async function acceptProposalAndCreateContract({
+  applicationID,
+  clientID,
+  projectID,
+  freelancerID,
+  totalAmount,
+}) {
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const [acceptedResult] = await conn.execute(
+      `UPDATE Proposal pr
+       INNER JOIN Project p ON p.id = pr.projectID
+       SET pr.propStatus = 'accepted',
+           pr.reviewedAt = NOW(),
+           pr.reviewedBy = ?
+       WHERE pr.id = ?
+         AND p.clientID = ?
+         AND p.id = ?
+         AND pr.isDeleted = FALSE
+         AND pr.propStatus = 'pending'
+         AND p.pStatus = 'pending'`,
+      [clientID, applicationID, clientID, projectID],
+    );
+
+    if (acceptedResult.affectedRows === 0) {
+      const err = new Error("Unable to accept proposal.");
+      err.statusCode = 409;
+      throw err;
+    }
+
+    const [rejectedApplications] = await conn.execute(
+      `SELECT
+          id AS applicationID,
+          userID AS freelancerID,
+          bidAmount,
+          estimatedDays
+       FROM Proposal
+       WHERE projectID = ?
+         AND id != ?
+         AND propStatus = 'pending'
+         AND isDeleted = FALSE`,
+      [projectID, applicationID],
+    );
+
+    await conn.execute(
+      `UPDATE Proposal
+       SET propStatus = 'rejected',
+           reviewedAt = NOW(),
+           reviewedBy = ?
+       WHERE projectID = ?
+         AND id != ?
+         AND propStatus = 'pending'
+         AND isDeleted = FALSE`,
+      [clientID, projectID, applicationID],
+    );
+
+    const [contractResult] = await conn.execute(
+      `INSERT INTO Contracts
+         (proposalID, clientID, freelancerID, totalAmount, cStatus, startDate)
+       VALUES (?, ?, ?, ?, 'active', CURDATE())`,
+      [applicationID, clientID, freelancerID, totalAmount ?? 0],
+    );
+
+    const [projectResult] = await conn.execute(
+      `UPDATE Project
+       SET pStatus = 'active'
+       WHERE id = ? AND clientID = ? AND pStatus = 'pending'`,
+      [projectID, clientID],
+    );
+
+    if (projectResult.affectedRows === 0) {
+      const err = new Error("Unable to activate project.");
+      err.statusCode = 409;
+      throw err;
+    }
+
+    const [contractRows] = await conn.execute(
+      `${contractSelectSql("WHERE c.id = ?")} LIMIT 1`,
+      [contractResult.insertId],
+    );
+
+    await conn.commit();
+
+    return {
+      rejectedApplications,
+      contract: contractRows[0] ?? {
+        id: contractResult.insertId,
+        proposalID: applicationID,
+        clientID,
+        freelancerID,
+        totalAmount,
+        cStatus: "active",
+      },
+    };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 export async function createContract({
   proposalID,
   clientID,
@@ -477,8 +582,44 @@ export async function deleteClientProject(projectID, clientID) {
   return { id: projectID };
 }
 
-export async function getBrowseProjectsForFreelancer(filters = {}, freelancerID) {
+export async function getBrowseProjectsForFreelancer(
+  filters = {},
+  freelancerID,
+  paging = { page: 1, limit: 10 },
+) {
   const { sort, categoryID, skillIds } = filters;
+  const page = Math.max(1, Number(paging.page) || 1);
+  const limit = Math.min(50, Math.max(1, Number(paging.limit) || 10));
+  const offset = (page - 1) * limit;
+
+  const joins = `
+    FROM Project p
+    INNER JOIN Users u ON u.id = p.clientID
+    LEFT JOIN ProjectSkills ps ON ps.projectID = p.id
+    LEFT JOIN Skills s ON s.id = ps.skillID
+    LEFT JOIN SavedProjects sp
+      ON sp.projectID = p.id AND sp.freelancerID = ?
+  `;
+  let where = `
+    WHERE p.pStatus IN ('pending', 'active')
+  `;
+  const params = [freelancerID];
+
+  if (categoryID) {
+    where += ` AND s.categoryID = ?`;
+    params.push(Number(categoryID));
+  }
+
+  if (skillIds) {
+    const ids = skillIds
+      .split(",")
+      .map((id) => Number(id.trim()))
+      .filter((id) => Number.isInteger(id) && id > 0);
+    if (ids.length > 0) {
+      where += ` AND s.id IN (${ids.map(() => "?").join(",")})`;
+      params.push(...ids);
+    }
+  }
 
   let query = `
     SELECT 
@@ -490,29 +631,10 @@ export async function getBrowseProjectsForFreelancer(filters = {}, freelancerID)
       p.pStatus,
       u.fullName AS clientName,
       CASE WHEN sp.projectID IS NOT NULL THEN 1 ELSE 0 END AS isSaved
-    FROM Project p
-    INNER JOIN Users u ON u.id = p.clientID
-    LEFT JOIN ProjectSkills ps ON ps.projectID = p.id
-    LEFT JOIN Skills s ON s.id = ps.skillID
-    LEFT JOIN SavedProjects sp 
-      ON sp.projectID = p.id AND sp.freelancerID = ?
-    WHERE p.pStatus IN ('pending', 'active')
+    ${joins}
+    ${where}
+    GROUP BY p.id
   `;
-
-  const params = [freelancerID];
-
-  if (categoryID) {
-    query += ` AND s.categoryID = ?`;
-    params.push(Number(categoryID));
-  }
-
-  if (skillIds) {
-    const ids = skillIds.split(",").map((id) => Number(id.trim()));
-    query += ` AND s.id IN (${ids.map(() => "?").join(",")})`;
-    params.push(...ids);
-  }
-
-  query += ` GROUP BY p.id`;
 
   if (sort === "budget_desc") {
     query += ` ORDER BY p.budget DESC`;
@@ -522,10 +644,18 @@ export async function getBrowseProjectsForFreelancer(filters = {}, freelancerID)
     query += ` ORDER BY p.createdAt DESC`;
   }
 
-  query += ` LIMIT 10`;
+  query += ` LIMIT ? OFFSET ?`;
 
-  const [rows] = await db.execute(query, params);
-  return rows;
+  const [rows] = await db.execute(query, [...params, limit, offset]);
+  const [[countRow]] = await db.execute(
+    `SELECT COUNT(DISTINCT p.id) AS totalItems ${joins} ${where}`,
+    params,
+  );
+
+  return {
+    data: rows,
+    totalItems: Number(countRow?.totalItems ?? 0),
+  };
 }
 
 export async function getFreelancerProjectDetails(projectID, freelancerID) {

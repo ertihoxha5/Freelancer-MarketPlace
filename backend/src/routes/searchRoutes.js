@@ -1,6 +1,8 @@
 import { Router } from "express";
 import * as authMiddleware from "../middleware/authMiddleware.js";
 import * as searchRepository from "../repositories/searchRepository.js";
+import { validateRequest, validatedQuery } from "../middleware/validateRequest.js";
+import { querySchemas } from "../validation/schemas.js";
 
 const router = Router();
 
@@ -26,30 +28,37 @@ function sendResult(handler) {
 
 router.get(
   "/projects",
-  sendResult((req) => searchRepository.searchProjects(req.query)),
+  validateRequest({ query: querySchemas.search }),
+  sendResult((req) => searchRepository.searchProjects(validatedQuery(req))),
 );
 
 router.get(
   "/freelancers",
-  sendResult((req) => searchRepository.searchFreelancers(req.query)),
+  validateRequest({ query: querySchemas.search }),
+  sendResult((req) => searchRepository.searchFreelancers(validatedQuery(req))),
 );
 
 router.get(
   "/users",
   authMiddleware.requireRole(1),
-  sendResult((req) => searchRepository.searchUsers(req.query)),
+  validateRequest({ query: querySchemas.search }),
+  sendResult((req) => searchRepository.searchUsers(validatedQuery(req))),
 );
 
 router.get(
   "/applications",
+  validateRequest({ query: querySchemas.search }),
   sendResult((req) =>
-    searchRepository.searchApplications(req.query, actor(req)),
+    searchRepository.searchApplications(validatedQuery(req), actor(req)),
   ),
 );
 
 router.get(
   "/contracts",
-  sendResult((req) => searchRepository.searchContracts(req.query, actor(req))),
+  validateRequest({ query: querySchemas.search }),
+  sendResult((req) =>
+    searchRepository.searchContracts(validatedQuery(req), actor(req)),
+  ),
 );
 
 export default router;

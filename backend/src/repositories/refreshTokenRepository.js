@@ -26,3 +26,11 @@ export async function findValidRefreshTokenByHash(tokenHash) {
 export async function revokeRefreshTokenById(id) {
     await db.execute('UPDATE RefreshTokens SET revokedAt = NOW() WHERE id = ?', [id]);
 }
+
+/** Revoke all active refresh tokens for a user (password change, forced logout). */
+export async function revokeAllRefreshTokensForUser(userID) {
+    await db.execute(
+        'UPDATE RefreshTokens SET revokedAt = NOW() WHERE userID = ? AND revokedAt IS NULL',
+        [userID],
+    );
+}

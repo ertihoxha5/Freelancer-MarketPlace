@@ -1,4 +1,8 @@
 import * as clientService from "../services/clientService.js";
+import {
+  validatedBody,
+  validatedParams,
+} from "../middleware/validateRequest.js";
 
 export async function getMyProjects(req, res, next) {
   try {
@@ -15,7 +19,7 @@ export async function getMyProjects(req, res, next) {
 export async function getMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
-    const projectID = Number(req.params.id);
+    const { id: projectID } = validatedParams(req);
     const project = await clientService.getMyProject(projectID, clientID);
     return res.status(200).json({ project });
   } catch (err) {
@@ -41,11 +45,11 @@ export async function getMyApplications(req, res, next) {
 export async function updateMyApplicationStatus(req, res, next) {
   try {
     const clientID = req.user.id;
-    const applicationID = Number(req.params.applicationId);
+    const { applicationId: applicationID } = validatedParams(req);
     const application = await clientService.updateMyApplicationStatus(
       clientID,
       applicationID,
-      req.body,
+      validatedBody(req),
     );
     return res.status(200).json({
       message: "Application status updated successfully.",
@@ -72,7 +76,7 @@ export async function getMyProfile(req, res, next) {
 export async function updateMyProfile(req, res, next) {
   try {
     const clientID = req.user.id;
-    const profile = await clientService.updateMyProfile(clientID, req.body);
+    const profile = await clientService.updateMyProfile(clientID, validatedBody(req));
     return res.status(200).json({ message: 'Profile updated successfully.', profile });
   } catch (err) {
     if (err.statusCode)
@@ -85,7 +89,7 @@ export async function createMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
     const project = await clientService.createMyProject({
-      ...req.body,
+      ...validatedBody(req),
       clientID,
     });
     return res
@@ -101,11 +105,11 @@ export async function createMyProject(req, res, next) {
 export async function updateMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
-    const projectID = Number(req.params.id);
+    const { id: projectID } = validatedParams(req);
     const project = await clientService.updateMyProject(
       projectID,
       clientID,
-      req.body,
+      validatedBody(req),
     );
     return res
       .status(200)
@@ -120,7 +124,7 @@ export async function updateMyProject(req, res, next) {
 export async function deleteMyProject(req, res, next) {
   try {
     const clientID = req.user.id;
-    const projectID = Number(req.params.id);
+    const { id: projectID } = validatedParams(req);
     const result = await clientService.deleteMyProject(projectID, clientID);
     return res
       .status(200)

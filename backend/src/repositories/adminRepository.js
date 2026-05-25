@@ -23,7 +23,7 @@ export async function getUsers({ page = 1, limit = 50 } = {}) {
 
 export async function deleteUser(id){
     const [result] = await db.execute(
-        'UPDATE Users SET isActive = FALSE WHERE id = ?',
+        'UPDATE Users SET isActive = FALSE, tokenVersion = tokenVersion + 1 WHERE id = ?',
         [id]
     );
 

@@ -1,4 +1,5 @@
 import * as freelancerNotifService from "../services/freelancerNotificationService.js";
+import { validatedParams } from "../middleware/validateRequest.js";
 
 function handleError(err, res, next) {
   if (err.statusCode) {
@@ -42,10 +43,8 @@ export async function getUnreadCount(req, res, next) {
 
 export async function markAsRead(req, res, next) {
   try {
-    const result = await freelancerNotifService.markNotificationRead(
-      req.params.id,
-      req.user.id,
-    );
+    const { id } = validatedParams(req);
+    const result = await freelancerNotifService.markNotificationRead(id, req.user.id);
     return res
       .status(200)
       .json({ message: "Notification marked as read.", ...result });
@@ -69,10 +68,8 @@ export async function markAllAsRead(req, res, next) {
 
 export async function deleteNotification(req, res, next) {
   try {
-    const result = await freelancerNotifService.deleteMyNotification(
-      req.params.id,
-      req.user.id,
-    );
+    const { id } = validatedParams(req);
+    const result = await freelancerNotifService.deleteMyNotification(id, req.user.id);
     return res
       .status(200)
       .json({ message: "Notification deleted.", ...result });

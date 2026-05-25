@@ -120,18 +120,28 @@ export function registerChatHandlers({ io, socket, presenceState }) {
     }
   });
 
-  socket.on("typing:start", (payload = {}) => {
+  socket.on("typing:start", async (payload = {}) => {
     const conversationID = Number(payload.conversationID);
     if (!Number.isInteger(conversationID) || conversationID <= 0) return;
+    const conversation = await chatRepository.getConversationByIdForUser(
+      conversationID,
+      socket.user.id,
+    );
+    if (!conversation) return;
     socket.to(conversationRoom(conversationID)).emit("typing:start", {
       conversationID,
       userID: socket.user.id,
     });
   });
 
-  socket.on("typing:stop", (payload = {}) => {
+  socket.on("typing:stop", async (payload = {}) => {
     const conversationID = Number(payload.conversationID);
     if (!Number.isInteger(conversationID) || conversationID <= 0) return;
+    const conversation = await chatRepository.getConversationByIdForUser(
+      conversationID,
+      socket.user.id,
+    );
+    if (!conversation) return;
     socket.to(conversationRoom(conversationID)).emit("typing:stop", {
       conversationID,
       userID: socket.user.id,

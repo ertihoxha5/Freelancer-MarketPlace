@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import userRoutes from "./routes/userRoutes.js";
@@ -15,59 +15,37 @@ import importRoutes from "./routes/importRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import { connectMongoDB } from "./config/mongodb.js";
 import { db } from "./config/db.js";
-import rateLimit from "express-rate-limit";
+import { helmetMiddleware } from "./middleware/security.js";
+import { corsMiddleware } from "./middleware/cors.js";
+import {
+  apiLimiter,
+  authLoginLimiter,
+  authRegisterLimiter,
+  authRefreshLimiter,
+} from "./middleware/rateLimit.js";
+import { csrfErrorHandler } from "./middleware/csrf.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(helmet());
-app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // për /uploads imazhet
+
 app.disable("x-powered-by");
+app.set("trust proxy", 1);
 
 connectMongoDB();
 
-const ALLOWED_ORIGINS = new Set(
-  (process.env.ALLOWED_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173")
-    .split(",")
-    .map((o) => o.trim()),
-);
+// Request → RateLimit → Helmet → CORS → body/cookies → routes → CSRF (auth) → Validate → Controller
+app.use(helmetMiddleware);
+app.use(corsMiddleware);
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Vary", "Origin");
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-  next();
-});
+app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
 
-app.use(express.json());
+app.use("/api/auth/login", authLoginLimiter);
+app.use("/api/auth/register", authRegisterLimiter);
+app.use("/api/auth/refresh", authRefreshLimiter);
+app.use("/api", apiLimiter);
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-const loginLimit = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many login attempts. Try again in 15 minutes." },
-});
-
-const apiLimit = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
-  message: { message: "Too many requests." },
-});
-
-app.use("/api/auth/login", loginLimit);
-app.use("/api/auth/refresh", loginLimit);
-app.use("/api", apiLimit);
 
 app.get("/", (req, res) => res.send("API is running"));
 app.get("/health", async (req, res) => {
@@ -95,6 +73,8 @@ app.use("/api/search", searchRoutes);
 app.use("/api/export", exportRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/reports", reportRoutes);
+
+app.use(csrfErrorHandler);
 
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);

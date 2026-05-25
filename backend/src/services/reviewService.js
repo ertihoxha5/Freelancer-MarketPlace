@@ -7,6 +7,8 @@ import {
 import { createActivity } from "./activityService.js";
 import { getIO } from "../socket/index.js";
 import { emitReviewReceived } from "../socket/handlers/businessHandlers.js";
+import { validate } from "../validation/validate.js";
+import { reviewSchemas } from "../validation/schemas.js";
 import {
   conflictError,
   forbiddenError,
@@ -50,26 +52,7 @@ function getContractPartyContext(contract, reviewerID, role) {
 export async function createReview(contractID, reviewerID, role, payload) {
   const contractId = coercePositiveInt(contractID, "contract ID");
   const reviewerId = coercePositiveInt(reviewerID, "reviewer ID");
-  const stars = Number(payload?.stars);
-  const comment = typeof payload?.comment === "string"
-    ? payload.comment.trim()
-    : "";
-
-  if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
-    throw validationError("Stars must be an integer between 1 and 5.");
-  }
-
-  if (!comment) {
-    throw validationError("Review comment is required.");
-  }
-
-  if (comment.length < 10) {
-    throw validationError("Review comment must be at least 10 characters.");
-  }
-
-  if (comment.length > 1000) {
-    throw validationError("Review comment must be 1000 characters or fewer.");
-  }
+  const { stars, comment } = validate(reviewSchemas.create, payload ?? {});
 
   const contract = await projectRepository.getContractById(contractId);
   if (!contract) {

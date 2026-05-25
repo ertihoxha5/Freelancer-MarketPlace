@@ -1,10 +1,31 @@
 import ExcelJS from "exceljs";
 import multer from "multer";
 import bcrypt from "bcryptjs";
+import { parse } from "csv-parse/sync";
 import { db } from "../config/db.js";
-import * as userRepository from "../repositories/userRepository.js";
+import { validate } from "../validation/validate.js";
+import { projectSchemas, userSchemas } from "../validation/schemas.js";
 
-export const uploadImportFile = multer({ storage: multer.memoryStorage() });
+const IMPORT_FILE_TYPES = new Set([
+  "text/csv",
+  "application/csv",
+  "application/json",
+  "text/plain",
+  "application/vnd.ms-excel",
+]);
+
+export const uploadImportFile = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const name = String(file.originalname || "").toLowerCase();
+    const validExtension = name.endsWith(".csv") || name.endsWith(".json");
+    if (validExtension && (!file.mimetype || IMPORT_FILE_TYPES.has(file.mimetype))) {
+      return cb(null, true);
+    }
+    return cb(new Error("Only CSV and JSON import files up to 2MB are allowed."));
+  },
+});
 
 function escapeCsv(value) {
   if (value == null) return "";
@@ -13,16 +34,39 @@ function escapeCsv(value) {
 }
 
 function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/).filter(Boolean);
-  if (lines.length === 0) return [];
-  const headers = lines[0].split(",").map((h) => h.trim());
-  return lines.slice(1).map((line) => {
-    const values = line.split(",");
-    return headers.reduce((row, header, index) => {
-      row[header] = values[index]?.trim() ?? "";
-      return row;
-    }, {});
+  return parse(text, {
+    bom: true,
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
   });
+}
+
+function parseImportRows(file) {
+  const text = file.buffer.toString("utf8");
+  const rows = file.originalname.toLowerCase().endsWith(".json")
+    ? JSON.parse(text)
+    : parseCsv(text);
+
+  if (!Array.isArray(rows)) {
+    const err = new Error("Import file must contain an array of rows.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return rows;
+}
+
+async function ensureClientExists(clientID) {
+  const [[client]] = await db.execute(
+    `SELECT u.id
+     FROM Users u
+     INNER JOIN UserRole ur ON ur.userID = u.id
+     WHERE u.id = ? AND ur.roleID = 2 AND u.isActive = TRUE
+     LIMIT 1`,
+    [clientID],
+  );
+  return Boolean(client);
 }
 
 export async function sendRows(res, rows, format, filename) {
@@ -173,34 +217,52 @@ export async function importProjects(req, res, next) {
     if (!req.file) {
       return res.status(400).json({ message: "Upload file is required." });
     }
-    const text = req.file.buffer.toString("utf8");
-    const rows = req.file.originalname.endsWith(".json")
-      ? JSON.parse(text)
-      : parseCsv(text);
+    const rows = parseImportRows(req.file);
+    const body = req.validated?.body ?? {};
     const clientID = Number(req.user.roleID) === 1
-      ? Number(req.body.clientID || rows[0]?.clientID)
+      ? Number(body.clientID || rows[0]?.clientID)
       : Number(req.user.id);
     if (!Number.isInteger(clientID) || clientID <= 0) {
       return res.status(400).json({ message: "Valid clientID is required." });
     }
+    if (!(await ensureClientExists(clientID))) {
+      return res.status(400).json({ message: "clientID must belong to an active client." });
+    }
 
-    let created = 0;
-    for (const row of rows) {
-      if (!row.title || !row.pDesc || row.budget == null) continue;
-      await db.execute(
+    const skipped = [];
+    const projects = [];
+    rows.forEach((row, index) => {
+      try {
+        projects.push(validate(projectSchemas.clientCreateOrUpdate, row));
+      } catch (err) {
+        skipped.push({ row: index + 1, reason: err.message });
+      }
+    });
+
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const project of projects) {
+        await conn.execute(
         `INSERT INTO Project (title, pDesc, budget, deadline, clientID, pStatus)
          VALUES (?, ?, ?, ?, ?, 'pending')`,
         [
-          String(row.title).trim(),
-          String(row.pDesc).trim(),
-          Number(row.budget),
-          row.deadline || null,
+          project.title,
+          project.pDesc,
+          project.budget,
+          project.deadline,
           clientID,
         ],
-      );
-      created += 1;
+        );
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-    return res.status(201).json({ message: "Projects imported.", created });
+    return res.status(201).json({ message: "Projects imported.", created: projects.length, skipped });
   } catch (err) {
     next(err);
   }
@@ -211,34 +273,62 @@ export async function importUsers(req, res, next) {
     if (!req.file) {
       return res.status(400).json({ message: "Upload file is required." });
     }
-    const text = req.file.buffer.toString("utf8");
-    const rows = req.file.originalname.endsWith(".json")
-      ? JSON.parse(text)
-      : parseCsv(text);
+    const rows = parseImportRows(req.file);
 
     let created = 0;
     const skipped = [];
-    for (const row of rows) {
-      const email = String(row.email || "").trim().toLowerCase();
-      const fullName = String(row.fullName || row.name || "").trim();
-      const roleID = Number(row.roleID || 2);
-      const password = String(row.password || "Password123!");
-      if (!email || !fullName || ![2, 3].includes(roleID)) {
-        skipped.push({ email, reason: "Missing required fields" });
-        continue;
+    const users = [];
+    rows.forEach((row, index) => {
+      try {
+        users.push(
+          validate(userSchemas.register, {
+            ...row,
+            fullName: row.fullName || row.name,
+            roleID: row.roleID || 2,
+            password: row.password || "ImportTemp123!@",
+          }),
+        );
+      } catch (err) {
+        skipped.push({ row: index + 1, email: row.email || null, reason: err.message });
       }
-      if (await userRepository.findUserByEmail(email)) {
-        skipped.push({ email, reason: "Email already exists" });
-        continue;
+    });
+
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const user of users) {
+        const [existingRows] = await conn.execute(
+          "SELECT id FROM Users WHERE email = ? LIMIT 1",
+          [user.email],
+        );
+        if (existingRows.length > 0) {
+          skipped.push({ email: user.email, reason: "Email already exists" });
+          continue;
+        }
+
+        const passwordHash = await bcrypt.hash(user.password, 10);
+        const [result] = await conn.execute(
+          "INSERT INTO Users (email, passwordHash, fullName) VALUES (?, ?, ?)",
+          [user.email, passwordHash, user.fullName],
+        );
+        const userID = result.insertId;
+        await conn.execute("INSERT INTO UserRole (userID, roleID) VALUES (?, ?)", [
+          userID,
+          user.roleID,
+        ]);
+        await conn.execute(
+          `INSERT INTO Profiles (userID, pictureID, hourlyRate, portofoliUrl, bio)
+           VALUES (?, NULL, NULL, NULL, NULL)`,
+          [userID],
+        );
+        created += 1;
       }
-      const passwordHash = await bcrypt.hash(password, 10);
-      await userRepository.createUserWithRole({
-        email,
-        passwordHash,
-        fullName,
-        roleID,
-      });
-      created += 1;
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
 
     return res.status(201).json({ message: "Users imported.", created, skipped });

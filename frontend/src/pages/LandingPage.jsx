@@ -75,16 +75,16 @@ const LandingPage = () => {
 
             <div className="mt-16 flex items-center gap-12 text-sm">
               <div>
-                <p className="font-semibold text-3xl text-slate-900">4.98</p>
-                <p className="text-slate-500">Average rating</p>
+                <p className="font-semibold text-3xl text-slate-900">Live</p>
+                <p className="text-slate-500">Project marketplace</p>
               </div>
               <div>
-                <p className="font-semibold text-3xl text-slate-900">128K+</p>
-                <p className="text-slate-500">Freelancers online</p>
+                <p className="font-semibold text-3xl text-slate-900">Open</p>
+                <p className="text-slate-500">Client and freelancer roles</p>
               </div>
               <div>
-                <p className="font-semibold text-3xl text-slate-900">$18M+</p>
-                <p className="text-slate-500">Paid securely</p>
+                <p className="font-semibold text-3xl text-slate-900">Secure</p>
+                <p className="text-slate-500">Milestone workflow</p>
               </div>
             </div>
           </div>

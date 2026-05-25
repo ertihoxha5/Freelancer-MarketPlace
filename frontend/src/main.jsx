@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense } from "react";
 import Loading from "./components/Loading.jsx";
 import { StrictMode } from "react";
@@ -9,6 +10,7 @@ import AppLayout from './routes/AppLayout.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 import AdminRoute from './routes/AdminRoute.jsx';
 import FreelancerRoute from './routes/FreelancerRoute.jsx';
+import ClientRoute from './routes/ClientRoute.jsx';
 import DemoProtected from './pages/DemoProtected.jsx';
 import FreelancerMakeApplication from './pages/FreelancerMakeApplication.jsx';
 
@@ -23,6 +25,7 @@ const AdminDashboard = lazy(
   () => import("./pages/adminDashboard/dashboard.jsx"),
 );
 const User = lazy(() => import("./pages/adminDashboard/users.jsx"));
+const Catalog = lazy(() => import("./pages/adminDashboard/Catalog.jsx"));
 const JobsWithFreelancer = lazy(
   () => import("./pages/adminDashboard/jobsWithFreelancer.jsx"),
 );
@@ -89,11 +92,9 @@ const router = createBrowserRouter([
       {
         path: "/forgotpassword",
         element: (
-          <ProtectedRoute>
-            <Suspense fallback={<Loading />}>
-              <ForgotPassword />
-            </Suspense>
-          </ProtectedRoute>
+          <Suspense fallback={<Loading />}>
+            <ForgotPassword />
+          </Suspense>
         ),
       },
       { path: "/error", element: <ErrorPage /> },
@@ -120,91 +121,91 @@ const router = createBrowserRouter([
       {
         path: "/client/dashboard",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientDashboard />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "/client/projects",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientProjects />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "/client/projects/:id",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientProjectDetail />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "/client/applications",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientApplications />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "/client/post-project",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientPostProject />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "/client/profile",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientProfile />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "/client/notifications",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientNotifications />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "/client/messages",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientMessages />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "/client/contracts",
         element: (
-          <ProtectedRoute>
+          <ClientRoute>
             <Suspense fallback={<Loading />}>
               <ClientContracts />
             </Suspense>
-          </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
@@ -223,6 +224,16 @@ const router = createBrowserRouter([
           <AdminRoute>
             <Suspense fallback={<Loading />}>
               <User />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/catalog",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <Catalog />
             </Suspense>
           </AdminRoute>
         ),

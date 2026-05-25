@@ -1,12 +1,15 @@
 import * as service from "../services/savedProjectService.js";
+import { validatedParams } from "../middleware/validateRequest.js";
 
 export async function saveProject(req, res) {
-  await service.saveProject(req.user.id, req.params.projectID);
+  const { projectID } = validatedParams(req);
+  await service.saveProject(req.user.id, projectID);
   res.json({ message: "Saved" });
 }
 
 export async function removeSavedProject(req, res) {
-  await service.removeSavedProject(req.user.id, req.params.projectID);
+  const { projectID } = validatedParams(req);
+  await service.removeSavedProject(req.user.id, projectID);
   res.json({ message: "Removed" });
 }
 

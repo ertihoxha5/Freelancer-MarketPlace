@@ -1,4 +1,5 @@
 import * as notificationService from "../services/notificationService.js";
+import { validatedParams } from "../middleware/validateRequest.js";
 
 export async function getNotifications(req, res, next) {
   try {
@@ -26,10 +27,8 @@ export async function getUnreadCount(req, res, next) {
 
 export async function markAsRead(req, res, next) {
   try {
-    const result = await notificationService.markNotificationRead(
-      req.params.id,
-      req.user.id,
-    );
+    const { id } = validatedParams(req);
+    const result = await notificationService.markNotificationRead(id, req.user.id);
     return res
       .status(200)
       .json({ message: "Notification marked as read.", ...result });
@@ -72,10 +71,8 @@ export async function deleteAllNotifications(req, res, next) {
 
 export async function deleteNotification(req, res, next) {
   try {
-    const result = await notificationService.deleteMyNotification(
-      req.params.id,
-      req.user.id,
-    );
+    const { id } = validatedParams(req);
+    const result = await notificationService.deleteMyNotification(id, req.user.id);
     return res
       .status(200)
       .json({ message: "Notification deleted.", ...result });

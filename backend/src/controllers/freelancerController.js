@@ -1,4 +1,8 @@
 import * as freelancerService from "../services/freelancerService.js";
+import {
+  validatedBody,
+  validatedParams,
+} from "../middleware/validateRequest.js";
 
 function handleError(err, res, next) {
   if (err.statusCode) {
@@ -9,7 +13,8 @@ function handleError(err, res, next) {
 
 export async function getPublicProfile(req, res, next) {
   try {
-    const data = await freelancerService.getPublicProfile(req.params.id);
+    const { id } = validatedParams(req);
+    const data = await freelancerService.getPublicProfile(id);
     return res.status(200).json(data);
   } catch (err) {
     return handleError(err, res, next);
@@ -36,7 +41,7 @@ export async function getProfile(req, res, next) {
 
 export async function updateProfile(req, res, next) {
   try {
-    const data = await freelancerService.updateProfile(req.user.id, req.body);
+    const data = await freelancerService.updateProfile(req.user.id, validatedBody(req));
     return res.status(200).json({
       message: "Profile updated successfully.",
       ...data,

@@ -82,8 +82,10 @@ export function RealtimeProvider({ children }) {
 
   useEffect(() => {
     if (!user) {
-      setBadges({});
-      setToasts([]);
+      queueMicrotask(() => {
+        setBadges({});
+        setToasts([]);
+      });
       return undefined;
     }
 

@@ -6,6 +6,7 @@ const sidebarConfigs = {
     { label: "Dashboard", href: "/adminDashboard" },
     { label: "Search", href: "/search" },
     { label: "Users", href: "/adminDashboard/users" },
+    { label: "Skills/Categories", href: "/adminDashboard/catalog" },
     {
       label: "Jobs with Freelancer",
       href: "/adminDashboard/jobs-with-freelancer",

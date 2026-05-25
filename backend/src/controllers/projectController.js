@@ -1,4 +1,9 @@
 import * as projectService from "../services/projectService.js";
+import {
+  validatedBody,
+  validatedParams,
+  validatedQuery,
+} from "../middleware/validateRequest.js";
 
 export async function getProjectsWithFreelancer(req, res, next) {
   try {
@@ -35,7 +40,7 @@ export async function getClientList(req, res, next) {
 
 export async function createProject(req, res, next) {
   try {
-    const project = await projectService.createProject(req.body);
+    const project = await projectService.createProject(validatedBody(req));
     return res
       .status(201)
       .json({ message: "Project created successfully.", project });
@@ -48,7 +53,8 @@ export async function createProject(req, res, next) {
 
 export async function updateProject(req, res, next) {
   try {
-    const project = await projectService.updateProject(req.params.id, req.body);
+    const { id } = validatedParams(req);
+    const project = await projectService.updateProject(id, validatedBody(req));
     return res
       .status(200)
       .json({ message: "Project updated successfully.", project });
@@ -61,7 +67,8 @@ export async function updateProject(req, res, next) {
 
 export async function deleteProject(req, res, next) {
   try {
-    const result = await projectService.deleteProject(req.params.id);
+    const { id } = validatedParams(req);
+    const result = await projectService.deleteProject(id);
     return res
       .status(200)
       .json({ message: "Project deleted successfully.", ...result });
@@ -77,7 +84,7 @@ export async function browseProjects(req, res, next) {
   try {
     const result = await projectService.browseProjectsForFreelancer(
       req.user.id,
-      req.query
+      validatedQuery(req),
     );
     return res.status(200).json(result);
   } catch (err) {
@@ -88,9 +95,10 @@ export async function browseProjects(req, res, next) {
 
 export async function getFreelancerProjectDetails(req, res, next) {
   try {
+    const { projectId } = validatedParams(req);
     const project = await projectService.getFreelancerProjectDetails(
       req.user.id,
-      req.params.projectId,
+      projectId,
     );
     return res.status(200).json({ project });
   } catch (err) {
@@ -102,10 +110,11 @@ export async function getFreelancerProjectDetails(req, res, next) {
 
 export async function createApplication(req, res, next) {
     try {
+        const { projectId } = validatedParams(req);
         const result = await projectService.createApplication(
             req.user.id,
-            req.params.projectId,
-            req.body
+            projectId,
+            validatedBody(req),
         );
         return res.status(201).json({ 
             message: "Application submitted successfully.", 
@@ -119,10 +128,11 @@ export async function createApplication(req, res, next) {
 
     export async function updateMyApplication(req, res, next) {
       try {
+        const { applicationId } = validatedParams(req);
         const application = await projectService.updateMyApplication(
           req.user.id,
-          req.params.applicationId,
-          req.body,
+          applicationId,
+          validatedBody(req),
         );
         return res.status(200).json({
           message: "Application updated successfully.",
@@ -136,9 +146,10 @@ export async function createApplication(req, res, next) {
 
     export async function softDeleteMyApplication(req, res, next) {
       try {
+        const { applicationId } = validatedParams(req);
         const result = await projectService.softDeleteMyApplication(
           req.user.id,
-          req.params.applicationId,
+          applicationId,
         );
         return res.status(200).json({
           message: "Application withdrawn successfully.",

@@ -13,20 +13,14 @@ import {
   emitProjectStatusChanged,
 } from "../socket/handlers/businessHandlers.js";
 import { validateStatusTransition } from "../utils/statusTransition.js";
+import { validate } from "../validation/validate.js";
+import { milestoneSchemas } from "../validation/schemas.js";
 import {
   conflictError,
   forbiddenError,
   notFoundError,
   validationError,
 } from "../utils/errors.js";
-
-const VALID_MILESTONE_STATUSES = [
-  "pending",
-  "in_progress",
-  "submitted",
-  "approved",
-  "rejected",
-];
 
 function coercePositiveInt(value, label) {
   const num = Number(value);
@@ -83,22 +77,11 @@ async function notifyParties(contract, { title, msg, freelancerMsg, metadata }) 
 
 export async function createMilestone(contractID, clientID, payload) {
   const contract = await getContractForActor(contractID, clientID, "client");
-  const { title, mDesc, amountPayable, dueDate } = payload ?? {};
-
-  if (typeof title !== "string" || title.trim() === "") {
-    throw validationError("Milestone title is required.");
-  }
-  if (title.trim().length > 100) {
-    throw validationError("Milestone title must be 100 characters or fewer.");
-  }
-  const description = typeof mDesc === "string" ? mDesc.trim() : "";
-  if (description.length > 500) {
-    throw validationError("Milestone description must be 500 characters or fewer.");
-  }
+  const { title, mDesc, amountPayable, dueDate } = validate(
+    milestoneSchemas.create,
+    payload ?? {},
+  );
   const amount = Number(amountPayable);
-  if (Number.isNaN(amount) || amount <= 0) {
-    throw validationError("Milestone amount must be greater than zero.");
-  }
   if (amount > Number(contract.totalAmount || 0)) {
     throw validationError("Milestone amount cannot exceed contract total amount.");
   }
@@ -112,10 +95,10 @@ export async function createMilestone(contractID, clientID, payload) {
   }
 
   const milestone = await milestoneRepository.createMilestone({
-    title: title.trim(),
-    mDesc: description,
+    title,
+    mDesc: mDesc || "",
     amountPayable: amount,
-    dueDate: dueDate || null,
+    dueDate,
     contractID: contract.id,
   });
 
@@ -135,14 +118,7 @@ export async function getMilestones(contractID, userID, role) {
 
 export async function updateMilestoneStatus(id, userID, role, payload) {
   const milestoneId = coercePositiveInt(id, "milestone ID");
-  const mStatus =
-    typeof payload?.mStatus === "string" ? payload.mStatus.trim() : "";
-
-  if (!VALID_MILESTONE_STATUSES.includes(mStatus)) {
-    throw validationError(
-      `mStatus must be one of: ${VALID_MILESTONE_STATUSES.join(", ")}.`,
-    );
-  }
+  const { mStatus } = validate(milestoneSchemas.status, payload ?? {});
 
   const milestone = await milestoneRepository.getMilestoneById(milestoneId);
   if (!milestone) {

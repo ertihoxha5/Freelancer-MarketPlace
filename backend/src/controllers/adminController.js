@@ -1,12 +1,14 @@
 import * as adminService from '../services/adminService.js';
 import * as userService from '../services/userService.js';
+import {
+    validatedBody,
+    validatedParams,
+    validatedQuery,
+} from '../middleware/validateRequest.js';
 
 export async function getUsers(req, res, next) {
     try {
-        const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
-        const limit = req.query.limit
-            ? Math.min(100, Math.max(1, Number(req.query.limit)))
-            : 50;
+        const { page, limit } = validatedQuery(req);
         const result = await adminService.getAllUsers({ page, limit });
         return res.status(200).json(result);
     } catch (err) {
@@ -19,7 +21,8 @@ export async function getUsers(req, res, next) {
 
 export async function updateUser(req, res, next) {
     try {
-        const updatedUser = await adminService.updateUserById(req.params.id, req.body);
+        const { id } = validatedParams(req);
+        const updatedUser = await adminService.updateUserById(id, validatedBody(req));
         return res.status(200).json({
             message: 'User updated successfully.',
             user: updatedUser,
@@ -34,7 +37,8 @@ export async function updateUser(req, res, next) {
 
 export async function deleteUser(req, res, next) {
     try {
-        const result = await adminService.deleteUserById(req.params.id);
+        const { id } = validatedParams(req);
+        const result = await adminService.deleteUserById(id);
         return res.status(200).json({
             message: 'User marked as inactive.',
             user: result,
@@ -49,7 +53,7 @@ export async function deleteUser(req, res, next) {
 
 export async function registerUser(req, res, next) {
      try {
-            const result = await userService.registerUser(req.body);
+            const result = await userService.registerUser(validatedBody(req));
             return res.status(201).json({
                 id: result.userID,
                 email: result.email,

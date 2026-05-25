@@ -1,4 +1,5 @@
 import * as activityService from "../services/activityService.js";
+import { validatedParams, validatedQuery } from "../middleware/validateRequest.js";
 
 function handleError(err, res, next) {
   if (err.statusCode) {
@@ -13,10 +14,10 @@ function handleError(err, res, next) {
  */
 export async function getActivityFeed(req, res, next) {
   try {
-    const { page, limit, eventType, onlyUnread } = req.query;
+    const { page, limit, eventType, onlyUnread } = validatedQuery(req);
     const result = await activityService.getActivityFeed(req.user.id, {
-      page: page ? Number(page) : 1,
-      limit: limit ? Math.min(Number(limit), 50) : 20,
+      page: page ?? 1,
+      limit: limit ? Math.min(limit, 50) : 20,
       eventType: eventType || null,
       onlyUnread: onlyUnread === "true",
     });
@@ -43,10 +44,8 @@ export async function getUnreadCount(req, res, next) {
  */
 export async function markAsRead(req, res, next) {
   try {
-    const activity = await activityService.markActivityRead(
-      req.params.id,
-      req.user.id,
-    );
+    const { id } = validatedParams(req);
+    const activity = await activityService.markActivityRead(id, req.user.id);
     return res.status(200).json({ message: "Marked as read.", activity });
   } catch (err) {
     return handleError(err, res, next);
@@ -70,10 +69,8 @@ export async function markAllAsRead(req, res, next) {
  */
 export async function deleteActivity(req, res, next) {
   try {
-    const result = await activityService.deleteActivity(
-      req.params.id,
-      req.user.id,
-    );
+    const { id } = validatedParams(req);
+    const result = await activityService.deleteActivity(id, req.user.id);
     return res.status(200).json({ message: "Activity deleted.", ...result });
   } catch (err) {
     return handleError(err, res, next);

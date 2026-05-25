@@ -7,10 +7,10 @@ export async function findUserByEmail(email) {
 
 export async function findUserWithPasswordByEmail(email) {
     const [rows] = await db.execute(
-        `SELECT u.id, u.email, u.passwordHash, u.fullName, ur.roleID
+        `SELECT u.id, u.email, u.passwordHash, u.fullName, u.tokenVersion, ur.roleID
          FROM Users u
          INNER JOIN UserRole ur ON ur.userID = u.id
-         WHERE u.email = ? LIMIT 1`,
+         WHERE u.email = ? AND u.isActive = TRUE LIMIT 1`,
         [email]
     );
     return rows[0] ?? null;
@@ -18,13 +18,17 @@ export async function findUserWithPasswordByEmail(email) {
 
 export async function findUserWithRoleById(id) {
     const [rows] = await db.execute(
-        `SELECT u.id, u.email, u.fullName, ur.roleID
+        `SELECT u.id, u.email, u.fullName, u.tokenVersion, ur.roleID
          FROM Users u
          INNER JOIN UserRole ur ON ur.userID = u.id
-         WHERE u.id = ? LIMIT 1`,
+         WHERE u.id = ? AND u.isActive = TRUE LIMIT 1`,
         [id]
     );
     return rows[0] ?? null;
+}
+
+export async function findActiveAuthUserById(id) {
+    return findUserWithRoleById(id);
 }
 
 export async function findUserWithPasswordById(id) {
@@ -68,7 +72,7 @@ export async function createUserWithRole({ email, passwordHash, fullName, roleID
 export async function changePassword({id, passwordHash}){
     try{
         const [result] = await db.execute(
-            'UPDATE Users SET passwordHash = ? WHERE id = ?',
+            'UPDATE Users SET passwordHash = ?, tokenVersion = tokenVersion + 1 WHERE id = ? AND isActive = TRUE',
             [passwordHash, id],
         );
         

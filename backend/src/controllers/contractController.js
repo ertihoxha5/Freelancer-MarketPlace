@@ -6,16 +6,14 @@ import {
   notFoundError,
   validationError,
 } from "../utils/errors.js";
+import { validatedParams } from "../middleware/validateRequest.js";
 
 function isClient(req) {
   return Number(req.user?.roleID) === 2;
 }
 
 async function getContractForRequest(req) {
-  const contractID = Number(req.params.id);
-  if (!Number.isInteger(contractID) || contractID <= 0) {
-    throw validationError("Valid contract ID is required.");
-  }
+  const { id: contractID } = validatedParams(req);
   const contract = await projectRepository.getContractById(contractID);
 
   if (!contract) {

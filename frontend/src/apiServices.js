@@ -1,6 +1,5 @@
 export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 const TOKEN_KEY = "accessToken";
-const REFRESH_TOKEN_KEY = "refreshToken";
 
 export function setAccessToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
@@ -15,15 +14,15 @@ export function clearAccessToken() {
 }
 
 export function setRefreshToken(token) {
-  localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  void token;
 }
 
 export function getRefreshToken() {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+  return null;
 }
 
 export function clearRefreshToken() {
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  return undefined;
 }
 
 export function clearAuthTokens() {
@@ -41,17 +40,19 @@ export function authHeaders() {
 async function authedFetch(url, options = {}) {
   let res = await fetch(url, {
     ...options,
+    credentials: "include",
     headers: {
       ...authHeaders(),
       "Content-Type": "application/json",
     },
   });
 
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401) {
     try {
       await refreshSession();
       res = await fetch(url, {
         ...options,
+        credentials: "include",
         headers: {
           ...authHeaders(),
           "Content-Type": "application/json",
@@ -111,6 +112,7 @@ export async function login(payload) {
   const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
@@ -122,24 +124,17 @@ export async function login(payload) {
   if (data.token) {
     setAccessToken(data.token);
   }
-  if (data.refreshToken) {
-    setRefreshToken(data.refreshToken);
-  }
   return data;
 }
 
 /**
- * POST /api/auth/refresh — rotates refresh token; updates storage.
+ * POST /api/auth/refresh — rotates the HttpOnly refresh-token cookie.
  */
 export async function refreshSession() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    throw new Error("No refresh token.");
-  }
   const res = await fetch(`${API_BASE}/api/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
+    credentials: "include",
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -151,34 +146,24 @@ export async function refreshSession() {
   if (data.token) {
     setAccessToken(data.token);
   }
-  if (data.refreshToken) {
-    setRefreshToken(data.refreshToken);
-  }
   return data;
 }
 
 /**
- * POST /api/auth/logout — revokes refresh token server-side; clears local tokens.
+ * POST /api/auth/logout — revokes refresh token server-side and clears cookie.
  */
 export async function logout() {
-  const refreshToken = getRefreshToken();
-  if (refreshToken) {
-    await fetch(`${API_BASE}/api/auth/logout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    }).catch(() => {});
-  }
+  await fetch(`${API_BASE}/api/auth/logout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  }).catch(() => {});
   clearAuthTokens();
 }
 
 /** GET /api/auth/me — silent when logged out; refreshes once on 401 if possible. */
 export async function fetchCurrentUser() {
-  if (!getAccessToken() && !getRefreshToken()) {
-    return { user: null };
-  }
-
-  if (!getAccessToken() && getRefreshToken()) {
+  if (!getAccessToken()) {
     try {
       await refreshSession();
     } catch {
@@ -192,7 +177,7 @@ export async function fetchCurrentUser() {
   }
 
   let res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401) {
     try {
       await refreshSession();
       res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
@@ -266,6 +251,56 @@ export function updateAdminProject(id, payload) {
 
 export function deleteAdminProject(id) {
   return authedFetch(`${API_BASE}/api/admin/projects/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchAdminCategories(includeInactive = true) {
+  const query = includeInactive ? "?includeInactive=true" : "";
+  return authedFetch(`${API_BASE}/api/admin/categories${query}`);
+}
+
+export function createAdminCategory(payload) {
+  return authedFetch(`${API_BASE}/api/admin/categories`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdminCategory(id, payload) {
+  return authedFetch(`${API_BASE}/api/admin/categories/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAdminCategory(id) {
+  return authedFetch(`${API_BASE}/api/admin/categories/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchAdminSkills(includeInactive = true) {
+  const query = includeInactive ? "?includeInactive=true" : "";
+  return authedFetch(`${API_BASE}/api/admin/skills${query}`);
+}
+
+export function createAdminSkill(payload) {
+  return authedFetch(`${API_BASE}/api/admin/skills`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdminSkill(id, payload) {
+  return authedFetch(`${API_BASE}/api/admin/skills/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAdminSkill(id) {
+  return authedFetch(`${API_BASE}/api/admin/skills/${id}`, {
     method: "DELETE",
   });
 }
@@ -633,7 +668,7 @@ export function searchList(type, params = {}) {
 export async function downloadExport(kind, format = "csv", params = {}) {
   const url = `${API_BASE}/api/export/${kind}${qs({ ...params, format })}`;
   let res = await fetch(url, { headers: authHeaders() });
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401) {
     await refreshSession();
     res = await fetch(url, { headers: authHeaders() });
   }
@@ -655,7 +690,7 @@ export async function downloadExport(kind, format = "csv", params = {}) {
 export async function downloadProjectReport(format = "json", params = {}) {
   const url = `${API_BASE}/api/reports/projects${qs({ ...params, format })}`;
   let res = await fetch(url, { headers: authHeaders() });
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401) {
     await refreshSession();
     res = await fetch(url, { headers: authHeaders() });
   }
@@ -685,13 +720,15 @@ export async function importFile(kind, file, extra = {}) {
   let res = await fetch(`${API_BASE}/api/import/${kind}`, {
     method: "POST",
     headers: getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {},
+    credentials: "include",
     body: form,
   });
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401) {
     await refreshSession();
     res = await fetch(`${API_BASE}/api/import/${kind}`, {
       method: "POST",
       headers: getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {},
+      credentials: "include",
       body: form,
     });
   }

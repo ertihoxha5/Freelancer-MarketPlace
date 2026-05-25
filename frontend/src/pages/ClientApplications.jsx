@@ -10,13 +10,6 @@ function formatDate(value) {
   return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleDateString();
 }
 
-function statusClass(status) {
-  if (status === "accepted") return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  if (status === "rejected") return "bg-rose-100 text-rose-700 border-rose-200";
-  if (status === "withdrawn") return "bg-slate-100 text-slate-700 border-slate-200";
-  return "bg-amber-100 text-amber-700 border-amber-200";
-}
-
 function StatCard({ label, value }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">

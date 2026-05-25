@@ -9,7 +9,7 @@ import {
   fetchConversationMessages,
   markConversationRead,
 } from "../apiServices.js";
-import { connectSocket, disconnectSocket } from "../socket/socketClient.js";
+import { connectSocket } from "../socket/socketClient.js";
 
 export default function ClientMessages() {
   const { user } = useAuth();
@@ -27,7 +27,6 @@ export default function ClientMessages() {
   const [error, setError] = useState("");
   const activeConversationIDRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const [typingUsers, setTypingUsers] = useState({});
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeConversationID) ?? null,

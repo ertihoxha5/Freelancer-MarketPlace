@@ -115,6 +115,15 @@ async function ensureProposalSchema(pool) {
   }
 }
 
+async function ensureUserAuthSchema(pool) {
+  if (!(await columnExists(pool, 'Users', 'tokenVersion'))) {
+    await pool.query(`
+      ALTER TABLE Users
+      ADD COLUMN tokenVersion INT NOT NULL DEFAULT 0 AFTER isActive
+    `);
+  }
+}
+
 async function ensureChatSchema(pool) {
 
   await pool.query(`
@@ -275,6 +284,7 @@ export const db = mysql2.createPool({
 });
 
 try {
+  await ensureUserAuthSchema(db);
   await ensureProposalSchema(db);
   await ensureChatSchema(db);
   await ensureContractSchema(db);

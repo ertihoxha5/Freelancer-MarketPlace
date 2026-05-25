@@ -1,4 +1,9 @@
 import * as chatService from '../services/chatService.js';
+import {
+    validatedBody,
+    validatedParams,
+    validatedQuery,
+} from '../middleware/validateRequest.js';
 
 function handleError(err, res, next) {
     if (err.statusCode) {
@@ -9,8 +14,9 @@ function handleError(err, res, next) {
 
 export async function createOrGetConversation(req, res, next) {
     try {
+        const { projectID } = validatedBody(req);
         const conversation = await chatService.createOrGetConversation({
-            projectID: req.body?.projectID,
+            projectID,
             requesterID: req.user.id,
         });
         return res.status(200).json({ conversation });
@@ -30,9 +36,10 @@ export async function getMyConversations(req, res, next) {
 
 export async function searchUsers(req, res, next) {
     try {
+        const { q } = validatedQuery(req);
         const users = await chatService.searchUsers({
             requesterID: req.user.id,
-            query: req.query.q,
+            query: q,
         });
         return res.status(200).json({ users });
     } catch (err) {
@@ -42,9 +49,10 @@ export async function searchUsers(req, res, next) {
 
 export async function createOrGetDirectConversation(req, res, next) {
     try {
+        const { receiverID } = validatedBody(req);
         const conversation = await chatService.createOrGetDirectConversation({
             requesterID: req.user.id,
-            receiverID: req.body?.receiverID,
+            receiverID,
         });
         return res.status(200).json({ conversation });
     } catch (err) {
@@ -54,11 +62,13 @@ export async function createOrGetDirectConversation(req, res, next) {
 
 export async function getMessages(req, res, next) {
     try {
+        const { id: conversationID } = validatedParams(req);
+        const { limit, beforeID } = validatedQuery(req);
         const messages = await chatService.getConversationMessages({
-            conversationID: req.params.id,
+            conversationID,
             userID: req.user.id,
-            limit: req.query.limit,
-            beforeID: req.query.beforeID,
+            limit,
+            beforeID,
         });
         return res.status(200).json({ messages });
     } catch (err) {
@@ -68,8 +78,9 @@ export async function getMessages(req, res, next) {
 
 export async function markConversationRead(req, res, next) {
     try {
+        const { id: conversationID } = validatedParams(req);
         const result = await chatService.markAsRead({
-            conversationID: req.params.id,
+            conversationID,
             userID: req.user.id,
         });
         return res.status(200).json({ message: 'Conversation marked as read.', ...result });

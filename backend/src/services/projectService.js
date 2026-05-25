@@ -7,13 +7,10 @@ import {
   emitProjectStatusChanged,
   emitProposalNew,
 } from "../socket/handlers/businessHandlers.js";
-import {
-  PROJECT_STATUSES,
-  validateStatusTransition,
-} from "../utils/statusTransition.js";
+import { validateStatusTransition } from "../utils/statusTransition.js";
+import { validate } from "../validation/validate.js";
+import { projectSchemas, proposalSchemas } from "../validation/schemas.js";
 import { conflictError, notFoundError, validationError } from "../utils/errors.js";
-
-const VALID_STATUSES = PROJECT_STATUSES;
 
 export async function getProjectsWithFreelancer() {
   return projectRepository.getProjectsWithFreelancer();
@@ -28,31 +25,20 @@ export async function getClientList() {
 }
 
 export async function createProject(payload) {
-  const { title, pDesc, budget, deadline, clientID, pStatus } = payload ?? {};
-
-  if (typeof title !== "string" || title.trim() === "") {
-    throw validationError("Title is required.");
-  }
-  if (title.trim().length > 20) {
-    throw validationError("Title must be 20 characters or fewer.");
-  }
-
+  const { title, pDesc, budget, deadline, clientID, pStatus } = validate(
+    projectSchemas.adminCreateOrUpdate,
+    payload ?? {},
+  );
   const clientId = Number(clientID);
   if (!Number.isInteger(clientId) || clientId <= 0) {
     throw validationError("Valid clientID is required.");
   }
 
-  if (pStatus && !VALID_STATUSES.includes(pStatus)) {
-    throw validationError(
-      `pStatus must be one of: ${VALID_STATUSES.join(", ")}.`,
-    );
-  }
-
   const project = await projectRepository.createProject({
-    title: title.trim(),
-    pDesc: pDesc?.trim() || null,
+    title,
+    pDesc,
     budget: budget != null ? Number(budget) : null,
-    deadline: deadline || null,
+    deadline,
     clientID: clientId,
     pStatus: pStatus || "pending",
   });
@@ -73,20 +59,10 @@ export async function updateProject(id, payload) {
     throw validationError("Valid project id is required.");
   }
 
-  const { title, pDesc, budget, deadline, pStatus } = payload ?? {};
-
-  if (typeof title !== "string" || title.trim() === "") {
-    throw validationError("Title is required.");
-  }
-  if (title.trim().length > 20) {
-    throw validationError("Title must be 20 characters or fewer.");
-  }
-
-  if (pStatus && !VALID_STATUSES.includes(pStatus)) {
-    throw validationError(
-      `pStatus must be one of: ${VALID_STATUSES.join(", ")}.`,
-    );
-  }
+  const { title, pDesc, budget, deadline, pStatus } = validate(
+    projectSchemas.adminCreateOrUpdate,
+    payload ?? {},
+  );
 
   const existing = await projectRepository.getProjectById(projectId);
   if (!existing) {
@@ -97,10 +73,10 @@ export async function updateProject(id, payload) {
   validateStatusTransition(existing.pStatus, nextStatus);
 
   const updated = await projectRepository.updateProject(projectId, {
-    title: title.trim(),
-    pDesc: pDesc?.trim() || null,
+    title,
+    pDesc,
     budget: budget != null ? Number(budget) : null,
-    deadline: deadline || null,
+    deadline,
     pStatus: nextStatus,
   });
 
@@ -164,15 +140,27 @@ export async function deleteProject(id) {
 }
 export async function browseProjectsForFreelancer(userID, queryParams = {}) {
   const { sort, categoryID, skillIds } = queryParams;
+  const currentPage = Math.max(1, Number(queryParams.page) || 1);
+  const limit = Math.min(50, Math.max(1, Number(queryParams.limit) || 10));
 
-  const projects = await projectRepository.getBrowseProjectsForFreelancer(
+  const result = await projectRepository.getBrowseProjectsForFreelancer(
     { sort, categoryID, skillIds },
     userID,
+    { page: currentPage, limit },
   );
 
   return {
-    projects,
-    pagination: { page: 1, limit: 10 },
+    data: result.data,
+    projects: result.data,
+    currentPage,
+    totalPages: Math.ceil(result.totalItems / limit),
+    totalItems: result.totalItems,
+    pagination: {
+      page: currentPage,
+      limit,
+      total: result.totalItems,
+      totalPages: Math.ceil(result.totalItems / limit),
+    },
   };
 }
 
@@ -200,13 +188,12 @@ export async function getFreelancerProjectDetails(userID, projectID) {
 }
 
 export async function createApplication(userID, projectID, payload) {
-  const { coverLetter, bidAmount, estimatedDays } = payload ?? {};
+  const { coverLetter, bidAmount, estimatedDays } = validate(
+    proposalSchemas.createOrUpdate,
+    payload ?? {},
+  );
   const freelancerId = Number(userID);
   const projectId = Number(projectID);
-
-  if (!coverLetter || coverLetter.trim() === "") {
-    throw validationError("Cover letter is required.");
-  }
 
   if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
     throw validationError("Valid user id is required.");
@@ -240,9 +227,9 @@ export async function createApplication(userID, projectID, payload) {
     result = await projectRepository.createApplication(
       freelancerId,
       projectId,
-      coverLetter.trim(),
-      bidAmount ? Number(bidAmount) : null,
-      estimatedDays ? Number(estimatedDays) : null,
+      coverLetter,
+      bidAmount,
+      estimatedDays,
     );
   } catch (err) {
     if (err?.code === "ER_DUP_ENTRY") {
@@ -273,8 +260,8 @@ export async function createApplication(userID, projectID, payload) {
       projectID: projectId,
       projectTitle,
       applicationID: result.id,
-      bidAmount: bidAmount ? Number(bidAmount) : null,
-      estimatedDays: estimatedDays ? Number(estimatedDays) : null,
+      bidAmount,
+      estimatedDays,
     },
   }).catch(() => {});
   pushNotification({
@@ -292,8 +279,8 @@ export async function createApplication(userID, projectID, payload) {
       projectTitle,
       proposalID: result.id,
       freelancerID: freelancerId,
-      bidAmount: bidAmount ? Number(bidAmount) : null,
-      estimatedDays: estimatedDays ? Number(estimatedDays) : null,
+      bidAmount,
+      estimatedDays,
     });
     io.to(`user:${projectDetails.clientID}`).emit("notification:new", {
       type: "system",
@@ -307,7 +294,10 @@ export async function createApplication(userID, projectID, payload) {
 export async function updateMyApplication(userID, applicationID, payload) {
   const freelancerId = Number(userID);
   const appId = Number(applicationID);
-  const { coverLetter, bidAmount, estimatedDays } = payload ?? {};
+  const { coverLetter, bidAmount, estimatedDays } = validate(
+    proposalSchemas.createOrUpdate,
+    payload ?? {},
+  );
 
   if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
     throw validationError("Valid user id is required.");
@@ -315,10 +305,6 @@ export async function updateMyApplication(userID, applicationID, payload) {
   if (!Number.isInteger(appId) || appId <= 0) {
     throw validationError("Valid application id is required.");
   }
-  if (!coverLetter || coverLetter.trim() === "") {
-    throw validationError("Cover letter is required.");
-  }
-
   const existing = await projectRepository.getApplicationByIdForFreelancer(
     appId,
     freelancerId,
@@ -334,9 +320,9 @@ export async function updateMyApplication(userID, applicationID, payload) {
     appId,
     freelancerId,
     {
-      coverLetter: coverLetter.trim(),
-      bidAmount: bidAmount ? Number(bidAmount) : null,
-      estimatedDays: estimatedDays ? Number(estimatedDays) : null,
+      coverLetter,
+      bidAmount,
+      estimatedDays,
     },
   );
 
@@ -346,9 +332,9 @@ export async function updateMyApplication(userID, applicationID, payload) {
 
   return {
     id: appId,
-    coverLetter: coverLetter.trim(),
-    bidAmount: bidAmount ? Number(bidAmount) : null,
-    estimatedDays: estimatedDays ? Number(estimatedDays) : null,
+    coverLetter,
+    bidAmount,
+    estimatedDays,
     propStatus: "pending",
   };
 }
