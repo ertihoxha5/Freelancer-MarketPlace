@@ -4,6 +4,7 @@ import { useRealtime } from "../context/RealtimeContext.jsx";
 const sidebarConfigs = {
   admin: [
     { label: "Dashboard", href: "/adminDashboard" },
+    { label: "Search", href: "/search" },
     { label: "Users", href: "/adminDashboard/users" },
     {
       label: "Jobs with Freelancer",
@@ -13,12 +14,13 @@ const sidebarConfigs = {
       label: "Jobs without Freelancer",
       href: "/adminDashboard/jobs-without-freelancer",
     },
-    { label: "Export/Import", href: "/adminDashboard/export-import" },
+    { label: "Export/Import", href: "/adminDashboard/export" },
     { label: "Reports", href: "/adminDashboard/reports" },
     { label: "Notifications", href: "/adminDashboard/notifications" },
   ],
   freelancer: [
     { label: "Dashboard", href: "/freelancer/dashboard" },
+    { label: "Search", href: "/search" },
     { label: "Profile", href: "/freelancer/profile" },
     { label: "Notifications", href: "/freelancer/notifications" },
     { label: "Browse Projects", href: "/freelancer/browse-projects" },
@@ -27,11 +29,12 @@ const sidebarConfigs = {
     { label: "Contracts", href: "/freelancer/contracts", badge: "contracts" },
     { label: "My Applications", href: "/freelancer/applications", badge: "applications" },
     { label: "My Reports", href: "/freelancer/reports" },
-    { label: "Reviews", href: "/freelancer/reviews", badge: "reviews" },
+    { label: "My Reviews", href: "/freelancer/reviews", badge: "reviews" },
 
   ],
   client: [
     { label: "Dashboard", href: "/client/dashboard" },
+    { label: "Search", href: "/search" },
     { label: "Post Project", href: "/client/post-project" },
     { label: "My Projects", href: "/client/projects", badge: "projects" },
     { label: "Applications", href: "/client/applications", badge: "applications" },
@@ -48,7 +51,7 @@ function getRoleConfig(roleID) {
   if (numericRoleID === 1) return sidebarConfigs.admin;
   if (numericRoleID === 3) return sidebarConfigs.freelancer;
   if (numericRoleID === 2) return sidebarConfigs.client;
-  return sidebarConfigs.client; // default si client nëse roleID është i panjohur
+  return sidebarConfigs.client;
 }
 
 function getRoleLabel(roleID) {

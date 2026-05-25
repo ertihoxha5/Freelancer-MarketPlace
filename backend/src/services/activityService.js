@@ -1,82 +1,84 @@
 import Activity from "../models/ActivityModel.js";
+import { notFoundError } from "../utils/errors.js";
 
 /**
- * Konfigurimet e eventeve - ikona dhe prioritetet
+ * Event display configuration.
  */
 const EVENT_CONFIG = {
   application_accepted: {
-    icon: "✅",
+    icon: "check",
     priority: "high",
-    titleTemplate: (data) => `Aplikimi u pranua!`,
+    titleTemplate: () => "Application Accepted",
     messageTemplate: (data) =>
-      `Klienti ${data.clientName} pranoi aplikimin tuaj për projektin "${data.projectTitle}".`,
-    actionUrl: (data) => `/freelancer/applications`,
+      `${data.clientName} accepted your application for "${data.projectTitle}".`,
+    actionUrl: () => "/freelancer/applications",
   },
   application_rejected: {
-    icon: "❌",
+    icon: "x",
     priority: "medium",
-    titleTemplate: (data) => `Aplikimi u refuzua`,
+    titleTemplate: () => "Application Rejected",
     messageTemplate: (data) =>
-      `Klienti ${data.clientName} refuzoi aplikimin tuaj për projektin "${data.projectTitle}".`,
-    actionUrl: (data) => `/freelancer/applications`,
+      `${data.clientName} rejected your application for "${data.projectTitle}".`,
+    actionUrl: () => "/freelancer/applications",
   },
   application_submitted: {
-    icon: "📨",
+    icon: "mail",
     priority: "low",
-    titleTemplate: (data) => `Aplikim i dërguar`,
+    titleTemplate: () => "Application Submitted",
     messageTemplate: (data) =>
-      `Keni aplikuar me sukses për projektin "${data.projectTitle}".`,
-    actionUrl: (data) => `/freelancer/applications`,
+      `You applied successfully for "${data.projectTitle}".`,
+    actionUrl: () => "/freelancer/applications",
   },
   application_withdrawn: {
-    icon: "↩️",
+    icon: "undo",
     priority: "low",
-    titleTemplate: () => `Aplikim i tërhequr`,
+    titleTemplate: () => "Application Withdrawn",
     messageTemplate: (data) =>
-      `Keni tërhequr aplikimin për projektin "${data.projectTitle}".`,
-    actionUrl: () => `/freelancer/applications`,
+      `You withdrew your application for "${data.projectTitle}".`,
+    actionUrl: () => "/freelancer/applications",
   },
   new_message: {
-    icon: "💬",
+    icon: "message",
     priority: "high",
-    titleTemplate: (data) => `Mesazh i ri nga ${data.senderName}`,
+    titleTemplate: (data) => `New Message from ${data.senderName}`,
     messageTemplate: (data) =>
       data.messagePreview
         ? `"${data.messagePreview.slice(0, 80)}..."`
-        : "Keni marrë një mesazh të ri.",
-    actionUrl: (data) => `/client/messages`,
+        : "You received a new message.",
+    actionUrl: () => "/client/messages",
   },
   project_completed: {
-    icon: "🎉",
+    icon: "success",
     priority: "high",
-    titleTemplate: (data) => `Projekt i kompletuar`,
+    titleTemplate: () => "Project Completed",
     messageTemplate: (data) =>
-      `Projekti "${data.projectTitle}" u kompletua me sukses.`,
-    actionUrl: (data) => `/freelancer/applications`,
+      `Project "${data.projectTitle}" was completed successfully.`,
+    actionUrl: () => "/freelancer/applications",
   },
   project_cancelled: {
-    icon: "⚠️",
+    icon: "warning",
     priority: "urgent",
-    titleTemplate: () => `Projekt i anuluar`,
+    titleTemplate: () => "Project Cancelled",
     messageTemplate: (data) =>
-      `Projekti "${data.projectTitle}" u anulua nga klienti.`,
-    actionUrl: () => `/freelancer/applications`,
+      `Project "${data.projectTitle}" was cancelled by the client.`,
+    actionUrl: () => "/freelancer/applications",
   },
   review_received: {
-    icon: "⭐",
+    icon: "star",
     priority: "medium",
-    titleTemplate: (data) => `Vlerësim i ri - ${data.stars} yje`,
-    messageTemplate: (data) => `${data.reviewerName} ju la një vlerësim të ri.`,
-    actionUrl: () => `/freelancer/profile`,
+    titleTemplate: (data) => `New Review - ${data.stars} stars`,
+    messageTemplate: (data) => `${data.reviewerName} left you a new review.`,
+    actionUrl: () => "/freelancer/profile",
   },
 };
 
 /**
- * Krijo një aktivitet të ri në MongoDB
+ * Create a new MongoDB activity.
+ *
  * @param {object} params
  * @param {number} params.freelancerID
  * @param {string} params.eventType
- * @param {object} params.metadata - të dhënat specifike të eventit
+ * @param {object} params.metadata - event-specific data
  */
 export async function createActivity({
   freelancerID,
@@ -107,14 +109,15 @@ export async function createActivity({
     await activity.save();
     return activity;
   } catch (err) {
-    // Nuk e ndal procesin kryesor nëse MongoDB dështon
+    // Activity creation should not block the main business flow.
     console.error("Failed to create activity in MongoDB:", err.message);
     return null;
   }
 }
 
 /**
- * Merr feed-in e aktiviteteve për një freelancer
+ * Get the activity feed for one freelancer.
+ *
  * @param {number} freelancerID
  * @param {object} options - { page, limit, eventType, onlyUnread }
  */
@@ -159,7 +162,7 @@ export async function getActivityFeed(freelancerID, options = {}) {
 }
 
 /**
- * Shëno një aktivitet si të lexuar
+ * Mark one activity as read.
  */
 export async function markActivityRead(activityId, freelancerID) {
   const activity = await Activity.findOne({
@@ -168,9 +171,7 @@ export async function markActivityRead(activityId, freelancerID) {
   });
 
   if (!activity) {
-    const err = new Error("Activity not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Activity not found.");
   }
 
   activity.isRead = true;
@@ -179,7 +180,7 @@ export async function markActivityRead(activityId, freelancerID) {
 }
 
 /**
- * Shëno të gjitha aktivitetet si të lexuara
+ * Mark all activities as read.
  */
 export async function markAllActivitiesRead(freelancerID) {
   const result = await Activity.markAllReadForFreelancer(Number(freelancerID));
@@ -187,7 +188,7 @@ export async function markAllActivitiesRead(freelancerID) {
 }
 
 /**
- * Fshi një aktivitet
+ * Delete one activity.
  */
 export async function deleteActivity(activityId, freelancerID) {
   const result = await Activity.deleteOne({
@@ -196,15 +197,13 @@ export async function deleteActivity(activityId, freelancerID) {
   });
 
   if (result.deletedCount === 0) {
-    const err = new Error("Activity not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Activity not found.");
   }
   return { deleted: true };
 }
 
 /**
- * Fshi të gjitha aktivitetet e freelancerit
+ * Delete all freelancer activities.
  */
 export async function deleteAllActivities(freelancerID) {
   const result = await Activity.deleteMany({
@@ -214,7 +213,7 @@ export async function deleteAllActivities(freelancerID) {
 }
 
 /**
- * Merr numrin e aktiviteteve të palexuara (për badge)
+ * Get unread activity count for badges.
  */
 export async function getUnreadActivityCount(freelancerID) {
   const count = await Activity.countDocuments({

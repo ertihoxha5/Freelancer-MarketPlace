@@ -7,30 +7,12 @@ import {
 import { createActivity } from "./activityService.js";
 import { getIO } from "../socket/index.js";
 import { emitReviewReceived } from "../socket/handlers/businessHandlers.js";
-
-function validationError(message) {
-  const err = new Error(message);
-  err.statusCode = 400;
-  return err;
-}
-
-function notFoundError(message) {
-  const err = new Error(message);
-  err.statusCode = 404;
-  return err;
-}
-
-function forbiddenError(message) {
-  const err = new Error(message);
-  err.statusCode = 403;
-  return err;
-}
-
-function conflictError(message) {
-  const err = new Error(message);
-  err.statusCode = 409;
-  return err;
-}
+import {
+  conflictError,
+  forbiddenError,
+  notFoundError,
+  validationError,
+} from "../utils/errors.js";
 
 function coercePositiveInt(value, label) {
   const num = Number(value);
@@ -81,8 +63,12 @@ export async function createReview(contractID, reviewerID, role, payload) {
     throw validationError("Review comment is required.");
   }
 
-  if (comment.length > 255) {
-    throw validationError("Review comment must be 255 characters or fewer.");
+  if (comment.length < 10) {
+    throw validationError("Review comment must be at least 10 characters.");
+  }
+
+  if (comment.length > 1000) {
+    throw validationError("Review comment must be 1000 characters or fewer.");
   }
 
   const contract = await projectRepository.getContractById(contractId);
@@ -95,6 +81,10 @@ export async function createReview(contractID, reviewerID, role, payload) {
   }
 
   const partyContext = getContractPartyContext(contract, reviewerId, role);
+
+  if (partyContext.receiverID === reviewerId) {
+    throw conflictError("You cannot review yourself.");
+  }
 
   if (await reviewRepository.hasReviewedAlready(contractId, reviewerId)) {
     throw conflictError("You have already reviewed this contract.");

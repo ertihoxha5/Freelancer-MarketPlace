@@ -1,22 +1,9 @@
 import * as chatRepository from '../repositories/chatRepository.js';
-
-function validationError(message) {
-    const err = new Error(message);
-    err.statusCode = 400;
-    return err;
-}
-
-function forbiddenError(message = 'You do not have permission to access this conversation.') {
-    const err = new Error(message);
-    err.statusCode = 403;
-    return err;
-}
-
-function notFoundError(message) {
-    const err = new Error(message);
-    err.statusCode = 404;
-    return err;
-}
+import {
+    forbiddenError,
+    notFoundError,
+    validationError,
+} from '../utils/errors.js';
 
 function parsePositiveInt(value, label) {
     const parsed = Number(value);

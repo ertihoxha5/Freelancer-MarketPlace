@@ -4,6 +4,11 @@ import * as userRepository from "../repositories/userRepository.js";
 import * as refreshTokenRepository from "../repositories/refreshTokenRepository.js";
 import { signAccessToken } from "../utils/jwt.js";
 import { pushToAllAdmins } from "./notificationService.js";
+import {
+  conflictError,
+  unauthorizedError,
+  validationError,
+} from "../utils/errors.js";
 
 const ALLOWED_ROLE_IDS = new Set([2, 3]);
 const BCRYPT_ROUNDS = 10;
@@ -13,22 +18,8 @@ async function hashPassword(plain) {
   return bcrypt.hash(plain, BCRYPT_ROUNDS);
 }
 
-function validationError(message) {
-  const err = new Error(message);
-  err.statusCode = 400;
-  return err;
-}
-
-function conflictError(message) {
-  const err = new Error(message);
-  err.statusCode = 409;
-  return err;
-}
-
 function unauthorized(message = "Invalid email or password.") {
-  const err = new Error(message);
-  err.statusCode = 401;
-  return err;
+  return unauthorizedError(message);
 }
 
 async function issueNewRefreshToken(userID) {

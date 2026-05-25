@@ -75,7 +75,7 @@ const FreelancerContracts = lazy(() => import("./pages/FreelancerContracts.jsx")
 const FreelancerReviews = lazy(() => import("./pages/FreelancerReviews.jsx"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage.jsx"));
 
-// Shtoni faqe të reja si fëmijë të layout-it më poshtë.
+// Add new pages as children of the layout below.
 const router = createBrowserRouter([
   {
     element: <AppLayout />,
@@ -258,7 +258,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/adminDashboard/export-import",
+        path: "/adminDashboard/export",
         element: (
           <AdminRoute>
             <Suspense fallback={<Loading />}>

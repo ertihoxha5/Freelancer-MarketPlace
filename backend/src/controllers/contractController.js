@@ -1,24 +1,11 @@
 import * as projectRepository from "../repositories/projectRepository.js";
 import * as milestoneRepository from "../repositories/milestoneRepository.js";
 import * as reviewRepository from "../repositories/reviewRepository.js";
-
-function notFoundError(message) {
-  const err = new Error(message);
-  err.statusCode = 404;
-  return err;
-}
-
-function forbiddenError(message) {
-  const err = new Error(message);
-  err.statusCode = 403;
-  return err;
-}
-
-function validationError(message) {
-  const err = new Error(message);
-  err.statusCode = 400;
-  return err;
-}
+import {
+  forbiddenError,
+  notFoundError,
+  validationError,
+} from "../utils/errors.js";
 
 function isClient(req) {
   return Number(req.user?.roleID) === 2;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Header from "../../components/Header.jsx";
 import Sidebar from "../../components/Sidebar.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useToast } from "../../context/ToastContext.jsx";
 import {
   fetchProjectsWithFreelancer,
   fetchClientList,
@@ -21,6 +22,7 @@ const emptyForm = {
 
 export default function JobsWithFreelancer() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -100,8 +102,9 @@ export default function JobsWithFreelancer() {
         pStatus: createForm.pStatus,
       });
       setCreateOpen(false);
-      alert(
+      showToast(
         "Project created. It will appear here once a freelancer proposal is accepted.",
+        "success",
       );
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Create failed.");

@@ -13,6 +13,12 @@ import {
   emitProjectStatusChanged,
 } from "../socket/handlers/businessHandlers.js";
 import { validateStatusTransition } from "../utils/statusTransition.js";
+import {
+  conflictError,
+  forbiddenError,
+  notFoundError,
+  validationError,
+} from "../utils/errors.js";
 
 const VALID_MILESTONE_STATUSES = [
   "pending",
@@ -21,30 +27,6 @@ const VALID_MILESTONE_STATUSES = [
   "approved",
   "rejected",
 ];
-
-function validationError(message) {
-  const err = new Error(message);
-  err.statusCode = 400;
-  return err;
-}
-
-function notFoundError(message) {
-  const err = new Error(message);
-  err.statusCode = 404;
-  return err;
-}
-
-function forbiddenError(message) {
-  const err = new Error(message);
-  err.statusCode = 403;
-  return err;
-}
-
-function conflictError(message) {
-  const err = new Error(message);
-  err.statusCode = 409;
-  return err;
-}
 
 function coercePositiveInt(value, label) {
   const num = Number(value);
@@ -106,20 +88,32 @@ export async function createMilestone(contractID, clientID, payload) {
   if (typeof title !== "string" || title.trim() === "") {
     throw validationError("Milestone title is required.");
   }
-  if (title.trim().length > 20) {
-    throw validationError("Milestone title must be 20 characters or fewer.");
+  if (title.trim().length > 100) {
+    throw validationError("Milestone title must be 100 characters or fewer.");
   }
-  if (typeof mDesc !== "string" || mDesc.trim() === "") {
-    throw validationError("Milestone description is required.");
+  const description = typeof mDesc === "string" ? mDesc.trim() : "";
+  if (description.length > 500) {
+    throw validationError("Milestone description must be 500 characters or fewer.");
   }
   const amount = Number(amountPayable);
   if (Number.isNaN(amount) || amount <= 0) {
     throw validationError("Milestone amount must be greater than zero.");
   }
+  if (amount > Number(contract.totalAmount || 0)) {
+    throw validationError("Milestone amount cannot exceed contract total amount.");
+  }
+  if (dueDate) {
+    const due = new Date(dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (Number.isNaN(due.getTime()) || due <= today) {
+      throw validationError("Milestone due date must be in the future.");
+    }
+  }
 
   const milestone = await milestoneRepository.createMilestone({
     title: title.trim(),
-    mDesc: mDesc.trim(),
+    mDesc: description,
     amountPayable: amount,
     dueDate: dueDate || null,
     contractID: contract.id,

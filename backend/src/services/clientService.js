@@ -23,15 +23,10 @@ import {
   PROJECT_STATUSES,
   validateStatusTransition,
 } from "../utils/statusTransition.js";
+import { conflictError, notFoundError, validationError } from "../utils/errors.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
-
-function validationError(message) {
-  const err = new Error(message);
-  err.statusCode = 400;
-  return err;
-}
 
 function toShortString(value) {
   return String(value ?? "").slice(0, 20);
@@ -58,9 +53,7 @@ export async function getMyProject(projectID, clientID) {
     clientID,
   );
   if (!project) {
-    const err = new Error("Project not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Project not found.");
   }
   return project;
 }
@@ -93,19 +86,17 @@ export async function updateMyApplicationStatus(
     throw validationError("Status must be pending, accepted, or rejected.");
   }
 
-  // Merr aplikimin ekzistues
+  // Get the existing application.
   const existing = await projectRepository.getClientApplicationById(
     appId,
     clientId,
   );
 
   if (!existing) {
-    const err = new Error("Application not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Application not found.");
   }
 
-  // Nëse statusi nuk ndryshon, kthe menjëherë
+  // Return early when status has not changed.
   if (existing.propStatus === propStatus) {
     return {
       applicationId: appId,
@@ -114,21 +105,17 @@ export async function updateMyApplicationStatus(
   }
 
   if (existing.propStatus !== "pending") {
-    const err = new Error("Only pending applications can change status.");
-    err.statusCode = 409;
-    throw err;
+    throw conflictError("Only pending applications can change status.");
   }
 
   if (propStatus === "accepted") {
     if (existing.projectStatus !== "pending") {
-      const err = new Error("Only pending projects can accept a proposal.");
-      err.statusCode = 409;
-      throw err;
+      throw conflictError("Only pending projects can accept a proposal.");
     }
     validateStatusTransition(existing.projectStatus, "active");
   }
 
-  // Përditëso statusin në MySQL
+  // Update status in MySQL.
   const affected = await projectRepository.updateClientApplicationStatus(
     appId,
     clientId,
@@ -136,12 +123,10 @@ export async function updateMyApplicationStatus(
   );
 
   if (!affected) {
-    const err = new Error("Unable to update application status.");
-    err.statusCode = 409;
-    throw err;
+    throw conflictError("Unable to update application status.");
   }
 
-  // Dërgo njoftim vetëm kur aplikimi pranohet ose refuzohet
+  // Notify the freelancer only when the application is accepted or rejected.
   if (propStatus === "accepted" || propStatus === "rejected") {
     const projectDetails = await projectRepository.getClientProjectById(
       existing.projectId,
@@ -149,7 +134,7 @@ export async function updateMyApplicationStatus(
     );
 
     const projectTitle =
-      projectDetails?.title || existing.projectTitle || "Projekt";
+      projectDetails?.title || existing.projectTitle || "Project";
     let contract = null;
 
     // If proposal is accepted, automatically set project status to active
@@ -223,7 +208,7 @@ export async function updateMyApplicationStatus(
       },
     }).catch(() => {});
 
-    // Activity MongoDB
+    // MongoDB activity feed.
     createActivity({
       freelancerID: existing.freelancerID,
       eventType:
@@ -234,7 +219,7 @@ export async function updateMyApplicationStatus(
         projectID: existing.projectId,
         projectTitle,
         clientID: clientId,
-        clientName: "Klienti",
+        clientName: "Client",
         applicationID: appId,
         bidAmount: existing.bidAmount ?? null,
         estimatedDays: existing.estimatedDays ?? null,
@@ -526,9 +511,7 @@ export async function updateMyProject(projectID, clientID, payload) {
     clientID,
   );
   if (!existing) {
-    const err = new Error("Project not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Project not found.");
   }
 
   const nextStatus = pStatus || existing.pStatus;
@@ -635,9 +618,7 @@ export async function deleteMyProject(projectID, clientID) {
     clientID,
   );
   if (!existing) {
-    const err = new Error("Project not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Project not found.");
   }
 
   const result = await projectRepository.deleteClientProject(

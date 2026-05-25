@@ -1,12 +1,13 @@
 import FreelancerNotification from "../models/FreelancerNotificationModel.js";
+import { notFoundError } from "../utils/errors.js";
 
 const NOTIFICATION_CONFIG = {
   message: {
-    icon: "💬",
+    icon: "message",
     priority: "high",
   },
   system: {
-    icon: "🔔",
+    icon: "bell",
     priority: "medium",
   },
 };
@@ -38,9 +39,7 @@ export async function markNotificationRead(id, userID) {
   );
 
   if (!notif) {
-    const err = new Error("Notification not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Notification not found.");
   }
 
   return { id };
@@ -60,9 +59,7 @@ export async function deleteMyNotification(id, userID) {
   });
 
   if (result.deletedCount === 0) {
-    const err = new Error("Notification not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Notification not found.");
   }
 
   return { id };
@@ -76,7 +73,7 @@ export async function deleteAllMyNotifications(userID) {
 }
 
 /**
- * Krijo dhe dërgo njoftim te freelancer-i (MongoDB Atlas)
+ * Create and send a freelancer notification in MongoDB.
  *
  * @param {{ types: 'system'|'message', receiverID: number, title: string, msg: string, metadata?: object }} payload
  */

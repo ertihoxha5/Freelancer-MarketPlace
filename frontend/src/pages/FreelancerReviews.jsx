@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { fetchMyReviews } from "../apiServices.js";
@@ -68,7 +69,12 @@ export default function FreelancerReviews() {
 
             {error ? <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
             {loading ? <div className="rounded-lg border p-6 text-slate-500">Loading reviews...</div> : null}
-            {!loading && reviews.length === 0 ? <div className="rounded-lg border border-dashed p-8 text-center text-slate-500">No reviews yet.</div> : null}
+            {!loading && reviews.length === 0 ? (
+              <EmptyState
+                title="No reviews yet"
+                description="Client reviews from completed contracts will appear here."
+              />
+            ) : null}
 
             <div className="grid gap-4 xl:grid-cols-2">
               {reviews.map((review) => (

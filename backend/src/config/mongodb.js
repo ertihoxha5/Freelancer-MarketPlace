@@ -20,24 +20,22 @@ export async function connectMongoDB() {
     const dbName =
       mongoose.connection.db?.databaseName || "freelancerMarketplace";
 
-    console.log(`✅ MongoDB connected: ${dbName}`);
-    console.log(`   Host: ${mongoose.connection.host || "atlas cluster"}`);
+    console.info(`MongoDB connected: ${dbName}`);
+    console.info(`Host: ${mongoose.connection.host || "atlas cluster"}`);
     isConnected = true;
   } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
-    console.error(
-      "   Sigurohuni që MONGO_URI në .env është i saktë (Atlas ose lokal).",
-    );
+    console.error("MongoDB connection failed:", err.message);
+    console.error("Ensure MONGO_URI in .env is valid for Atlas or local MongoDB.");
   }
 }
 
 mongoose.connection.on("disconnected", () => {
-  console.warn("⚠️  MongoDB disconnected. Duke u përpjekur të rilidhemi...");
+  console.warn("MongoDB disconnected. Attempting to reconnect...");
   isConnected = false;
 });
 
 mongoose.connection.on("reconnected", () => {
-  console.log("✅ MongoDB reconnected.");
+  console.info("MongoDB reconnected.");
   isConnected = true;
 });
 

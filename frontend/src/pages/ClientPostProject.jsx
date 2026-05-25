@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import { createClientProject } from "../apiServices.js";
 
 const initialPhase = () => ({ title: "", deadline: "", budget: "", description: "" });
@@ -74,6 +75,7 @@ function downloadFile(filename, blob) {
 
 export default function ClientPostProject() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -119,7 +121,7 @@ export default function ClientPostProject() {
         pStatus: form.pStatus,
       });
       setForm(emptyForm);
-      alert("Project posted successfully.");
+      showToast("Project posted successfully.", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
     } finally {
@@ -172,7 +174,7 @@ export default function ClientPostProject() {
     const html = buildPrintableHtml(form, user?.fullName ?? "Client");
     const newWindow = window.open("", "_blank");
     if (!newWindow) {
-      alert("Please allow popups to export as PDF.");
+      showToast("Please allow popups to export as PDF.", "warning");
       return;
     }
     newWindow.document.write(html);

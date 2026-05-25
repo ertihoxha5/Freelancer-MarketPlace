@@ -9,15 +9,15 @@ const httpServer = http.createServer(app);
 initSocketServer(httpServer);
 
 httpServer.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.info(`Server listening on port ${PORT}`);
 });
 
 function gracefulShutdown(signal) {
-  console.log(`\n${signal} received. Shutting down gracefully...`);
+  console.info(`\n${signal} received. Shutting down gracefully...`);
   httpServer.close(async () => {
     try {
       await db.end();
-      console.log("MySQL pool closed.");
+      console.info("MySQL pool closed.");
     } catch (e) {
       console.error("Error closing MySQL:", e.message);
     }

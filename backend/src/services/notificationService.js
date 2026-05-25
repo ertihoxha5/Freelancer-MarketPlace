@@ -1,13 +1,8 @@
 import * as notificationRepository from "../repositories/notificationRepository.js";
 import { pushFreelancerNotification } from "./freelancerNotificationService.js";
+import { validationError } from "../utils/errors.js";
 
 export { pushFreelancerNotification };
-
-function validationError(message) {
-  const err = new Error(message);
-  err.statusCode = 400;
-  return err;
-}
 
 export async function getMyNotifications(userID) {
   return notificationRepository.getNotificationsByUserId(userID);

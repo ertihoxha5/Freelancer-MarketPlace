@@ -215,90 +215,28 @@ export async function fetchCurrentUser() {
   return data;
 }
 
-/** GET /api/admin/users — uses access token; on 401 tries refresh once then retries. */
+/** GET /api/admin/users. */
 export async function fetchAdminUsers(params = {}) {
   const query = new URLSearchParams();
   if (params.page) query.set("page", String(params.page));
   if (params.limit) query.set("limit", String(params.limit));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  let res = await fetch(`${API_BASE}/api/admin/users${suffix}`, {
-    headers: authHeaders(),
-  });
-  if (res.status === 401 && getRefreshToken()) {
-    try {
-      await refreshSession();
-      res = await fetch(`${API_BASE}/api/admin/users${suffix}`, {
-        headers: authHeaders(),
-      });
-    } catch {
-      throw new Error("Session expired. Please log in again.");
-    }
-  }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Request failed (${res.status})`,
-    );
-  }
-  return data;
+  return authedFetch(`${API_BASE}/api/admin/users${suffix}`);
 }
 
-/** PATCH /api/admin/users/:id — updates user name and status. */
+/** PATCH /api/admin/users/:id - updates user name and status. */
 export async function updateAdminUser(id, payload) {
-  let res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
+  return authedFetch(`${API_BASE}/api/admin/users/${id}`, {
     method: "PATCH",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
-
-  if (res.status === 401 && getRefreshToken()) {
-    try {
-      await refreshSession();
-      res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify(payload),
-      });
-    } catch {
-      throw new Error("Session expired. Please log in again.");
-    }
-  }
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Update failed (${res.status})`,
-    );
-  }
-  return data;
 }
 
-/** DELETE /api/admin/users/:id — marks user as inactive. */
+/** DELETE /api/admin/users/:id - marks user as inactive. */
 export async function deleteAdminUser(id) {
-  let res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
+  return authedFetch(`${API_BASE}/api/admin/users/${id}`, {
     method: "DELETE",
-    headers: authHeaders(),
   });
-
-  if (res.status === 401 && getRefreshToken()) {
-    try {
-      await refreshSession();
-      res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-    } catch {
-      throw new Error("Session expired. Please log in again.");
-    }
-  }
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Delete failed (${res.status})`,
-    );
-  }
-  return data;
 }
 export function fetchProjectsWithFreelancer() {
   return authedFetch(`${API_BASE}/api/admin/projects/with-freelancer`);

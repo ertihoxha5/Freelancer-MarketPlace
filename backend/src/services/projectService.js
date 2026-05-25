@@ -11,11 +11,7 @@ import {
   PROJECT_STATUSES,
   validateStatusTransition,
 } from "../utils/statusTransition.js";
-function validationError(message) {
-  const err = new Error(message);
-  err.statusCode = 400;
-  return err;
-}
+import { conflictError, notFoundError, validationError } from "../utils/errors.js";
 
 const VALID_STATUSES = PROJECT_STATUSES;
 
@@ -94,9 +90,7 @@ export async function updateProject(id, payload) {
 
   const existing = await projectRepository.getProjectById(projectId);
   if (!existing) {
-    const err = new Error("Project not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Project not found.");
   }
 
   const nextStatus = pStatus || existing.pStatus;
@@ -154,9 +148,7 @@ export async function deleteProject(id) {
   }
   const existing = await projectRepository.getProjectById(projectId);
   if (!existing) {
-    const err = new Error("Project not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Project not found.");
   }
 
   const result = await projectRepository.deleteProject(projectId);
@@ -201,9 +193,7 @@ export async function getFreelancerProjectDetails(userID, projectID) {
   );
 
   if (!project) {
-    const err = new Error("Project not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Project not found.");
   }
 
   return project;
@@ -215,9 +205,7 @@ export async function createApplication(userID, projectID, payload) {
   const projectId = Number(projectID);
 
   if (!coverLetter || coverLetter.trim() === "") {
-    const err = new Error("Cover letter is required.");
-    err.statusCode = 400;
-    throw err;
+    throw validationError("Cover letter is required.");
   }
 
   if (!Number.isInteger(freelancerId) || freelancerId <= 0) {
@@ -229,20 +217,14 @@ export async function createApplication(userID, projectID, payload) {
 
   const projectDetails = await projectRepository.getProjectById(projectId);
   if (!projectDetails) {
-    const err = new Error("Project not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Project not found.");
   }
   if (projectDetails.pStatus !== "pending") {
-    const err = new Error("Applications are only open for pending projects.");
-    err.statusCode = 409;
-    throw err;
+    throw conflictError("Applications are only open for pending projects.");
   }
 
   const duplicateError = () => {
-    const err = new Error("You have already applied to this project.");
-    err.statusCode = 409;
-    return err;
+    return conflictError("You have already applied to this project.");
   };
 
   const existingApplication = await projectRepository.getExistingApplication(
@@ -342,9 +324,7 @@ export async function updateMyApplication(userID, applicationID, payload) {
     freelancerId,
   );
   if (!existing) {
-    const err = new Error("Application not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Application not found.");
   }
   if (existing.propStatus !== "pending") {
     throw validationError("Only pending applications can be edited.");
@@ -361,9 +341,7 @@ export async function updateMyApplication(userID, applicationID, payload) {
   );
 
   if (!affected) {
-    const err = new Error("Unable to update application.");
-    err.statusCode = 409;
-    throw err;
+    throw conflictError("Unable to update application.");
   }
 
   return {
@@ -392,9 +370,7 @@ export async function softDeleteMyApplication(userID, applicationID) {
   );
 
   if (!existing) {
-    const err = new Error("Application not found.");
-    err.statusCode = 404;
-    throw err;
+    throw notFoundError("Application not found.");
   }
 
   if (existing.propStatus !== "pending") {
@@ -407,9 +383,7 @@ export async function softDeleteMyApplication(userID, applicationID) {
   );
 
   if (!affected) {
-    const err = new Error("Unable to withdraw application.");
-    err.statusCode = 409;
-    throw err;
+    throw conflictError("Unable to withdraw application.");
   }
 
   const projectDetails = await projectRepository.getProjectById(

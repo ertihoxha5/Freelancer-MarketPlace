@@ -62,8 +62,8 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  const StatCard = ({ title, value, subtitle, accent }) => (
-    <div className={`rounded-3xl border p-6 shadow-sm ${accent}`}>
+  const StatCard = ({ title, value, subtitle, bgColor }) => (
+    <div className={`rounded-3xl border p-6 shadow-sm ${bgColor}`}>
       <p className="text-sm font-medium text-slate-500 mb-3">{title}</p>
       <p className="text-4xl font-bold text-slate-900">{value}</p>
       {subtitle && <p className="mt-3 text-sm text-slate-500">{subtitle}</p>}

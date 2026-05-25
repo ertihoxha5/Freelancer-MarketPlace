@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { searchList } from "../apiServices.js";
@@ -246,9 +247,10 @@ export default function SearchPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-slate-300 p-10 text-center text-slate-500">
-                No results found.
-              </div>
+              <EmptyState
+                title="No results found"
+                description="Try a different keyword or loosen the filters."
+              />
             )}
 
             <div className="mt-6 flex items-center justify-between text-sm text-slate-600">

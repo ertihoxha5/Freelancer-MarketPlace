@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import ReviewModal from "../components/ReviewModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -124,7 +125,12 @@ export default function FreelancerContracts() {
 
             {error ? <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
             {loading ? <div className="rounded-lg border p-6 text-slate-500">Loading contracts...</div> : null}
-            {!loading && contracts.length === 0 ? <div className="rounded-lg border border-dashed p-8 text-center text-slate-500">No contracts yet.</div> : null}
+            {!loading && contracts.length === 0 ? (
+              <EmptyState
+                title="No contracts yet"
+                description="Contracts will appear here after a client accepts one of your proposals."
+              />
+            ) : null}
 
             <div className="space-y-4">
               {contracts.map((contract) => {

@@ -26,12 +26,12 @@ async function ensureDatabaseFromSchema() {
     );
 
     if (rows.length === 0) {
-      console.log(`Database "${DB_NAME}" not found. Creating from schema.sql...`);
+      console.info(`Database "${DB_NAME}" not found. Creating from schema.sql...`);
       const schemaSql = await fs.readFile(schemaUrl, 'utf8');
       await rootConn.query(schemaSql);
-      console.log(`Database "${DB_NAME}" created and initialized.`);
+      console.info(`Database "${DB_NAME}" created and initialized.`);
     } else {
-      console.log(`Database "${DB_NAME}" already exists.`);
+      console.info(`Database "${DB_NAME}" already exists.`);
     }
   } finally {
     await rootConn.end();
@@ -205,6 +205,58 @@ async function ensureChatSchema(pool) {
   `);
 }
 
+async function ensureContractSchema(pool) {
+  if (!(await columnExists(pool, 'Contracts', 'startDate'))) {
+    await pool.query(`
+      ALTER TABLE Contracts
+      ADD COLUMN startDate DATE NULL
+    `);
+  }
+
+  if (!(await columnExists(pool, 'Contracts', 'endDate'))) {
+    await pool.query(`
+      ALTER TABLE Contracts
+      ADD COLUMN endDate DATE NULL
+    `);
+  }
+
+  // Contracts.clientID and Contracts.freelancerID are expected to reference Users
+  // in fresh schemas. Existing databases may already have those constraints.
+}
+
+async function ensureBusinessEntitySchema(pool) {
+  await pool.query(`
+    ALTER TABLE Milestones
+    MODIFY title VARCHAR(100) NOT NULL,
+    MODIFY mDesc TEXT NOT NULL
+  `);
+
+  await pool.query(`
+    ALTER TABLE Review
+    MODIFY comment TEXT NOT NULL
+  `);
+}
+
+async function ensureFullTextIndexes(pool) {
+  if (!(await indexExists(pool, 'Project', 'idx_project_search'))) {
+    try {
+      await pool.query(`
+        ALTER TABLE Project
+        ADD FULLTEXT idx_project_search (title, pDesc)
+      `);
+    } catch {}
+  }
+
+  if (!(await indexExists(pool, 'Users', 'idx_user_search'))) {
+    try {
+      await pool.query(`
+        ALTER TABLE Users
+        ADD FULLTEXT idx_user_search (fullName, email)
+      `);
+    } catch {}
+  }
+}
+
 try {
   await ensureDatabaseFromSchema();
 } catch (err) {
@@ -225,6 +277,9 @@ export const db = mysql2.createPool({
 try {
   await ensureProposalSchema(db);
   await ensureChatSchema(db);
+  await ensureContractSchema(db);
+  await ensureBusinessEntitySchema(db);
+  await ensureFullTextIndexes(db);
 } catch (err) {
   console.error("❌ Failed to apply database migrations:", err.message);
   process.exit(1);

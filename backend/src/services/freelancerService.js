@@ -5,22 +5,11 @@ import { fileURLToPath } from "url";
 import { randomUUID } from "node:crypto";
 import * as profileRepository from "../repositories/profileRepository.js";
 import * as fileRepository from "../repositories/fileRepository.js";
+import { notFoundError, validationError } from "../utils/errors.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
 const VALID_SKILL_LEVELS = ["beginner", "intermediate", "advanced", "expert"];
-
-function validationError(message) {
-  const err = new Error(message);
-  err.statusCode = 400;
-  return err;
-}
-
-function notFoundError(message) {
-  const err = new Error(message);
-  err.statusCode = 404;
-  return err;
-}
 
 function parsePositiveInt(value, label) {
   const parsed = Number(value);
