@@ -115,11 +115,52 @@ async function ensureProposalSchema(pool) {
   }
 }
 
+async function tableExists(pool, tableName) {
+  const [rows] = await pool.query(
+    `SELECT 1
+     FROM INFORMATION_SCHEMA.TABLES
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = ?
+     LIMIT 1`,
+    [DB_NAME, tableName],
+  );
+  return rows.length > 0;
+}
+
 async function ensureUserAuthSchema(pool) {
   if (!(await columnExists(pool, 'Users', 'tokenVersion'))) {
     await pool.query(`
       ALTER TABLE Users
       ADD COLUMN tokenVersion INT NOT NULL DEFAULT 0 AFTER isActive
+    `);
+  }
+
+  if (!(await columnExists(pool, 'Users', 'emailVerified'))) {
+    await pool.query(`
+      ALTER TABLE Users
+      ADD COLUMN emailVerified BOOLEAN NOT NULL DEFAULT FALSE AFTER isActive,
+      ADD COLUMN emailVerifiedAt DATETIME NULL AFTER emailVerified
+    `);
+    await pool.query(`
+      UPDATE Users SET emailVerified = TRUE, emailVerifiedAt = NOW()
+      WHERE emailVerified = FALSE
+    `);
+  }
+
+  if (!(await tableExists(pool, 'EmailTokens'))) {
+    await pool.query(`
+      CREATE TABLE EmailTokens(
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        userID INT NOT NULL,
+        tokenHash VARCHAR(255) NOT NULL,
+        type ENUM('email_verification', 'password_reset') NOT NULL,
+        expiresAt DATETIME NOT NULL,
+        usedAt DATETIME NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_email_tokens_hash (tokenHash),
+        INDEX idx_email_tokens_user_type (userID, type)
+      )
     `);
   }
 }

@@ -140,6 +140,16 @@ export const authSchemas = {
     currentPassword: z.string().min(1, "Current password is required.").max(128),
     newPassword: strongPasswordSchema,
   }),
+  verifyEmail: z.object({
+    token: z.string().trim().min(1, "Verification token is required.").max(128),
+  }),
+  forgotPassword: z.object({
+    email: z.string().trim().toLowerCase().email("Valid email is required."),
+  }),
+  resetPassword: z.object({
+    token: z.string().trim().min(1, "Reset token is required.").max(128),
+    newPassword: strongPasswordSchema,
+  }),
 };
 
 export const userSchemas = {

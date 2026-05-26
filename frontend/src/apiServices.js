@@ -92,6 +92,51 @@ export async function registerUser(payload) {
   return data;
 }
 
+export async function verifyEmail(token) {
+  const res = await fetch(`${API_BASE}/api/auth/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      data.message || data.error || `Verification failed (${res.status})`,
+    );
+  }
+  return data;
+}
+
+export async function requestPasswordReset(email) {
+  const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      data.message || data.error || `Request failed (${res.status})`,
+    );
+  }
+  return data;
+}
+
+export async function resetPassword(payload) {
+  const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      data.message || data.error || `Password reset failed (${res.status})`,
+    );
+  }
+  return data;
+}
+
 /**
  * @param {{currentPassword: string; newPassword: string}} payload
  * accepts payload and changes password for the authenticated user

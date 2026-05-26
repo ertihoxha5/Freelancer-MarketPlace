@@ -51,7 +51,7 @@ function Register() {
     setSubmitting(true);
     try {
       await registerUser(payload);
-      navigate('/login');
+      navigate(`/verify-email?email=${encodeURIComponent(payload.email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {

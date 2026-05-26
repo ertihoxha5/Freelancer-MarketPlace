@@ -39,6 +39,24 @@ router.post(
   userController.register,
 );
 router.post(
+  "/auth/verify-email",
+  csrfProtection,
+  validateRequest({ body: authSchemas.verifyEmail }),
+  userController.verifyEmail,
+);
+router.post(
+  "/auth/forgot-password",
+  csrfProtection,
+  validateRequest({ body: authSchemas.forgotPassword }),
+  userController.forgotPassword,
+);
+router.post(
+  "/auth/reset-password",
+  csrfProtection,
+  validateRequest({ body: authSchemas.resetPassword }),
+  userController.resetPassword,
+);
+router.post(
   "/auth/changePassword",
   csrfProtection,
   authMiddleware.authenticateToken,

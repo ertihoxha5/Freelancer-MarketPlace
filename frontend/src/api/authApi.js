@@ -7,5 +7,8 @@ export {
   logout,
   refreshSession,
   registerUser,
+  requestPasswordReset,
+  resetPassword,
   setAccessToken,
+  verifyEmail,
 } from "../apiServices.js";

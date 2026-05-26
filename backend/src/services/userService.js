@@ -2,12 +2,18 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import * as userRepository from "../repositories/userRepository.js";
 import * as refreshTokenRepository from "../repositories/refreshTokenRepository.js";
+import * as emailTokenRepository from "../repositories/emailTokenRepository.js";
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "./emailService.js";
 import { signAccessToken } from "../utils/jwt.js";
 import { pushToAllAdmins } from "./notificationService.js";
 import { validate } from "../validation/validate.js";
 import { authSchemas, userSchemas } from "../validation/schemas.js";
 import {
   conflictError,
+  notFoundError,
   unauthorizedError,
   validationError,
 } from "../utils/errors.js";
@@ -18,9 +24,9 @@ import {
   recordFailedLogin,
 } from "../security/accountLockout.js";
 
-const ALLOWED_ROLE_IDS = new Set([2, 3]);
 const BCRYPT_ROUNDS = 10;
 const REFRESH_TOKEN_DAYS = Number(process.env.REFRESH_TOKEN_DAYS) || 7;
+const EMAIL_TOKEN_HOURS = 24;
 
 async function hashPassword(plain) {
   return bcrypt.hash(plain, BCRYPT_ROUNDS);
@@ -41,6 +47,24 @@ async function issueNewRefreshToken(userID) {
     tokenHash,
     expiresAt,
   });
+  return raw;
+}
+
+async function issueEmailToken(userID, type) {
+  const raw = randomBytes(32).toString("hex");
+  const tokenHash = emailTokenRepository.hashEmailToken(raw);
+  const expiresAt = new Date(
+    Date.now() + EMAIL_TOKEN_HOURS * 60 * 60 * 1000,
+  );
+
+  await emailTokenRepository.invalidateActiveTokensForUser(userID, type);
+  await emailTokenRepository.insertEmailToken({
+    userID,
+    tokenHash,
+    type,
+    expiresAt,
+  });
+
   return raw;
 }
 
@@ -78,7 +102,93 @@ export async function registerUser(input) {
     msg: `${nameNorm} joined as a ${roleName} (${emailNorm}).`,
   }).catch(() => {});
 
-  return result;
+  try {
+    const token = await issueEmailToken(result.userID, "email_verification");
+    await sendVerificationEmail(emailNorm, nameNorm, token);
+  } catch (err) {
+    console.error("[registerUser] Failed to send verification email:", err.message);
+  }
+
+  return { ...result, emailVerificationSent: true };
+}
+
+/**
+ * @param {{ token: string }} input
+ */
+export async function verifyEmail(input) {
+  const { token } = validate(authSchemas.verifyEmail, input ?? {});
+  const tokenHash = emailTokenRepository.hashEmailToken(token);
+  const row = await emailTokenRepository.findValidEmailTokenByHash(
+    tokenHash,
+    "email_verification",
+  );
+
+  if (!row) {
+    throw validationError("Invalid or expired verification link.");
+  }
+
+  await userRepository.setEmailVerified(row.userID);
+  await emailTokenRepository.markEmailTokenUsed(row.id);
+
+  return { ok: true, message: "Email verified successfully. You can now sign in." };
+}
+
+/**
+ * @param {{ email: string }} input
+ */
+export async function requestPasswordReset(input) {
+  const { email } = validate(authSchemas.forgotPassword, input ?? {});
+  const emailNorm = email;
+
+  const user = await userRepository.findUserByEmail(emailNorm);
+  if (user) {
+    try {
+      const token = await issueEmailToken(user.id, "password_reset");
+      await sendPasswordResetEmail(user.email, token);
+    } catch (err) {
+      console.error(
+        "[requestPasswordReset] Failed to send reset email:",
+        err.message,
+      );
+    }
+  }
+
+  return {
+    ok: true,
+    message:
+      "If an account exists for that email, a password reset link has been sent.",
+  };
+}
+
+/**
+ * @param {{ token: string; newPassword: string }} input
+ */
+export async function resetPassword(input) {
+  const { token, newPassword } = validate(authSchemas.resetPassword, input ?? {});
+  const tokenHash = emailTokenRepository.hashEmailToken(token);
+  const row = await emailTokenRepository.findValidEmailTokenByHash(
+    tokenHash,
+    "password_reset",
+  );
+
+  if (!row) {
+    throw validationError("Invalid or expired password reset link.");
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  const updated = await userRepository.changePassword({
+    id: row.userID,
+    passwordHash,
+  });
+
+  if (!updated?.email) {
+    throw notFoundError("User not found.");
+  }
+
+  await emailTokenRepository.markEmailTokenUsed(row.id);
+  await refreshTokenRepository.revokeAllRefreshTokensForUser(row.userID);
+
+  return { ok: true, message: "Password has been reset. You can now sign in." };
 }
 
 /**
@@ -140,6 +250,12 @@ export async function loginUser(input) {
   if (!match) {
     recordFailedLogin(emailNorm);
     throw unauthorized(isAccountLocked(emailNorm) ? getLockoutMessage(emailNorm) : undefined);
+  }
+
+  if (!user.emailVerified) {
+    throw unauthorized(
+      "Please verify your email before signing in. Check your inbox for the verification link.",
+    );
   }
 
   clearFailedLogins(emailNorm);

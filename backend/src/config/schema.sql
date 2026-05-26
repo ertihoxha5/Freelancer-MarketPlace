@@ -12,9 +12,25 @@ CREATE TABLE IF NOT EXISTS Users(
     passwordHash VARCHAR(255) NOT NULL,
     fullName VARCHAR(50) NOT NULL,
     isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    emailVerified BOOLEAN NOT NULL DEFAULT FALSE,
+    emailVerifiedAt DATETIME NULL,
     tokenVersion INT NOT NULL DEFAULT 0,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS EmailTokens(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    userID INT NOT NULL,
+    tokenHash VARCHAR(255) NOT NULL,
+    type ENUM('email_verification', 'password_reset') NOT NULL,
+    expiresAt DATETIME NOT NULL,
+    usedAt DATETIME NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_email_tokens_hash (tokenHash),
+    INDEX idx_email_tokens_user_type (userID, type)
 );
 
 CREATE TABLE IF NOT EXISTS Roles(

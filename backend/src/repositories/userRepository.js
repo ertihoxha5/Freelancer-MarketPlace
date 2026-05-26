@@ -1,17 +1,20 @@
 import { db } from '../config/db.js';
 
 export async function findUserByEmail(email) {
-    const [rows] = await db.execute('SELECT id FROM Users WHERE email = ? LIMIT 1', [email]);
+    const [rows] = await db.execute(
+        'SELECT id, email, fullName, emailVerified FROM Users WHERE LOWER(email) = LOWER(?) LIMIT 1',
+        [email],
+    );
     return rows[0] ?? null;
 }
 
 export async function findUserWithPasswordByEmail(email) {
     const [rows] = await db.execute(
-        `SELECT u.id, u.email, u.passwordHash, u.fullName, u.tokenVersion, ur.roleID
+        `SELECT u.id, u.email, u.passwordHash, u.fullName, u.tokenVersion, u.emailVerified, ur.roleID
          FROM Users u
          INNER JOIN UserRole ur ON ur.userID = u.id
-         WHERE u.email = ? AND u.isActive = TRUE LIMIT 1`,
-        [email]
+         WHERE LOWER(u.email) = LOWER(?) AND u.isActive = TRUE LIMIT 1`,
+        [email],
     );
     return rows[0] ?? null;
 }
@@ -68,6 +71,13 @@ export async function createUserWithRole({ email, passwordHash, fullName, roleID
 }
 
 
+
+export async function setEmailVerified(userID) {
+    await db.execute(
+        'UPDATE Users SET emailVerified = TRUE, emailVerifiedAt = NOW() WHERE id = ?',
+        [userID],
+    );
+}
 
 export async function changePassword({id, passwordHash}){
     try{

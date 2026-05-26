@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Header from '../components/Header';
 
@@ -12,7 +12,9 @@ const highlights = [
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
+  const flashMessage = location.state?.message || '';
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -79,6 +81,12 @@ function Login() {
           <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-10">
             <h2 className="text-3xl font-semibold text-slate-900 mb-8">Sign in</h2>
 
+            {flashMessage && (
+              <p className="mb-4 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                {flashMessage}
+              </p>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-2">Email address</label>
@@ -123,7 +131,7 @@ function Login() {
                   />
                   Remember me
                 </label>
-                <Link to="/forgotpassword" className="text-olive-700 hover:underline">
+                <Link to="/forgot-password" className="text-olive-700 hover:underline">
                   Forgot password?
                 </Link>
               </div>

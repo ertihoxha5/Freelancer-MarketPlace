@@ -21,6 +21,8 @@ const Contact = lazy(() => import("./pages/Contact.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const AdminDashboard = lazy(
   () => import("./pages/adminDashboard/dashboard.jsx"),
 );
@@ -89,14 +91,10 @@ const router = createBrowserRouter([
       { path: "/features", element: <Features /> },
       { path: "/login", element: <Login /> },
       { path: "/register", element: <Register /> },
-      {
-        path: "/forgotpassword",
-        element: (
-          <Suspense fallback={<Loading />}>
-            <ForgotPassword />
-          </Suspense>
-        ),
-      },
+      { path: "/verify-email", element: <VerifyEmail /> },
+      { path: "/forgot-password", element: <ForgotPassword /> },
+      { path: "/forgotpassword", element: <ForgotPassword /> },
+      { path: "/reset-password", element: <ResetPassword /> },
       { path: "/error", element: <ErrorPage /> },
       {
         path: "/search",
