@@ -1,5 +1,6 @@
 import * as milestoneRepository from "../repositories/milestoneRepository.js";
 import * as projectRepository from "../repositories/projectRepository.js";
+import { releaseMilestoneFunds } from "./paymentService.js";
 import {
   pushNotification,
   pushFreelancerNotification,
@@ -194,6 +195,13 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
   }
 
   if (mStatus === "approved") {
+    releaseMilestoneFunds(milestoneId, userID).catch((err) => {
+      console.warn(
+        "[milestone] release funds:",
+        err?.message || err,
+      );
+    });
+
     const io = getIO();
     if (io) {
       emitMilestoneApproved(io, {

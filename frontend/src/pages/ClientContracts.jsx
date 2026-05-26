@@ -4,8 +4,11 @@ import EmptyState from "../components/EmptyState.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import ReviewModal from "../components/ReviewModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import PaymentForm from "../components/PaymentForm.jsx";
 import {
+  confirmPayment,
   createMilestone,
+  createPaymentIntent,
   downloadExport,
   fetchMyContract,
   fetchMyContracts,
@@ -42,6 +45,11 @@ export default function ClientContracts() {
   const [error, setError] = useState("");
   const [milestoneContract, setMilestoneContract] = useState(null);
   const [reviewContract, setReviewContract] = useState(null);
+  const [payMilestone, setPayMilestone] = useState(null);
+  const [payContract, setPayContract] = useState(null);
+  const [clientSecret, setClientSecret] = useState("");
+  const [paymentIntentId, setPaymentIntentId] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [form, setForm] = useState({
     title: "",
     mDesc: "",
@@ -115,6 +123,52 @@ export default function ClientContracts() {
       await reloadContract(milestone.contractID);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to update milestone.");
+    }
+  }
+
+  async function openMilestonePayment(contract, milestone) {
+    setError("");
+    setPayContract(contract);
+    setPayMilestone(milestone);
+    setClientSecret("");
+    setPaymentIntentId("");
+    setPaymentLoading(true);
+    try {
+      const data = await createPaymentIntent({
+        contractID: contract.id,
+        milestoneID: milestone.id,
+        amount: Number(milestone.amountPayable),
+      });
+      setClientSecret(data.clientSecret);
+      setPaymentIntentId(data.paymentIntentId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to start payment.");
+      setPayMilestone(null);
+      setPayContract(null);
+    } finally {
+      setPaymentLoading(false);
+    }
+  }
+
+  function closePaymentModal() {
+    setPayMilestone(null);
+    setPayContract(null);
+    setClientSecret("");
+    setPaymentIntentId("");
+  }
+
+  async function handlePaymentSuccess() {
+    if (paymentIntentId) {
+      try {
+        await confirmPayment(paymentIntentId);
+      } catch {
+        /* webhook may already have synced */
+      }
+    }
+    const contractId = payContract?.id;
+    closePaymentModal();
+    if (contractId) {
+      await reloadContract(contractId);
     }
   }
 
@@ -194,6 +248,16 @@ export default function ClientContracts() {
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
                                 <Badge status={milestone.mStatus} />
+                                {contract.cStatus === "active" &&
+                                ["pending", "in_progress"].includes(milestone.mStatus) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openMilestonePayment(contract, milestone)}
+                                    className="rounded-lg bg-[#2f4f2f] px-3 py-1.5 text-xs font-semibold text-white"
+                                  >
+                                    Pay milestone
+                                  </button>
+                                ) : null}
                                 {milestone.mStatus === "submitted" ? (
                                   <>
                                     <button onClick={() => setMilestoneStatus(milestone, "approved")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">Approve</button>
@@ -228,6 +292,39 @@ export default function ClientContracts() {
                 <button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Create</button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {payMilestone && payContract ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-900">Pay milestone</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              {payMilestone.title} · ${payMilestone.amountPayable}
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              Funds are held until you approve the submitted milestone work.
+            </p>
+            <div className="mt-4">
+              {paymentLoading ? (
+                <p className="text-sm text-slate-500">Loading secure checkout…</p>
+              ) : (
+                <PaymentForm
+                  clientSecret={clientSecret}
+                  amountLabel={`Total: $${payMilestone.amountPayable} USD`}
+                  onSuccess={handlePaymentSuccess}
+                  onError={(msg) => setError(msg)}
+                />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={closePaymentModal}
+              className="mt-4 w-full rounded-lg border px-4 py-2 text-sm text-slate-700"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       ) : null}

@@ -795,6 +795,35 @@ export function fetchFreelancerReport(id) {
 }
 
 // Contracts
+export async function createPaymentIntent(payload) {
+  return authedFetch(`${API_BASE}/api/payment/intent`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function confirmPayment(paymentIntentId) {
+  return authedFetch(`${API_BASE}/api/payment/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ paymentIntentId }),
+  });
+}
+
+export async function refundPayment(paymentIntentId, reason) {
+  return authedFetch(`${API_BASE}/api/payment/refund`, {
+    method: "POST",
+    body: JSON.stringify({ paymentIntentId, reason }),
+  });
+}
+
+export async function fetchPaymentHistory(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return authedFetch(`${API_BASE}/api/payment/history${suffix}`);
+}
+
 export function fetchMyContracts() {
   return authedFetch(`${API_BASE}/api/client/contracts`);
 }

@@ -13,6 +13,8 @@ import searchRoutes from "./routes/searchRoutes.js";
 import exportRoutes from "./routes/exportRoutes.js";
 import importRoutes from "./routes/importRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import { paymentController } from "./routes/paymentRoutes.js";
 import { connectMongoDB } from "./config/mongodb.js";
 import { db } from "./config/db.js";
 import { helmetMiddleware } from "./middleware/security.js";
@@ -36,6 +38,12 @@ connectMongoDB();
 // Request → RateLimit → Helmet → CORS → body/cookies → routes → CSRF (auth) → Validate → Controller
 app.use(helmetMiddleware);
 app.use(corsMiddleware);
+
+app.post(
+  "/api/payment/webhook",
+  express.raw({ type: "application/json" }),
+  paymentController.webhook,
+);
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
@@ -73,6 +81,7 @@ app.use("/api/search", searchRoutes);
 app.use("/api/export", exportRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.use(csrfErrorHandler);
 

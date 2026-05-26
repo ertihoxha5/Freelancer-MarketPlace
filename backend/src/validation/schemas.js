@@ -314,3 +314,37 @@ export const importSchemas = {
     clientID: positiveIntSchema("clientID").optional(),
   }),
 };
+
+export const paymentSchemas = {
+  createIntent: z.object({
+    contractID: positiveIntSchema("contract ID"),
+    amount: z.coerce
+      .number()
+      .positive("Amount must be greater than zero."),
+    milestoneID: positiveIntSchema("milestone ID").optional(),
+  }),
+  confirm: z.object({
+    paymentIntentId: z
+      .string()
+      .trim()
+      .min(1, "paymentIntentId is required.")
+      .max(255),
+  }),
+  refund: z.object({
+    paymentIntentId: z
+      .string()
+      .trim()
+      .min(1, "paymentIntentId is required.")
+      .max(255),
+    reason: z
+      .string()
+      .trim()
+      .max(500)
+      .optional()
+      .transform((v) => v || undefined),
+  }),
+  historyQuery: z.object({
+    page: z.coerce.number().int().min(1).optional().default(1),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+  }),
+};

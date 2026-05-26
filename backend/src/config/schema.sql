@@ -195,16 +195,6 @@ CREATE TABLE IF NOT EXISTS Contracts(
     endDate DATE
 );
 
-CREATE TABLE IF NOT EXISTS Payment(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    amount INT,
-    contractID INT NOT NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    paymentMethod ENUM('card', 'paypal', 'bank_transfer', 'crypto') NOT NULL,
-    
-    FOREIGN KEY (contractID) REFERENCES Contracts(id)
-);
-
 CREATE TABLE IF NOT EXISTS Review(
     id INT PRIMARY KEY AUTO_INCREMENT,
     stars ENUM('1','2','3','4','5') NOT NULL,
@@ -300,6 +290,50 @@ CREATE TABLE IF NOT EXISTS Milestones(
     mStatus ENUM('pending', 'in_progress', 'submitted', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
     
     FOREIGN KEY (contractID) REFERENCES Contracts(id)
+);
+
+CREATE TABLE IF NOT EXISTS Payment(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    contractID INT NOT NULL,
+    milestoneID INT NULL,
+    amount INT NOT NULL,
+    currency CHAR(3) NOT NULL DEFAULT 'usd',
+    pStatus ENUM(
+        'pending',
+        'processing',
+        'succeeded',
+        'failed',
+        'canceled',
+        'refunded'
+    ) NOT NULL DEFAULT 'pending',
+    stripePaymentIntentId VARCHAR(255) NULL,
+    metadata JSON NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
+    FOREIGN KEY (milestoneID) REFERENCES Milestones(id) ON DELETE SET NULL,
+    UNIQUE KEY uq_payment_stripe_intent (stripePaymentIntentId),
+    INDEX idx_payment_status (pStatus),
+    INDEX idx_payment_contract (contractID),
+    INDEX idx_payment_created (createdAt DESC)
+);
+
+CREATE TABLE IF NOT EXISTS MilestonePayment(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    milestoneID INT NOT NULL UNIQUE,
+    paymentID INT NOT NULL,
+    amount INT NOT NULL,
+    pStatus ENUM('held', 'released', 'refunded') NOT NULL DEFAULT 'held',
+    releasedAt DATETIME NULL,
+    releasedBy INT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (milestoneID) REFERENCES Milestones(id) ON DELETE CASCADE,
+    FOREIGN KEY (paymentID) REFERENCES Payment(id) ON DELETE CASCADE,
+    FOREIGN KEY (releasedBy) REFERENCES Users(id) ON DELETE SET NULL,
+    INDEX idx_milestone_payment_status (pStatus)
 );
 
 CREATE TABLE IF NOT EXISTS Disputes(

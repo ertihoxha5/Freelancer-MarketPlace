@@ -287,6 +287,68 @@ async function ensureBusinessEntitySchema(pool) {
   `);
 }
 
+async function ensurePaymentSchema(pool) {
+  let paymentTableExists = await tableExists(pool, "Payment");
+  const hasStripeColumn = paymentTableExists
+    ? await columnExists(pool, "Payment", "stripePaymentIntentId")
+    : false;
+
+  if (paymentTableExists && !hasStripeColumn) {
+    await pool.query("RENAME TABLE Payment TO Payment_legacy");
+    paymentTableExists = false;
+  }
+
+  if (!paymentTableExists) {
+    await pool.query(`
+      CREATE TABLE Payment(
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        contractID INT NOT NULL,
+        milestoneID INT NULL,
+        amount INT NOT NULL,
+        currency CHAR(3) NOT NULL DEFAULT 'usd',
+        pStatus ENUM(
+          'pending',
+          'processing',
+          'succeeded',
+          'failed',
+          'canceled',
+          'refunded'
+        ) NOT NULL DEFAULT 'pending',
+        stripePaymentIntentId VARCHAR(255) NULL,
+        metadata JSON NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
+        FOREIGN KEY (milestoneID) REFERENCES Milestones(id) ON DELETE SET NULL,
+        UNIQUE KEY uq_payment_stripe_intent (stripePaymentIntentId),
+        INDEX idx_payment_status (pStatus),
+        INDEX idx_payment_contract (contractID),
+        INDEX idx_payment_created (createdAt DESC)
+      )
+    `);
+  }
+
+  if (!(await tableExists(pool, "MilestonePayment"))) {
+    await pool.query(`
+      CREATE TABLE MilestonePayment(
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        milestoneID INT NOT NULL UNIQUE,
+        paymentID INT NOT NULL,
+        amount INT NOT NULL,
+        pStatus ENUM('held', 'released', 'refunded') NOT NULL DEFAULT 'held',
+        releasedAt DATETIME NULL,
+        releasedBy INT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (milestoneID) REFERENCES Milestones(id) ON DELETE CASCADE,
+        FOREIGN KEY (paymentID) REFERENCES Payment(id) ON DELETE CASCADE,
+        FOREIGN KEY (releasedBy) REFERENCES Users(id) ON DELETE SET NULL,
+        INDEX idx_milestone_payment_status (pStatus)
+      )
+    `);
+  }
+}
+
 async function ensureFullTextIndexes(pool) {
   if (!(await indexExists(pool, 'Project', 'idx_project_search'))) {
     try {
@@ -330,6 +392,7 @@ try {
   await ensureChatSchema(db);
   await ensureContractSchema(db);
   await ensureBusinessEntitySchema(db);
+  await ensurePaymentSchema(db);
   await ensureFullTextIndexes(db);
 } catch (err) {
   console.error("❌ Failed to apply database migrations:", err.message);
