@@ -12,44 +12,47 @@ function parseMetadata(row) {
   return row;
 }
 
-export async function insertPayment({
-  contractID,
-  milestoneID,
-  amount,
-  currency,
-  pStatus,
-  stripePaymentIntentId,
-  metadata,
-}) {
+/**
+ * @param {{
+ *   contractID: number;
+ *   milestoneID?: number | null;
+ *   amount: number;
+ *   currency?: string;
+ *   pStatus: string;
+ *   stripePaymentIntentId: string;
+ *   metadata?: object | null;
+ * }} data
+ */
+export async function createPayment(data) {
   const [result] = await db.execute(
     `INSERT INTO Payment
        (contractID, milestoneID, amount, currency, pStatus, stripePaymentIntentId, metadata)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
-      contractID,
-      milestoneID ?? null,
-      amount,
-      currency,
-      pStatus,
-      stripePaymentIntentId,
-      metadata ? JSON.stringify(metadata) : null,
+      data.contractID,
+      data.milestoneID ?? null,
+      data.amount,
+      data.currency ?? "usd",
+      data.pStatus,
+      data.stripePaymentIntentId,
+      data.metadata ? JSON.stringify(data.metadata) : null,
     ],
   );
-  return findPaymentById(result.insertId);
+  return getPaymentById(result.insertId);
 }
 
-export async function findPaymentById(id) {
+export async function getPaymentById(paymentID) {
   const [rows] = await db.execute(
     `SELECT *
      FROM Payment
      WHERE id = ?
      LIMIT 1`,
-    [id],
+    [paymentID],
   );
   return parseMetadata(rows[0] ?? null);
 }
 
-export async function findPaymentByStripeIntentId(stripePaymentIntentId) {
+export async function getPaymentByStripeId(stripePaymentIntentId) {
   const [rows] = await db.execute(
     `SELECT *
      FROM Payment
@@ -60,7 +63,7 @@ export async function findPaymentByStripeIntentId(stripePaymentIntentId) {
   return parseMetadata(rows[0] ?? null);
 }
 
-export async function updatePaymentStatus(id, pStatus, metadata = null) {
+export async function updatePaymentStatus(paymentID, status, metadata = null) {
   const metadataJson = metadata ? JSON.stringify(metadata) : null;
   await db.execute(
     `UPDATE Payment
@@ -68,22 +71,22 @@ export async function updatePaymentStatus(id, pStatus, metadata = null) {
          metadata = COALESCE(?, metadata),
          updatedAt = NOW()
      WHERE id = ?`,
-    [pStatus, metadataJson, id],
+    [status, metadataJson, paymentID],
   );
-  return findPaymentById(id);
+  return getPaymentById(paymentID);
 }
 
-export async function updatePaymentByStripeIntentId(
+export async function updatePaymentStatusByStripeId(
   stripePaymentIntentId,
-  pStatus,
+  status,
   metadata = null,
 ) {
-  const payment = await findPaymentByStripeIntentId(stripePaymentIntentId);
+  const payment = await getPaymentByStripeId(stripePaymentIntentId);
   if (!payment) return null;
-  return updatePaymentStatus(payment.id, pStatus, metadata);
+  return updatePaymentStatus(payment.id, status, metadata);
 }
 
-export async function findPaymentsForUser(userID, { limit = 50, offset = 0 } = {}) {
+export async function getPaymentHistory(userID, limit = 20, offset = 0) {
   const [rows] = await db.execute(
     `SELECT p.*,
             c.clientID,
@@ -103,7 +106,26 @@ export async function findPaymentsForUser(userID, { limit = 50, offset = 0 } = {
   return rows.map(parseMetadata);
 }
 
-export async function insertMilestonePayment({
+export async function getMilestonePayments(contractID) {
+  const [rows] = await db.execute(
+    `SELECT mp.*,
+            m.title AS milestoneTitle,
+            m.mStatus AS milestoneStatus,
+            m.amountPayable,
+            p.stripePaymentIntentId,
+            p.pStatus AS paymentStatus,
+            p.contractID
+     FROM MilestonePayment mp
+     INNER JOIN Milestones m ON m.id = mp.milestoneID
+     INNER JOIN Payment p ON p.id = mp.paymentID
+     WHERE m.contractID = ?
+     ORDER BY mp.createdAt DESC`,
+    [contractID],
+  );
+  return rows;
+}
+
+export async function createMilestonePayment({
   milestoneID,
   paymentID,
   amount,
@@ -114,10 +136,10 @@ export async function insertMilestonePayment({
      VALUES (?, ?, ?, ?)`,
     [milestoneID, paymentID, amount, pStatus],
   );
-  return findMilestonePaymentById(result.insertId);
+  return getMilestonePaymentById(result.insertId);
 }
 
-export async function findMilestonePaymentById(id) {
+export async function getMilestonePaymentById(id) {
   const [rows] = await db.execute(
     `SELECT *
      FROM MilestonePayment
@@ -128,7 +150,7 @@ export async function findMilestonePaymentById(id) {
   return rows[0] ?? null;
 }
 
-export async function findMilestonePaymentByMilestoneId(milestoneID) {
+export async function getMilestonePaymentByMilestoneId(milestoneID) {
   const [rows] = await db.execute(
     `SELECT *
      FROM MilestonePayment
@@ -150,7 +172,7 @@ export async function releaseMilestonePayment(milestoneID, releasedBy) {
     [releasedBy, milestoneID],
   );
   if (result.affectedRows === 0) return null;
-  return findMilestonePaymentByMilestoneId(milestoneID);
+  return getMilestonePaymentByMilestoneId(milestoneID);
 }
 
 export async function refundMilestonePayment(milestoneID) {
@@ -162,5 +184,15 @@ export async function refundMilestonePayment(milestoneID) {
     [milestoneID],
   );
   if (result.affectedRows === 0) return null;
-  return findMilestonePaymentByMilestoneId(milestoneID);
+  return getMilestonePaymentByMilestoneId(milestoneID);
 }
+
+// Backward-compatible aliases
+export const insertPayment = createPayment;
+export const findPaymentById = getPaymentById;
+export const findPaymentByStripeIntentId = getPaymentByStripeId;
+export const findPaymentsForUser = (userID, { limit, offset }) =>
+  getPaymentHistory(userID, limit, offset);
+export const insertMilestonePayment = createMilestonePayment;
+export const findMilestonePaymentByMilestoneId = getMilestonePaymentByMilestoneId;
+export const updatePaymentByStripeIntentId = updatePaymentStatusByStripeId;

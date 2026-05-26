@@ -322,6 +322,7 @@ export const paymentSchemas = {
       .number()
       .positive("Amount must be greater than zero."),
     milestoneID: positiveIntSchema("milestone ID").optional(),
+    description: z.string().trim().max(500).optional(),
   }),
   confirm: z.object({
     paymentIntentId: z
@@ -336,6 +337,7 @@ export const paymentSchemas = {
       .trim()
       .min(1, "paymentIntentId is required.")
       .max(255),
+    amount: z.coerce.number().positive().optional(),
     reason: z
       .string()
       .trim()

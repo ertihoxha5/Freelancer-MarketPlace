@@ -1,9 +1,8 @@
+import { createHash } from "node:crypto";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as projectRepository from "../repositories/projectRepository.js";
 import * as milestoneRepository from "../repositories/milestoneRepository.js";
 import { getStripe, isStripeConfigured } from "../utils/stripeClient.js";
-import { validate } from "../validation/validate.js";
-import { paymentSchemas } from "../validation/schemas.js";
 import {
   conflictError,
   forbiddenError,
@@ -16,10 +15,7 @@ const DEFAULT_CURRENCY = "usd";
 function logTransaction(action, details) {
   console.info(
     `[payment] ${action}`,
-    JSON.stringify({
-      ...details,
-      at: new Date().toISOString(),
-    }),
+    JSON.stringify({ ...details, at: new Date().toISOString() }),
   );
 }
 
@@ -44,11 +40,14 @@ function amountToCents(amount) {
   return cents;
 }
 
+function buildIdempotencyKey(contractID, amountCents, milestoneID) {
+  const raw = `intent:${contractID}:${milestoneID ?? "contract"}:${amountCents}`;
+  return createHash("sha256").update(raw).digest("hex").slice(0, 32);
+}
+
 async function assertClientOwnsContract(contractID, clientID) {
   const contract = await projectRepository.getContractById(contractID);
-  if (!contract) {
-    throw notFoundError("Contract not found.");
-  }
+  if (!contract) throw notFoundError("Contract not found.");
   if (Number(contract.clientID) !== Number(clientID)) {
     throw forbiddenError("You do not own this contract.");
   }
@@ -58,10 +57,32 @@ async function assertClientOwnsContract(contractID, clientID) {
   return contract;
 }
 
-async function syncPaymentFromIntent(paymentIntent) {
-  const payment = await paymentRepository.findPaymentByStripeIntentId(
-    paymentIntent.id,
+async function holdMilestoneFundsOnSuccess(payment) {
+  if (!payment?.milestoneID || payment.pStatus !== "succeeded") return;
+
+  const existing = await paymentRepository.getMilestonePaymentByMilestoneId(
+    payment.milestoneID,
   );
+  if (existing) return existing;
+
+  const record = await paymentRepository.createMilestonePayment({
+    milestoneID: payment.milestoneID,
+    paymentID: payment.id,
+    amount: payment.amount,
+    pStatus: "held",
+  });
+
+  logTransaction("milestone_hold", {
+    milestoneID: payment.milestoneID,
+    paymentId: payment.id,
+    milestonePaymentId: record.id,
+  });
+
+  return record;
+}
+
+async function applyPaymentIntentStatus(paymentIntent) {
+  const payment = await paymentRepository.getPaymentByStripeId(paymentIntent.id);
   if (!payment) {
     logTransaction("orphan_intent", {
       paymentIntentId: paymentIntent.id,
@@ -81,28 +102,14 @@ async function syncPaymentFromIntent(paymentIntent) {
     },
   );
 
-  logTransaction("sync", {
+  logTransaction("status_updated", {
     paymentId: payment.id,
     paymentIntentId: paymentIntent.id,
     pStatus,
   });
 
-  if (pStatus === "succeeded" && payment.milestoneID) {
-    const existing = await paymentRepository.findMilestonePaymentByMilestoneId(
-      payment.milestoneID,
-    );
-    if (!existing) {
-      await paymentRepository.insertMilestonePayment({
-        milestoneID: payment.milestoneID,
-        paymentID: payment.id,
-        amount: payment.amount,
-        pStatus: "held",
-      });
-      logTransaction("milestone_hold", {
-        milestoneID: payment.milestoneID,
-        paymentId: payment.id,
-      });
-    }
+  if (pStatus === "succeeded") {
+    await holdMilestoneFundsOnSuccess(updated);
   }
 
   return updated;
@@ -111,12 +118,14 @@ async function syncPaymentFromIntent(paymentIntent) {
 /**
  * @param {number} contractID
  * @param {number} amount Major currency units (e.g. dollars)
+ * @param {string} [description]
  * @param {number} clientID
  * @param {{ milestoneID?: number }} [options]
  */
 export async function createPaymentIntent(
   contractID,
   amount,
+  description,
   clientID,
   options = {},
 ) {
@@ -126,16 +135,16 @@ export async function createPaymentIntent(
 
   const contract = await assertClientOwnsContract(contractID, clientID);
   const cents = amountToCents(amount);
-  let milestoneID = options.milestoneID ?? null;
+  const milestoneID = options.milestoneID ?? null;
 
   if (milestoneID) {
     const milestone = await milestoneRepository.getMilestoneById(milestoneID);
     if (!milestone || Number(milestone.contractID) !== Number(contractID)) {
       throw notFoundError("Milestone not found for this contract.");
     }
-    const existingPay =
-      await paymentRepository.findMilestonePaymentByMilestoneId(milestoneID);
-    if (existingPay && existingPay.pStatus !== "refunded") {
+    const existingMp =
+      await paymentRepository.getMilestonePaymentByMilestoneId(milestoneID);
+    if (existingMp && existingMp.pStatus !== "refunded") {
       throw conflictError("This milestone already has an active payment.");
     }
     const milestoneCents = Math.round(Number(milestone.amountPayable) * 100);
@@ -153,31 +162,34 @@ export async function createPaymentIntent(
     freelancerID: String(contract.freelancerID),
     projectTitle: contract.projectTitle || "",
   };
-  if (milestoneID) {
-    metadata.milestoneID = String(milestoneID);
-  }
+  if (milestoneID) metadata.milestoneID = String(milestoneID);
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: cents,
-    currency: DEFAULT_CURRENCY,
-    automatic_payment_methods: { enabled: true },
-    metadata,
-    description: milestoneID
+  const idempotencyKey = buildIdempotencyKey(contractID, cents, milestoneID);
+  const paymentDescription =
+    description ||
+    (milestoneID
       ? `Milestone payment for contract #${contractID}`
-      : `Contract payment #${contractID}`,
-  });
+      : `Contract payment #${contractID}`);
 
-  const payment = await paymentRepository.insertPayment({
+  const paymentIntent = await stripe.paymentIntents.create(
+    {
+      amount: cents,
+      currency: DEFAULT_CURRENCY,
+      automatic_payment_methods: { enabled: true },
+      metadata,
+      description: paymentDescription,
+    },
+    { idempotencyKey },
+  );
+
+  const payment = await paymentRepository.createPayment({
     contractID,
     milestoneID,
     amount: cents,
     currency: DEFAULT_CURRENCY,
     pStatus: mapStripeStatus(paymentIntent.status),
     stripePaymentIntentId: paymentIntent.id,
-    metadata: {
-      ...metadata,
-      stripeStatus: paymentIntent.status,
-    },
+    metadata: { ...metadata, stripeStatus: paymentIntent.status },
   });
 
   logTransaction("intent_created", {
@@ -186,6 +198,7 @@ export async function createPaymentIntent(
     milestoneID,
     amount: cents,
     paymentIntentId: paymentIntent.id,
+    idempotencyKey,
     clientID,
   });
 
@@ -200,31 +213,29 @@ export async function createPaymentIntent(
 
 /**
  * @param {string} paymentIntentId
- * @param {number} userID
+ * @param {number} [userID] Optional access check
  */
-export async function confirmPayment(paymentIntentId, userID) {
+export async function confirmPayment(paymentIntentId, userID = null) {
   if (!isStripeConfigured()) {
     throw validationError("Stripe is not configured on the server.");
   }
 
-  const payment = await paymentRepository.findPaymentByStripeIntentId(
-    paymentIntentId,
-  );
-  if (!payment) {
-    throw notFoundError("Payment not found.");
-  }
+  const payment = await paymentRepository.getPaymentByStripeId(paymentIntentId);
+  if (!payment) throw notFoundError("Payment not found.");
 
-  const contract = await projectRepository.getContractById(payment.contractID);
-  if (
-    Number(contract?.clientID) !== Number(userID) &&
-    Number(contract?.freelancerID) !== Number(userID)
-  ) {
-    throw forbiddenError("You do not have access to this payment.");
+  if (userID != null) {
+    const contract = await projectRepository.getContractById(payment.contractID);
+    if (
+      Number(contract?.clientID) !== Number(userID) &&
+      Number(contract?.freelancerID) !== Number(userID)
+    ) {
+      throw forbiddenError("You do not have access to this payment.");
+    }
   }
 
   const stripe = getStripe();
   const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-  const updated = await syncPaymentFromIntent(paymentIntent);
+  const updated = await applyPaymentIntentStatus(paymentIntent);
 
   logTransaction("confirm", {
     paymentIntentId,
@@ -232,44 +243,56 @@ export async function confirmPayment(paymentIntentId, userID) {
     pStatus: updated?.pStatus,
   });
 
-  return {
-    payment: updated,
-    status: paymentIntent.status,
-  };
+  return { payment: updated, status: paymentIntent.status };
 }
 
 /**
  * @param {string} paymentIntentId
+ * @param {number} [amount] Refund amount in major units; full refund if omitted
  * @param {string} [reason]
  * @param {number} clientID
  */
-export async function refundPayment(paymentIntentId, reason, clientID) {
+export async function refundPayment(
+  paymentIntentId,
+  amount = null,
+  reason = null,
+  clientID = null,
+) {
   if (!isStripeConfigured()) {
     throw validationError("Stripe is not configured on the server.");
   }
 
-  const payment = await paymentRepository.findPaymentByStripeIntentId(
-    paymentIntentId,
-  );
-  if (!payment) {
-    throw notFoundError("Payment not found.");
-  }
+  const payment = await paymentRepository.getPaymentByStripeId(paymentIntentId);
+  if (!payment) throw notFoundError("Payment not found.");
 
-  await assertClientOwnsContract(payment.contractID, clientID);
+  if (clientID != null) {
+    await assertClientOwnsContract(payment.contractID, clientID);
+  }
 
   if (payment.pStatus !== "succeeded") {
     throw conflictError("Only succeeded payments can be refunded.");
   }
 
   const stripe = getStripe();
-  const refund = await stripe.refunds.create({
+  const refundParams = {
     payment_intent: paymentIntentId,
     reason: reason === "fraudulent" ? "fraudulent" : "requested_by_customer",
     metadata: {
       refundReason: reason || "requested_by_customer",
-      clientID: String(clientID),
+      clientID: clientID != null ? String(clientID) : "",
     },
-  });
+  };
+
+  if (amount != null) {
+    refundParams.amount = amountToCents(amount);
+  }
+
+  const idempotencyKey = createHash("sha256")
+    .update(`refund:${paymentIntentId}:${refundParams.amount ?? "full"}`)
+    .digest("hex")
+    .slice(0, 32);
+
+  const refund = await stripe.refunds.create(refundParams, { idempotencyKey });
 
   const updated = await paymentRepository.updatePaymentStatus(
     payment.id,
@@ -290,55 +313,37 @@ export async function refundPayment(paymentIntentId, reason, clientID) {
     paymentId: payment.id,
     paymentIntentId,
     refundId: refund.id,
-    clientID,
+    amount,
     reason,
   });
 
   return { payment: updated, refundId: refund.id };
 }
 
-export async function handleStripeWebhook(rawBody, signature) {
-  if (!isStripeConfigured()) {
-    throw validationError("Stripe is not configured.");
-  }
-
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    throw validationError("STRIPE_WEBHOOK_SECRET is not configured.");
-  }
-
-  const stripe = getStripe();
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-  } catch (err) {
-    logTransaction("webhook_invalid", { error: err.message });
-    throw validationError(`Webhook signature verification failed: ${err.message}`);
-  }
-
+/**
+ * @param {import('stripe').Stripe.Event} event
+ */
+export async function handleStripeWebhook(event) {
   logTransaction("webhook_received", { type: event.type, id: event.id });
 
   switch (event.type) {
     case "payment_intent.succeeded":
     case "payment_intent.processing":
     case "payment_intent.payment_failed":
-    case "payment_intent.canceled": {
-      await syncPaymentFromIntent(event.data.object);
+    case "payment_intent.canceled":
+      await applyPaymentIntentStatus(event.data.object);
       break;
-    }
     case "charge.refunded": {
       const charge = event.data.object;
       const paymentIntentId = charge.payment_intent;
-      if (paymentIntentId) {
-        await paymentRepository.updatePaymentByStripeIntentId(
+      if (typeof paymentIntentId === "string") {
+        await paymentRepository.updatePaymentStatusByStripeId(
           paymentIntentId,
           "refunded",
           { refundedAt: new Date().toISOString(), chargeId: charge.id },
         );
-        const payment = await paymentRepository.findPaymentByStripeIntentId(
-          paymentIntentId,
-        );
+        const payment =
+          await paymentRepository.getPaymentByStripeId(paymentIntentId);
         if (payment?.milestoneID) {
           await paymentRepository.refundMilestonePayment(payment.milestoneID);
         }
@@ -350,24 +355,55 @@ export async function handleStripeWebhook(rawBody, signature) {
       logTransaction("webhook_ignored", { type: event.type });
   }
 
-  return { received: true };
+  return { received: true, type: event.type };
 }
 
-export async function getPaymentHistory(userID, query = {}) {
-  const { page, limit } = validate(paymentSchemas.historyQuery, query ?? {});
+/**
+ * Verify Stripe signature and return the event object.
+ * @param {Buffer|string} rawBody
+ * @param {string} signature
+ */
+export function constructStripeWebhookEvent(rawBody, signature) {
+  if (!isStripeConfigured()) {
+    throw validationError("Stripe is not configured.");
+  }
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    throw validationError("STRIPE_WEBHOOK_SECRET is not configured.");
+  }
+
+  const stripe = getStripe();
+  try {
+    return stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+  } catch (err) {
+    logTransaction("webhook_invalid", { error: err.message });
+    throw validationError(
+      `Webhook signature verification failed: ${err.message}`,
+    );
+  }
+}
+
+/**
+ * @param {number} userID
+ * @param {{ page?: number; limit?: number }} pagination
+ */
+export async function getPaymentHistory(userID, pagination = {}) {
+  const page = Math.max(1, Number(pagination.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(pagination.limit) || 20));
   const offset = (page - 1) * limit;
-  const payments = await paymentRepository.findPaymentsForUser(userID, {
+
+  const payments = await paymentRepository.getPaymentHistory(
+    userID,
     limit,
     offset,
-  });
+  );
+
   return { payments, page, limit };
 }
 
 export async function releaseMilestoneFunds(milestoneID, releasedBy) {
   const milestone = await milestoneRepository.getMilestoneById(milestoneID);
-  if (!milestone) {
-    throw notFoundError("Milestone not found.");
-  }
+  if (!milestone) throw notFoundError("Milestone not found.");
 
   const contract = await projectRepository.getContractById(milestone.contractID);
   if (Number(contract?.clientID) !== Number(releasedBy)) {
@@ -375,7 +411,7 @@ export async function releaseMilestoneFunds(milestoneID, releasedBy) {
   }
 
   const milestonePayment =
-    await paymentRepository.findMilestonePaymentByMilestoneId(milestoneID);
+    await paymentRepository.getMilestonePaymentByMilestoneId(milestoneID);
 
   if (!milestonePayment) {
     logTransaction("release_skipped", {
@@ -385,10 +421,7 @@ export async function releaseMilestoneFunds(milestoneID, releasedBy) {
     return null;
   }
 
-  if (milestonePayment.pStatus === "released") {
-    return milestonePayment;
-  }
-
+  if (milestonePayment.pStatus === "released") return milestonePayment;
   if (milestonePayment.pStatus !== "held") {
     throw conflictError("Milestone funds cannot be released in the current state.");
   }
@@ -407,20 +440,28 @@ export async function releaseMilestoneFunds(milestoneID, releasedBy) {
   return released;
 }
 
+/** @deprecated use constructStripeWebhookEvent + handleStripeWebhook */
+export async function handleStripeWebhookRaw(rawBody, signature) {
+  const event = constructStripeWebhookEvent(rawBody, signature);
+  return handleStripeWebhook(event);
+}
+
 export async function createPaymentIntentFromBody(body, clientID) {
-  const { contractID, amount, milestoneID } = validate(
-    paymentSchemas.createIntent,
-    body ?? {},
-  );
-  return createPaymentIntent(contractID, amount, clientID, { milestoneID });
+  const { contractID, amount, milestoneID, description } = body;
+  return createPaymentIntent(contractID, amount, description, clientID, {
+    milestoneID,
+  });
 }
 
 export async function confirmPaymentFromBody(body, userID) {
-  const { paymentIntentId } = validate(paymentSchemas.confirm, body ?? {});
-  return confirmPayment(paymentIntentId, userID);
+  return confirmPayment(body.paymentIntentId, userID);
 }
 
 export async function refundPaymentFromBody(body, clientID) {
-  const { paymentIntentId, reason } = validate(paymentSchemas.refund, body ?? {});
-  return refundPayment(paymentIntentId, reason, clientID);
+  return refundPayment(
+    body.paymentIntentId,
+    body.amount ?? null,
+    body.reason ?? null,
+    clientID,
+  );
 }
