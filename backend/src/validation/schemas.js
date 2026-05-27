@@ -25,6 +25,16 @@ const optionalTrimmedString = (max, label = "Value") =>
     .nullable()
     .transform((value) => value || null);
 
+const optionalUrlString = (max, label = "Value") =>
+  z
+    .string()
+    .trim()
+    .max(max, { message: `${label} must be ${max} characters or fewer.` })
+    .url({ message: `${label} must be a valid URL.` })
+    .optional()
+    .nullable()
+    .transform((value) => value || null);
+
 export const positiveIntSchema = (label) =>
   z.coerce
     .number({ error: `Valid ${label} is required.` })
@@ -226,11 +236,31 @@ export const adminSchemas = {
 
 export const catalogSchemas = {
   category: z.object({
-    cName: trimmedString("cName", 20),
-    cDesc: trimmedString("cDesc", 100),
-    slug: optionalTrimmedString(20, "slug"),
+    cName: trimmedString("cName", 50).min(3, {
+      message: "cName must be at least 3 characters.",
+    }),
+    cDesc: trimmedString("cDesc", 255),
+    slug: optionalTrimmedString(50, "slug"),
+    iconUrl: optionalUrlString(255, "iconUrl"),
+    parentCategoryID: positiveIntSchema("parentCategoryID").optional(),
+    sortOrder: z.coerce
+      .number()
+      .int({ message: "sortOrder must be an integer." })
+      .optional(),
     isActive: z.coerce.boolean().optional(),
   }),
+  categoryOrder: z
+    .array(
+      z.object({
+        id: positiveIntSchema("id"),
+        sortOrder: z.coerce
+          .number()
+          .int({ message: "sortOrder must be an integer." }),
+      }),
+    )
+    .min(1, {
+      message: "Category order array must include at least one item.",
+    }),
   skill: z.object({
     skillName: trimmedString("skillName", 30),
     slug: optionalTrimmedString(30, "slug"),

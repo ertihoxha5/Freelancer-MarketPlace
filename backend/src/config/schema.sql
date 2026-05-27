@@ -239,11 +239,20 @@ CREATE TABLE IF NOT EXISTS Messages(
 
 CREATE TABLE IF NOT EXISTS Categories(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    cName VARCHAR(20) NOT NULL,
-    slug VARCHAR(20),
-    cDesc VARCHAR(100) NOT NULL,
+    cName VARCHAR(50) NOT NULL,
+    slug VARCHAR(50) NOT NULL,
+    cDesc VARCHAR(255) NOT NULL,
+    iconUrl VARCHAR(255) NULL,
+    sortOrder INT NOT NULL DEFAULT 0,
+    parentCategoryID INT NULL,
     isActive BOOLEAN DEFAULT TRUE,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_categories_name (cName),
+    UNIQUE KEY uq_categories_slug (slug),
+    INDEX idx_categories_parent (parentCategoryID),
+    INDEX idx_categories_sort (sortOrder),
+    FOREIGN KEY (parentCategoryID) REFERENCES Categories(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS Skills(

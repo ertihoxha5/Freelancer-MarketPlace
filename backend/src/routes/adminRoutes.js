@@ -44,6 +44,12 @@ router.post(
 router.get("/clients", projectController.getClientList);
 
 router.get("/categories", catalogController.getCategories);
+router.get("/categories/tree", catalogController.getCategoryTree);
+router.patch(
+  "/categories/order",
+  validateRequest({ body: catalogSchemas.categoryOrder }),
+  catalogController.updateCategoryOrder,
+);
 router.post(
   "/categories",
   validateRequest({ body: catalogSchemas.category }),

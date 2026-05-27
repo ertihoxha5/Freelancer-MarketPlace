@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as userController from "../controllers/userController.js";
 import * as authMiddleware from "../middleware/authMiddleware.js";
 import * as milestoneController from "../controllers/milestoneController.js";
+import * as catalogController from "../controllers/catalogController.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
   authSchemas,
@@ -33,11 +34,7 @@ router.post(
   validateRequest({ body: authSchemas.logout }),
   userController.logout,
 );
-router.get(
-  "/auth/me",
-  authMiddleware.authenticateToken,
-  userController.me,
-);
+router.get("/auth/me", authMiddleware.authenticateToken, userController.me);
 router.post(
   "/auth/register",
   csrfProtection,
@@ -50,6 +47,8 @@ router.post(
   validateRequest({ body: authSchemas.forgotPassword }),
   userController.forgotPassword,
 );
+
+router.get("/categories/public", catalogController.getPublicCategories);
 router.post(
   "/auth/reset-password",
   csrfProtection,

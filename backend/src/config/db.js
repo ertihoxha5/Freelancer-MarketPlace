@@ -1,15 +1,10 @@
-import mysql2 from 'mysql2/promise';
-import fs from 'fs/promises';
-import 'dotenv/config';
+import mysql2 from "mysql2/promise";
+import fs from "fs/promises";
+import "dotenv/config";
 
-const schemaUrl = new URL('./schema.sql', import.meta.url);
+const schemaUrl = new URL("./schema.sql", import.meta.url);
 
-const {
-  DB_HOST,
-  DB_USER,
-  DB_PASSWORD,
-  DB_NAME,
-} = process.env;
+const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
 
 async function ensureDatabaseFromSchema() {
   const rootConn = await mysql2.createConnection({
@@ -21,13 +16,15 @@ async function ensureDatabaseFromSchema() {
 
   try {
     const [rows] = await rootConn.query(
-      'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?',
-      [DB_NAME]
+      "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?",
+      [DB_NAME],
     );
 
     if (rows.length === 0) {
-      console.info(`Database "${DB_NAME}" not found. Creating from schema.sql...`);
-      const schemaSql = await fs.readFile(schemaUrl, 'utf8');
+      console.info(
+        `Database "${DB_NAME}" not found. Creating from schema.sql...`,
+      );
+      const schemaSql = await fs.readFile(schemaUrl, "utf8");
       await rootConn.query(schemaSql);
       console.info(`Database "${DB_NAME}" created and initialized.`);
     } else {
@@ -46,7 +43,7 @@ async function columnExists(pool, tableName, columnName) {
        AND TABLE_NAME = ?
        AND COLUMN_NAME = ?
      LIMIT 1`,
-    [DB_NAME, tableName, columnName]
+    [DB_NAME, tableName, columnName],
   );
   return rows.length > 0;
 }
@@ -59,55 +56,55 @@ async function indexExists(pool, tableName, indexName) {
        AND TABLE_NAME = ?
        AND INDEX_NAME = ?
      LIMIT 1`,
-    [DB_NAME, tableName, indexName]
+    [DB_NAME, tableName, indexName],
   );
   return rows.length > 0;
 }
 
 async function ensureProposalSchema(pool) {
-  if (!(await columnExists(pool, 'Proposal', 'bidAmount'))) {
+  if (!(await columnExists(pool, "Proposal", "bidAmount"))) {
     await pool.query(`
       ALTER TABLE Proposal
       ADD COLUMN bidAmount DECIMAL(12,2) NULL
     `);
   }
 
-  if (!(await columnExists(pool, 'Proposal', 'estimatedDays'))) {
+  if (!(await columnExists(pool, "Proposal", "estimatedDays"))) {
     await pool.query(`
       ALTER TABLE Proposal
       ADD COLUMN estimatedDays INT NULL
     `);
   }
 
-  if (!(await columnExists(pool, 'Proposal', 'isDeleted'))) {
+  if (!(await columnExists(pool, "Proposal", "isDeleted"))) {
     await pool.query(`
       ALTER TABLE Proposal
       ADD COLUMN isDeleted BOOLEAN NOT NULL DEFAULT FALSE
     `);
   }
 
-  if (!(await columnExists(pool, 'Proposal', 'attachmentID'))) {
+  if (!(await columnExists(pool, "Proposal", "attachmentID"))) {
     await pool.query(`
       ALTER TABLE Proposal
       ADD COLUMN attachmentID INT NULL
     `);
   }
 
-  if (!(await columnExists(pool, 'Proposal', 'reviewedAt'))) {
+  if (!(await columnExists(pool, "Proposal", "reviewedAt"))) {
     await pool.query(`
       ALTER TABLE Proposal
       ADD COLUMN reviewedAt TIMESTAMP NULL
     `);
   }
 
-  if (!(await columnExists(pool, 'Proposal', 'reviewedBy'))) {
+  if (!(await columnExists(pool, "Proposal", "reviewedBy"))) {
     await pool.query(`
       ALTER TABLE Proposal
       ADD COLUMN reviewedBy INT NULL
     `);
   }
 
-  if (!(await columnExists(pool, 'Proposal', 'notes'))) {
+  if (!(await columnExists(pool, "Proposal", "notes"))) {
     await pool.query(`
       ALTER TABLE Proposal
       ADD COLUMN notes TEXT NULL
@@ -128,14 +125,14 @@ async function tableExists(pool, tableName) {
 }
 
 async function ensureUserAuthSchema(pool) {
-  if (!(await columnExists(pool, 'Users', 'tokenVersion'))) {
+  if (!(await columnExists(pool, "Users", "tokenVersion"))) {
     await pool.query(`
       ALTER TABLE Users
       ADD COLUMN tokenVersion INT NOT NULL DEFAULT 0 AFTER isActive
     `);
   }
 
-  if (!(await columnExists(pool, 'Users', 'emailVerified'))) {
+  if (!(await columnExists(pool, "Users", "emailVerified"))) {
     await pool.query(`
       ALTER TABLE Users
       ADD COLUMN emailVerified BOOLEAN NOT NULL DEFAULT TRUE AFTER isActive,
@@ -148,7 +145,7 @@ async function ensureUserAuthSchema(pool) {
     WHERE emailVerified = FALSE
   `);
 
-  if (!(await tableExists(pool, 'EmailTokens'))) {
+  if (!(await tableExists(pool, "EmailTokens"))) {
     await pool.query(`
       CREATE TABLE EmailTokens(
         id INT PRIMARY KEY AUTO_INCREMENT,
@@ -166,35 +163,105 @@ async function ensureUserAuthSchema(pool) {
   }
 }
 
-async function ensureChatSchema(pool) {
+async function ensureCategorySchema(pool) {
+  if (!(await columnExists(pool, "Categories", "slug"))) {
+    await pool.query(`
+      ALTER TABLE Categories
+      ADD COLUMN slug VARCHAR(50) NULL AFTER cName
+    `);
+    await pool.query(`
+      UPDATE Categories
+      SET slug = CONCAT('category-', id)
+      WHERE slug IS NULL OR slug = ''
+    `);
+    await pool.query(`
+      ALTER TABLE Categories
+      MODIFY COLUMN slug VARCHAR(50) NOT NULL
+    `);
+  }
 
+  if (!(await columnExists(pool, "Categories", "iconUrl"))) {
+    await pool.query(`
+      ALTER TABLE Categories
+      ADD COLUMN iconUrl VARCHAR(255) NULL AFTER cDesc
+    `);
+  }
+
+  if (!(await columnExists(pool, "Categories", "sortOrder"))) {
+    await pool.query(`
+      ALTER TABLE Categories
+      ADD COLUMN sortOrder INT NOT NULL DEFAULT 0 AFTER iconUrl
+    `);
+  }
+
+  if (!(await columnExists(pool, "Categories", "parentCategoryID"))) {
+    await pool.query(`
+      ALTER TABLE Categories
+      ADD COLUMN parentCategoryID INT NULL AFTER sortOrder,
+      ADD INDEX idx_categories_parent (parentCategoryID)
+    `);
+  }
+
+  if (!(await columnExists(pool, "Categories", "updatedAt"))) {
+    await pool.query(`
+      ALTER TABLE Categories
+      ADD COLUMN updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER createdAt
+    `);
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE Categories
+      ADD UNIQUE KEY uq_categories_name (cName)
+    `);
+  } catch {}
+
+  try {
+    await pool.query(`
+      ALTER TABLE Categories
+      ADD UNIQUE KEY uq_categories_slug (slug)
+    `);
+  } catch {}
+
+  try {
+    await pool.query(`
+      ALTER TABLE Categories
+      ADD CONSTRAINT fk_categories_parent
+      FOREIGN KEY (parentCategoryID) REFERENCES Categories(id) ON DELETE SET NULL
+    `);
+  } catch {}
+}
+
+async function ensureChatSchema(pool) {
   await pool.query(`
     ALTER TABLE Messages
     MODIFY COLUMN content TEXT NOT NULL
   `);
 
-  if (!(await columnExists(pool, 'Messages', 'deliveredAt'))) {
+  if (!(await columnExists(pool, "Messages", "deliveredAt"))) {
     await pool.query(`
       ALTER TABLE Messages
       ADD COLUMN deliveredAt DATETIME NULL AFTER isDeleted
     `);
   }
 
-  if (!(await indexExists(pool, 'Messages', 'idx_messages_conversation_sent'))) {
+  if (
+    !(await indexExists(pool, "Messages", "idx_messages_conversation_sent"))
+  ) {
     await pool.query(`
       ALTER TABLE Messages
       ADD INDEX idx_messages_conversation_sent (conversationID, sentAt)
     `);
   }
 
-  if (!(await columnExists(pool, 'Conversations', 'lastMessageAt'))) {
+  if (!(await columnExists(pool, "Conversations", "lastMessageAt"))) {
     await pool.query(`
       ALTER TABLE Conversations
       ADD COLUMN lastMessageAt DATETIME NULL AFTER createdAt
     `);
   }
 
-  if (!(await columnExists(pool, 'Conversations', 'conversationType'))) {
+  if (!(await columnExists(pool, "Conversations", "conversationType"))) {
     await pool.query(`
       ALTER TABLE Conversations
       ADD COLUMN conversationType ENUM('project', 'direct') NOT NULL DEFAULT 'project' AFTER id
@@ -208,7 +275,9 @@ async function ensureChatSchema(pool) {
     MODIFY COLUMN freelancerID INT NULL
   `);
 
-  if (!(await indexExists(pool, 'Conversations', 'idx_conversations_status_last'))) {
+  if (
+    !(await indexExists(pool, "Conversations", "idx_conversations_status_last"))
+  ) {
     await pool.query(`
       ALTER TABLE Conversations
       ADD INDEX idx_conversations_status_last (cStatus, lastMessageAt)
@@ -257,14 +326,14 @@ async function ensureChatSchema(pool) {
 }
 
 async function ensureContractSchema(pool) {
-  if (!(await columnExists(pool, 'Contracts', 'startDate'))) {
+  if (!(await columnExists(pool, "Contracts", "startDate"))) {
     await pool.query(`
       ALTER TABLE Contracts
       ADD COLUMN startDate DATE NULL
     `);
   }
 
-  if (!(await columnExists(pool, 'Contracts', 'endDate'))) {
+  if (!(await columnExists(pool, "Contracts", "endDate"))) {
     await pool.query(`
       ALTER TABLE Contracts
       ADD COLUMN endDate DATE NULL
@@ -359,14 +428,18 @@ async function ensureMilestoneSchema(pool) {
         END
   `);
 
-  if (!(await indexExists(pool, "Milestones", "idx_milestones_project_deadline"))) {
+  if (
+    !(await indexExists(pool, "Milestones", "idx_milestones_project_deadline"))
+  ) {
     await pool.query(`
       ALTER TABLE Milestones
       ADD INDEX idx_milestones_project_deadline (projectID, deadline)
     `);
   }
 
-  if (!(await indexExists(pool, "Milestones", "idx_milestones_status_deadline"))) {
+  if (
+    !(await indexExists(pool, "Milestones", "idx_milestones_status_deadline"))
+  ) {
     await pool.query(`
       ALTER TABLE Milestones
       ADD INDEX idx_milestones_status_deadline (status, deadline)
@@ -445,7 +518,7 @@ async function ensurePaymentSchema(pool) {
 }
 
 async function ensureFullTextIndexes(pool) {
-  if (!(await indexExists(pool, 'Project', 'idx_project_search'))) {
+  if (!(await indexExists(pool, "Project", "idx_project_search"))) {
     try {
       await pool.query(`
         ALTER TABLE Project
@@ -454,7 +527,7 @@ async function ensureFullTextIndexes(pool) {
     } catch {}
   }
 
-  if (!(await indexExists(pool, 'Users', 'idx_user_search'))) {
+  if (!(await indexExists(pool, "Users", "idx_user_search"))) {
     try {
       await pool.query(`
         ALTER TABLE Users
@@ -484,6 +557,7 @@ export const db = mysql2.createPool({
 try {
   await ensureUserAuthSchema(db);
   await ensureProposalSchema(db);
+  await ensureCategorySchema(db);
   await ensureChatSchema(db);
   await ensureContractSchema(db);
   await ensureBusinessEntitySchema(db);
