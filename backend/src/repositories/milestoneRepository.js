@@ -98,13 +98,7 @@ export async function updateMilestoneProjectStatus(
 
 export async function getMilestonesByProjectId(
   projectID,
-  {
-    status,
-    from,
-    to,
-    sortBy = "deadline",
-    sortOrder = "asc",
-  } = {},
+  { status, from, to, sortBy = "deadline", sortOrder = "asc" } = {},
 ) {
   const conditions = ["m.projectID = ?"];
   const params = [projectID];
@@ -139,13 +133,7 @@ export async function getMilestonesByProjectId(
 
 export async function getFreelancerMilestones(
   freelancerID,
-  {
-    status,
-    from,
-    to,
-    sortBy = "deadline",
-    sortOrder = "asc",
-  } = {},
+  { status, from, to, sortBy = "deadline", sortOrder = "asc" } = {},
 ) {
   const conditions = ["c.freelancerID = ?"];
   const params = [freelancerID];
@@ -204,6 +192,31 @@ export async function getOverdueMilestonesByFreelancer(freelancerID) {
      WHERE c.freelancerID = ?
        AND m.deadline IS NOT NULL
        AND m.deadline < UTC_TIMESTAMP()
+       AND m.status <> 'completed'
+     ORDER BY m.deadline ASC, m.id ASC`,
+    [freelancerID],
+  );
+  return rows;
+}
+
+export async function getUpcomingMilestonesByFreelancer(freelancerID) {
+  const [rows] = await db.execute(
+    `SELECT
+       m.*,
+       p.id AS projectID,
+       p.title AS projectTitle
+     FROM Milestones m
+     INNER JOIN Contracts c ON c.id = m.contractID
+     INNER JOIN Project p ON p.id = COALESCE(m.projectID, (
+       SELECT pr.projectID
+       FROM Proposal pr
+       WHERE pr.id = c.proposalID
+       LIMIT 1
+     ))
+     WHERE c.freelancerID = ?
+       AND m.deadline IS NOT NULL
+       AND m.deadline >= UTC_TIMESTAMP()
+       AND m.deadline <= DATE_ADD(UTC_TIMESTAMP(), INTERVAL 2 DAY)
        AND m.status <> 'completed'
      ORDER BY m.deadline ASC, m.id ASC`,
     [freelancerID],

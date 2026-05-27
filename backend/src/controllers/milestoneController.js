@@ -127,6 +127,20 @@ export async function getOverdueMilestones(req, res, next) {
   }
 }
 
+export async function getUpcomingMilestones(req, res, next) {
+  try {
+    const milestones = await milestoneService.getUpcomingMilestones(
+      req.user.id,
+    );
+    return res.status(200).json({ milestones });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}
+
 export async function updateMilestoneStatus(req, res, next) {
   try {
     const { id } = validatedParams(req);

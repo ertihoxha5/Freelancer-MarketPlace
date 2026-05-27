@@ -47,9 +47,9 @@ export async function getMyReceivedReviews(req, res, next) {
 
 export async function getReviewsForFreelancer(req, res, next) {
   try {
-    const { id } = validatedParams(req);
+    const { freelancerID } = validatedParams(req);
     const result = await reviewService.getReviewsForFreelancer(
-      id,
+      freelancerID,
       validatedQuery(req),
     );
     return res.status(200).json(result);
@@ -63,8 +63,8 @@ export async function getReviewsForFreelancer(req, res, next) {
 
 export async function getReviewStats(req, res, next) {
   try {
-    const { id } = validatedParams(req);
-    const result = await reviewService.getReviewStats(id);
+    const { freelancerID } = validatedParams(req);
+    const result = await reviewService.getReviewStats(freelancerID);
     return res.status(200).json(result);
   } catch (err) {
     if (err.statusCode) {
@@ -76,9 +76,9 @@ export async function getReviewStats(req, res, next) {
 
 export async function updateReview(req, res, next) {
   try {
-    const { id } = validatedParams(req);
+    const { reviewID } = validatedParams(req);
     const review = await reviewService.updateReview(
-      id,
+      reviewID,
       req.user.id,
       validatedBody(req),
     );
@@ -95,8 +95,8 @@ export async function updateReview(req, res, next) {
 
 export async function deleteReview(req, res, next) {
   try {
-    const { id } = validatedParams(req);
-    const result = await reviewService.deleteReview(id, req.user.id);
+    const { reviewID } = validatedParams(req);
+    const result = await reviewService.deleteReview(reviewID, req.user.id);
     return res
       .status(200)
       .json({ message: "Review deleted successfully.", result });

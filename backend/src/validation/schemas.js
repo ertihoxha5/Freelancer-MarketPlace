@@ -84,6 +84,13 @@ export const paramSchemas = {
   }),
   projectId: z.object({ projectId: positiveIntSchema("project ID") }),
   projectID: z.object({ projectID: positiveIntSchema("project ID") }),
+  freelancerID: z.object({ freelancerID: positiveIntSchema("freelancer ID") }),
+  reviewID: z.object({
+    reviewID: z
+      .string()
+      .trim()
+      .regex(/^[a-f\d]{24}$/i, "Valid reviewID is required."),
+  }),
   applicationId: z.object({
     applicationId: positiveIntSchema("application ID"),
   }),

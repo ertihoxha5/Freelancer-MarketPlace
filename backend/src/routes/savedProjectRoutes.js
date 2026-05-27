@@ -18,7 +18,7 @@ router.post(
   controller.bulkSaveProjects,
 );
 router.delete(
-  "/bulk-delete",
+  "/bulk-remove",
   validateRequest({ body: savedProjectSchemas.bulkDelete }),
   controller.bulkRemoveProjects,
 );

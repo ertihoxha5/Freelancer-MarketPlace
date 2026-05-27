@@ -90,7 +90,10 @@ async function getContractForActor(contractID, userID, role) {
   return contract;
 }
 
-async function notifyParties(contract, { title, msg, freelancerMsg, metadata }) {
+async function notifyParties(
+  contract,
+  { title, msg, freelancerMsg, metadata },
+) {
   const sharedMetadata = {
     projectID: contract.projectID,
     projectTitle: contract.projectTitle,
@@ -123,7 +126,9 @@ export async function createMilestone(contractID, clientID, payload) {
   );
   const amount = Number(amountPayable);
   if (amount > Number(contract.totalAmount || 0)) {
-    throw validationError("Milestone amount cannot exceed contract total amount.");
+    throw validationError(
+      "Milestone amount cannot exceed contract total amount.",
+    );
   }
   if (dueDate) {
     const due = new Date(dueDate);
@@ -222,37 +227,50 @@ export async function getMilestonesByProject(projectID, userID, query = {}) {
   const projectId = coercePositiveInt(projectID, "project ID");
   const userId = coercePositiveInt(userID, "user ID");
 
-  const freelancerContract = await projectRepository.getFreelancerContractByProjectId(
-    projectId,
-    userId,
-  );
-  const clientContract = await projectRepository.getContractByProjectId(projectId);
+  const freelancerContract =
+    await projectRepository.getFreelancerContractByProjectId(projectId, userId);
+  const clientContract =
+    await projectRepository.getContractByProjectId(projectId);
   const isProjectClient = Number(clientContract?.clientID) === userId;
-  const isProjectFreelancer = Number(freelancerContract?.freelancerID) === userId;
+  const isProjectFreelancer =
+    Number(freelancerContract?.freelancerID) === userId;
 
   if (!isProjectClient && !isProjectFreelancer) {
-    throw forbiddenError("You do not have access to this project's milestones.");
+    throw forbiddenError(
+      "You do not have access to this project's milestones.",
+    );
   }
 
-  const milestones = await milestoneRepository.getMilestonesByProjectId(projectId, query);
+  const milestones = await milestoneRepository.getMilestonesByProjectId(
+    projectId,
+    query,
+  );
   return milestones.map(normalizeMilestoneRow);
 }
 
 export async function getFreelancerMilestones(freelancerID, query = {}) {
   const freelancerId = coercePositiveInt(freelancerID, "freelancer ID");
-  const rows = await milestoneRepository.getFreelancerMilestones(freelancerId, query);
+  const rows = await milestoneRepository.getFreelancerMilestones(
+    freelancerId,
+    query,
+  );
   return rows.map(normalizeMilestoneRow);
 }
 
 export async function calculateProjectProgress(projectID, userID) {
   const milestones = await getMilestonesByProject(projectID, userID, {});
   const total = milestones.length;
-  const completed = milestones.filter((item) => item.status === "completed").length;
+  const completed = milestones.filter(
+    (item) => item.status === "completed",
+  ).length;
   const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
   return { projectID: Number(projectID), total, completed, progress };
 }
 
-export async function getFreelancerProjectsWithMilestones(freelancerID, query = {}) {
+export async function getFreelancerProjectsWithMilestones(
+  freelancerID,
+  query = {},
+) {
   const milestones = await getFreelancerMilestones(freelancerID, query);
   const grouped = milestones.reduce((acc, item) => {
     const key = String(item.projectID || "unknown");
@@ -284,7 +302,8 @@ export async function getFreelancerProjectsWithMilestones(freelancerID, query = 
       (item) =>
         item.status !== "completed" &&
         item.deadline &&
-        new Date(item.deadline).getTime() - Date.now() <= 2 * 24 * 60 * 60 * 1000 &&
+        new Date(item.deadline).getTime() - Date.now() <=
+          2 * 24 * 60 * 60 * 1000 &&
         new Date(item.deadline).getTime() > Date.now(),
     )
     .map((item) => ({
@@ -301,13 +320,24 @@ export async function getFreelancerProjectsWithMilestones(freelancerID, query = 
 
 export async function getOverdueMilestones(freelancerID) {
   const freelancerId = coercePositiveInt(freelancerID, "freelancer ID");
-  const rows = await milestoneRepository.getOverdueMilestonesByFreelancer(freelancerId);
+  const rows =
+    await milestoneRepository.getOverdueMilestonesByFreelancer(freelancerId);
+  return rows.map(normalizeMilestoneRow);
+}
+
+export async function getUpcomingMilestones(freelancerID) {
+  const freelancerId = coercePositiveInt(freelancerID, "freelancer ID");
+  const rows =
+    await milestoneRepository.getUpcomingMilestonesByFreelancer(freelancerId);
   return rows.map(normalizeMilestoneRow);
 }
 
 export async function updateMilestoneStatus(id, userID, role, payload) {
   const milestoneId = coercePositiveInt(id, "milestone ID");
-  const parsedPayload = validate(milestoneSchemas.statusFlexible, payload ?? {});
+  const parsedPayload = validate(
+    milestoneSchemas.statusFlexible,
+    payload ?? {},
+  );
   const mStatus = parsedPayload.mStatus ?? null;
   const statusPayload = parsedPayload.status
     ? validate(milestoneSchemas.statusV2, parsedPayload)
@@ -336,7 +366,11 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     throw forbiddenError("Freelancers must provide mStatus for updates.");
   }
 
-  if (role === "freelancer" && mStatus && !["in_progress", "submitted"].includes(mStatus)) {
+  if (
+    role === "freelancer" &&
+    mStatus &&
+    !["in_progress", "submitted"].includes(mStatus)
+  ) {
     throw forbiddenError("Freelancers can only start or submit milestones.");
   }
 
@@ -348,12 +382,22 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     throw forbiddenError("Only clients can update project milestone status.");
   }
 
-  if (role === "freelancer" && mStatus === "in_progress" && milestone.mStatus !== "pending") {
+  if (
+    role === "freelancer" &&
+    mStatus === "in_progress" &&
+    milestone.mStatus !== "pending"
+  ) {
     throw conflictError("Only pending milestones can be started.");
   }
 
-  if (role === "freelancer" && mStatus === "submitted" && !["in_progress", "rejected"].includes(milestone.mStatus)) {
-    throw conflictError("Only in-progress or rejected milestones can be submitted.");
+  if (
+    role === "freelancer" &&
+    mStatus === "submitted" &&
+    !["in_progress", "rejected"].includes(milestone.mStatus)
+  ) {
+    throw conflictError(
+      "Only in-progress or rejected milestones can be submitted.",
+    );
   }
 
   if (
@@ -361,12 +405,20 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     mStatus &&
     !["pending", "in_progress", "approved", "rejected"].includes(mStatus)
   ) {
-    throw forbiddenError("Clients can approve, reject, or manage milestone progress.");
+    throw forbiddenError(
+      "Clients can approve, reject, or manage milestone progress.",
+    );
   }
 
-  if (role === "client" && mStatus && ["approved", "rejected"].includes(mStatus)) {
+  if (
+    role === "client" &&
+    mStatus &&
+    ["approved", "rejected"].includes(mStatus)
+  ) {
     if (!["submitted", "in_progress"].includes(milestone.mStatus)) {
-      throw conflictError("Only submitted milestones can be approved or rejected.");
+      throw conflictError(
+        "Only submitted milestones can be approved or rejected.",
+      );
     }
   }
 
@@ -411,10 +463,7 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
 
   if (mStatus === "approved") {
     releaseMilestoneFunds(milestoneId, userID).catch((err) => {
-      console.warn(
-        "[milestone] release funds:",
-        err?.message || err,
-      );
+      console.warn("[milestone] release funds:", err?.message || err);
     });
 
     const io = getIO();
@@ -443,7 +492,10 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     ) {
       validateStatusTransition(contract.projectStatus, "completed");
       await projectRepository.updateContractStatus(contract.id, "completed");
-      await projectRepository.updateProjectStatus(contract.projectID, "completed");
+      await projectRepository.updateProjectStatus(
+        contract.projectID,
+        "completed",
+      );
 
       if (io) {
         emitProjectStatusChanged(io, {

@@ -88,6 +88,20 @@ router.get(
   }),
   milestoneController.getProjectMilestones,
 );
+router.post(
+  "/projects/:projectID/milestones",
+  validateRequest({
+    params: paramSchemas.projectID,
+    body: milestoneSchemas.projectCreate,
+  }),
+  milestoneController.createProjectMilestone,
+);
+router.get(
+  "/milestones",
+  validateRequest({ query: querySchemas.milestoneList }),
+  milestoneController.getFreelancerMilestones,
+);
+router.get("/milestones/upcoming", milestoneController.getUpcomingMilestones);
 router.get(
   "/my-milestones",
   validateRequest({ query: querySchemas.milestoneList }),
@@ -98,10 +112,7 @@ router.get(
   validateRequest({ query: querySchemas.milestoneList }),
   milestoneController.getFreelancerProjectsWithMilestones,
 );
-router.get(
-  "/milestones/overdue",
-  milestoneController.getOverdueMilestones,
-);
+router.get("/milestones/overdue", milestoneController.getOverdueMilestones);
 router.patch(
   "/milestones/:id/status",
   validateRequest({
@@ -119,9 +130,35 @@ router.post(
   reviewController.createReview,
 );
 router.get(
-  "/reviews",
+  "/profile/reviews",
   validateRequest({ query: querySchemas.reviewList }),
   reviewController.getMyReceivedReviews,
+);
+router.get(
+  "/:freelancerID/reviews",
+  validateRequest({
+    params: paramSchemas.freelancerID,
+    query: querySchemas.reviewList,
+  }),
+  reviewController.getReviewsForFreelancer,
+);
+router.get(
+  "/reviews/stats/:freelancerID",
+  validateRequest({ params: paramSchemas.freelancerID }),
+  reviewController.getReviewStats,
+);
+router.patch(
+  "/reviews/:reviewID",
+  validateRequest({
+    params: paramSchemas.reviewID,
+    body: reviewSchemas.update,
+  }),
+  reviewController.updateReview,
+);
+router.delete(
+  "/reviews/:reviewID",
+  validateRequest({ params: paramSchemas.reviewID }),
+  reviewController.deleteReview,
 );
 
 router.get(
