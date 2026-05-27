@@ -69,7 +69,12 @@ router.delete(
 router.get(
   "/skills",
   validateRequest({ query: querySchemas.search }),
-  skillsController.getSkills,
+  skillsController.getAllSkills,
+);
+router.get(
+  "/skills/search",
+  validateRequest({ query: querySchemas.search }),
+  skillsController.searchSkills,
 );
 router.get(
   "/skills/:id",

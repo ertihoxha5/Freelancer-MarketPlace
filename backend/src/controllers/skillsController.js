@@ -5,20 +5,23 @@ import {
   validatedQuery,
 } from "../middleware/validateRequest.js";
 
-export async function getSkills(req, res, next) {
+export async function getAllSkills(req, res, next) {
   try {
     const query = validatedQuery(req);
     const page = query?.page ?? 1;
     const limit = query?.limit ?? 50;
-    const q = query?.q?.trim();
-
-    if (q) {
-      const skills = await skillsService.searchSkills(q);
-      return res.status(200).json({ skills, total: skills.length });
-    }
-
     const result = await skillsService.getAllSkills(page, limit);
     return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function searchSkills(req, res, next) {
+  try {
+    const { q } = validatedQuery(req);
+    const skills = await skillsService.searchSkills(q?.trim() ?? "");
+    return res.status(200).json({ skills, total: skills.length });
   } catch (err) {
     next(err);
   }
