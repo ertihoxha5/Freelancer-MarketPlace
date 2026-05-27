@@ -98,6 +98,18 @@ export const querySchemas = {
     to: nullableDateString.optional(),
     minHelpful: z.coerce.number().int().min(0).optional(),
   }),
+  savedProjects: z.object({
+    page: z.coerce.number().int().min(1).optional().default(1),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+    sort: z.enum(["recent", "oldest", "popular"]).optional(),
+    categoryID: z.coerce.number().int().positive().optional(),
+    minBudget: z.coerce.number().nonnegative().optional(),
+    maxBudget: z.coerce.number().nonnegative().optional(),
+    from: nullableDateString.optional(),
+    to: nullableDateString.optional(),
+    q: z.string().trim().max(200).optional(),
+    format: z.enum(["json", "csv"]).optional(),
+  }),
   search: z.object({
     q: z.string().trim().max(200).optional(),
     page: z.coerce.number().int().min(1).optional(),
@@ -351,7 +363,9 @@ export const milestoneSchemas = {
       .max(30, "At most 30 project phases are allowed.")
       .optional()
       .default([]),
-    budget: z.coerce.number().positive("Milestone budget must be greater than zero."),
+    budget: z.coerce
+      .number()
+      .positive("Milestone budget must be greater than zero."),
     deadline: nullableDateString,
     comments: optionalTrimmedString(2000, "Comments").optional().default(null),
     attachments: z.array(z.string().trim().max(500)).optional().default([]),

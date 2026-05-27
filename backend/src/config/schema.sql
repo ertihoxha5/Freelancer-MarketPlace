@@ -365,15 +365,19 @@ CREATE TABLE IF NOT EXISTS Disputes(
 
 CREATE TABLE IF NOT EXISTS SavedProjects (
     id INT PRIMARY KEY AUTO_INCREMENT,
+    savedProjectID VARCHAR(36) NOT NULL UNIQUE,
     freelancerID INT NOT NULL,
     projectID INT NOT NULL,
-    notes TEXT NULL,
+    notes VARCHAR(500) NULL,
+    folder VARCHAR(100) NOT NULL DEFAULT 'default',
+    priority ENUM('high','medium','low') NOT NULL DEFAULT 'medium',
     savedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE CASCADE,
     
     UNIQUE KEY unique_save (freelancerID, projectID),
+    INDEX idx_saved_user_project (freelancerID, projectID),
     INDEX idx_saved_freelancer (freelancerID),
     INDEX idx_saved_project (projectID)
 );
