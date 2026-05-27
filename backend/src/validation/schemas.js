@@ -533,3 +533,28 @@ export const paymentSchemas = {
     limit: z.coerce.number().int().min(1).max(100).optional().default(20),
   }),
 };
+
+export const savedProjectSchemas = {
+  bulkSave: z.object({
+    projectIDs: z
+      .array(z.coerce.number().int().positive())
+      .min(1, "At least one project ID is required."),
+  }),
+  bulkDelete: z.object({
+    projectIDs: z
+      .array(z.coerce.number().int().positive())
+      .min(1, "At least one project ID is required."),
+  }),
+  moveToFolder: z.object({
+    folder: trimmedString("folder", 50).min(1, "Folder name is required."),
+  }),
+  update: z
+    .object({
+      notes: optionalTrimmedString(500, "notes"),
+      priority: z.enum(["low", "medium", "high"]).optional(),
+      folder: trimmedString("folder", 50).optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+      message: "At least one field is required.",
+    }),
+};
