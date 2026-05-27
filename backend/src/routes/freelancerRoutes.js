@@ -96,7 +96,11 @@ router.post(
   }),
   reviewController.createReview,
 );
-router.get("/reviews", reviewController.getMyReceivedReviews);
+router.get(
+  "/reviews",
+  validateRequest({ query: querySchemas.reviewList }),
+  reviewController.getMyReceivedReviews,
+);
 
 router.get(
   "/notifications/unread-count",

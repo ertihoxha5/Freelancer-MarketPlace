@@ -87,6 +87,17 @@ export const querySchemas = {
     page: z.coerce.number().int().min(1).optional().default(1),
     limit: z.coerce.number().int().min(1).max(100).optional().default(50),
   }),
+  reviewList: z.object({
+    page: z.coerce.number().int().min(1).optional().default(1),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+    rating: z.coerce.number().int().min(1).max(5).optional(),
+    sort: z
+      .enum(["newest", "oldest", "helpful", "rating_desc", "rating_asc"])
+      .optional(),
+    from: nullableDateString.optional(),
+    to: nullableDateString.optional(),
+    minHelpful: z.coerce.number().int().min(0).optional(),
+  }),
   search: z.object({
     q: z.string().trim().max(200).optional(),
     page: z.coerce.number().int().min(1).optional(),
@@ -335,15 +346,53 @@ export const milestoneSchemas = {
 
 export const reviewSchemas = {
   create: z.object({
-    stars: z.coerce
+    rating: z.coerce
       .number()
-      .int("Stars must be an integer between 1 and 5.")
-      .min(1, "Stars must be an integer between 1 and 5.")
-      .max(5, "Stars must be an integer between 1 and 5."),
+      .int("Rating must be an integer between 1 and 5.")
+      .min(1, "Rating must be an integer between 1 and 5.")
+      .max(5, "Rating must be an integer between 1 and 5."),
+    title: z
+      .string()
+      .trim()
+      .min(5, "Title must be at least 5 characters.")
+      .max(100, "Title must be 100 characters or fewer.")
+      .optional(),
     comment: trimmedString("Review comment", 1000).min(10, {
       message: "Review comment must be at least 10 characters.",
     }),
+    tags: z
+      .array(trimmedString("tag", 50))
+      .max(10, "At most 10 tags may be provided.")
+      .optional(),
   }),
+  update: z
+    .object({
+      rating: z.coerce
+        .number()
+        .int("Rating must be an integer between 1 and 5.")
+        .min(1, "Rating must be an integer between 1 and 5.")
+        .max(5, "Rating must be an integer between 1 and 5.")
+        .optional(),
+      title: z
+        .string()
+        .trim()
+        .min(5, "Title must be at least 5 characters.")
+        .max(100, "Title must be 100 characters or fewer.")
+        .optional(),
+      comment: z
+        .string()
+        .trim()
+        .min(10, "Review comment must be at least 10 characters.")
+        .max(1000, "Review comment must be 1000 characters or fewer.")
+        .optional(),
+      tags: z
+        .array(trimmedString("tag", 50))
+        .max(10, "At most 10 tags may be provided.")
+        .optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+      message: "At least one review field is required.",
+    }),
 };
 
 export const contractSchemas = {

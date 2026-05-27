@@ -52,7 +52,10 @@ function getContractPartyContext(contract, reviewerID, role) {
 export async function createReview(contractID, reviewerID, role, payload) {
   const contractId = coercePositiveInt(contractID, "contract ID");
   const reviewerId = coercePositiveInt(reviewerID, "reviewer ID");
-  const { stars, comment } = validate(reviewSchemas.create, payload ?? {});
+  const { rating, title, comment, tags } = validate(
+    reviewSchemas.create,
+    payload ?? {},
+  );
 
   const contract = await projectRepository.getContractById(contractId);
   if (!contract) {
@@ -74,14 +77,16 @@ export async function createReview(contractID, reviewerID, role, payload) {
   }
 
   const review = await reviewRepository.createReview({
-    stars,
+    rating,
+    title,
     comment,
+    tags,
     contractID: contractId,
     reviewerID: reviewerId,
     receiverID: partyContext.receiverID,
   });
 
-  const ratingSummary = await reviewRepository.getRatingSummaryByReceiverId(
+  const ratingSummary = await reviewRepository.getAverageRatingByReceiverId(
     partyContext.receiverID,
   );
 
@@ -89,7 +94,7 @@ export async function createReview(contractID, reviewerID, role, payload) {
     freelancerID: partyContext.receiverID,
     eventType: "review_received",
     metadata: {
-      stars,
+      stars: rating,
       reviewerName: partyContext.reviewerName,
       contractID: contractId,
       reviewerID: reviewerId,
@@ -104,12 +109,12 @@ export async function createReview(contractID, reviewerID, role, payload) {
       types: "system",
       receiverID: partyContext.receiverID,
       title: "New Review Received",
-      msg: `${partyContext.reviewerName} left you a ${stars}-star review.`,
+      msg: `${partyContext.reviewerName} left you a ${rating}-star review.`,
       metadata: {
         projectID: contract.projectID,
         projectTitle: contract.projectTitle,
         contractID: contractId,
-        reviewID: review.id,
+        reviewID: review.reviewID,
         actionUrl: "/freelancer/profile",
       },
     }).catch(() => {});
@@ -118,7 +123,7 @@ export async function createReview(contractID, reviewerID, role, payload) {
       types: "system",
       receiverID: partyContext.receiverID,
       title: "New Review Received",
-      msg: `${partyContext.reviewerName} left you a ${stars}-star review.`,
+      msg: `${partyContext.reviewerName} left you a ${rating}-star review.`,
     }).catch(() => {});
   }
 
@@ -126,10 +131,10 @@ export async function createReview(contractID, reviewerID, role, payload) {
   if (io) {
     emitReviewReceived(io, {
       contractID: contractId,
-      reviewID: review.id,
+      reviewID: review.reviewID,
       reviewerID: reviewerId,
       receiverID: partyContext.receiverID,
-      stars,
+      stars: rating,
       averageRating: ratingSummary.averageRating,
       reviewCount: ratingSummary.reviewCount,
     });
@@ -138,12 +143,50 @@ export async function createReview(contractID, reviewerID, role, payload) {
   return { review, ratingSummary };
 }
 
-export async function getMyReceivedReviews(userID) {
+export async function getMyReceivedReviews(userID, query = {}) {
   const receiverId = coercePositiveInt(userID, "user ID");
-  const reviews = await reviewRepository.getReviewsByReceiverId(receiverId);
-  const ratingSummary = await reviewRepository.getRatingSummaryByReceiverId(
-    receiverId,
-  );
+  return reviewRepository.getReviewsByReceiverId(receiverId, query);
+}
 
-  return { reviews, ratingSummary };
+export async function getReviewsForFreelancer(freelancerID, query = {}) {
+  const receiverId = coercePositiveInt(freelancerID, "freelancer ID");
+  return reviewRepository.getReviewsByReceiverId(receiverId, query);
+}
+
+export async function getAverageRating(freelancerID) {
+  const receiverId = coercePositiveInt(freelancerID, "freelancer ID");
+  return reviewRepository.getAverageRatingByReceiverId(receiverId);
+}
+
+export async function getReviewStats(freelancerID) {
+  const receiverId = coercePositiveInt(freelancerID, "freelancer ID");
+  return reviewRepository.getRatingStatsByReceiverId(receiverId);
+}
+
+export async function updateReview(reviewID, userID, payload) {
+  const reviewerId = coercePositiveInt(userID, "user ID");
+  const validated = validate(reviewSchemas.update, payload ?? {});
+  const review = await reviewRepository.getReviewById(reviewID);
+
+  if (!review) {
+    throw notFoundError("Review not found.");
+  }
+  if (review.reviewerID !== reviewerId) {
+    throw forbiddenError("You can only update your own review.");
+  }
+
+  return reviewRepository.updateReviewById(reviewID, validated);
+}
+
+export async function deleteReview(reviewID, userID) {
+  const reviewerId = coercePositiveInt(userID, "user ID");
+  const review = await reviewRepository.getReviewById(reviewID);
+  if (!review) {
+    throw notFoundError("Review not found.");
+  }
+  if (review.reviewerID !== reviewerId) {
+    throw forbiddenError("You can only delete your own review.");
+  }
+
+  return reviewRepository.softDeleteReview(reviewID);
 }

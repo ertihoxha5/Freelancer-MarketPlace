@@ -1,5 +1,9 @@
 import * as reviewService from "../services/reviewService.js";
-import { validatedBody, validatedParams } from "../middleware/validateRequest.js";
+import {
+  validatedBody,
+  validatedParams,
+  validatedQuery,
+} from "../middleware/validateRequest.js";
 
 function roleFromRequest(req) {
   return Number(req.user?.roleID) === 2 ? "client" : "freelancer";
@@ -28,8 +32,74 @@ export async function createReview(req, res, next) {
 
 export async function getMyReceivedReviews(req, res, next) {
   try {
-    const result = await reviewService.getMyReceivedReviews(req.user.id);
+    const result = await reviewService.getMyReceivedReviews(
+      req.user.id,
+      validatedQuery(req),
+    );
     return res.status(200).json(result);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}
+
+export async function getReviewsForFreelancer(req, res, next) {
+  try {
+    const { id } = validatedParams(req);
+    const result = await reviewService.getReviewsForFreelancer(
+      id,
+      validatedQuery(req),
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}
+
+export async function getReviewStats(req, res, next) {
+  try {
+    const { id } = validatedParams(req);
+    const result = await reviewService.getReviewStats(id);
+    return res.status(200).json(result);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}
+
+export async function updateReview(req, res, next) {
+  try {
+    const { id } = validatedParams(req);
+    const review = await reviewService.updateReview(
+      id,
+      req.user.id,
+      validatedBody(req),
+    );
+    return res
+      .status(200)
+      .json({ message: "Review updated successfully.", review });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}
+
+export async function deleteReview(req, res, next) {
+  try {
+    const { id } = validatedParams(req);
+    const result = await reviewService.deleteReview(id, req.user.id);
+    return res
+      .status(200)
+      .json({ message: "Review deleted successfully.", result });
   } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({ message: err.message });
