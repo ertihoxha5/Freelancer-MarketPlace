@@ -2,9 +2,12 @@ import { z } from "zod";
 import { strongPasswordSchema } from "./password.js";
 
 const trimmedString = (label, max) => {
-  let schema = z.string({ error: `${label} is required.` }).trim().min(1, {
-    message: `${label} is required.`,
-  });
+  let schema = z
+    .string({ error: `${label} is required.` })
+    .trim()
+    .min(1, {
+      message: `${label} is required.`,
+    });
   if (max) {
     schema = schema.max(max, {
       message: `${label} must be ${max} characters or fewer.`,
@@ -31,7 +34,9 @@ export const positiveIntSchema = (label) =>
 const nullablePositiveMoney = (label) =>
   z
     .union([z.coerce.number(), z.literal(""), z.null(), z.undefined()])
-    .transform((value) => (value === "" || value == null ? null : Number(value)))
+    .transform((value) =>
+      value === "" || value == null ? null : Number(value),
+    )
     .refine((value) => value == null || value >= 0, {
       message: `${label} must be a non-negative number.`,
     });
@@ -39,7 +44,9 @@ const nullablePositiveMoney = (label) =>
 const nullablePositiveInt = (label) =>
   z
     .union([z.coerce.number(), z.literal(""), z.null(), z.undefined()])
-    .transform((value) => (value === "" || value == null ? null : Number(value)))
+    .transform((value) =>
+      value === "" || value == null ? null : Number(value),
+    )
     .refine((value) => value == null || Number.isInteger(value), {
       message: `${label} must be an integer.`,
     })
@@ -50,9 +57,12 @@ const nullablePositiveInt = (label) =>
 const nullableDateString = z
   .union([z.string().trim(), z.literal(""), z.null(), z.undefined()])
   .transform((value) => (value === "" || value == null ? null : value))
-  .refine((value) => value == null || !Number.isNaN(new Date(value).getTime()), {
-    message: "Date is invalid.",
-  });
+  .refine(
+    (value) => value == null || !Number.isNaN(new Date(value).getTime()),
+    {
+      message: "Date is invalid.",
+    },
+  );
 
 export const paramSchemas = {
   id: z.object({ id: positiveIntSchema("id") }),
@@ -137,7 +147,10 @@ export const authSchemas = {
     refreshToken: z.string().min(1).max(256).optional(),
   }),
   changePassword: z.object({
-    currentPassword: z.string().min(1, "Current password is required.").max(128),
+    currentPassword: z
+      .string()
+      .min(1, "Current password is required.")
+      .max(128),
     newPassword: strongPasswordSchema,
   }),
   verifyEmail: z.object({
@@ -193,6 +206,31 @@ export const catalogSchemas = {
   }),
 };
 
+const skillCategoryEnum = z.enum(["freelancer", "designer", "developer"]);
+
+export const skillSchemas = {
+  create: z.object({
+    skillName: trimmedString("skillName", 50).min(
+      3,
+      "Skill name must be at least 3 characters.",
+    ),
+    description: optionalTrimmedString(200, "description"),
+    category: skillCategoryEnum,
+  }),
+  update: z
+    .object({
+      skillName: trimmedString("skillName", 50)
+        .min(3, "Skill name must be at least 3 characters.")
+        .optional(),
+      description: optionalTrimmedString(200, "description").optional(),
+      category: skillCategoryEnum.optional(),
+      isActive: z.coerce.boolean().optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+      message: "At least one field is required.",
+    }),
+};
+
 export const chatSchemas = {
   projectConversation: z.object({
     projectID: positiveIntSchema("project ID"),
@@ -202,7 +240,12 @@ export const chatSchemas = {
   }),
 };
 
-const skillLevelEnum = z.enum(["beginner", "intermediate", "advanced", "expert"]);
+const skillLevelEnum = z.enum([
+  "beginner",
+  "intermediate",
+  "advanced",
+  "expert",
+]);
 
 export const profileSchemas = {
   update: z
@@ -318,9 +361,7 @@ export const importSchemas = {
 export const paymentSchemas = {
   createIntent: z.object({
     contractID: positiveIntSchema("contract ID"),
-    amount: z.coerce
-      .number()
-      .positive("Amount must be greater than zero."),
+    amount: z.coerce.number().positive("Amount must be greater than zero."),
     milestoneID: positiveIntSchema("milestone ID").optional(),
     description: z.string().trim().max(500).optional(),
   }),
