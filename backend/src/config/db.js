@@ -288,6 +288,100 @@ async function ensureBusinessEntitySchema(pool) {
   `);
 }
 
+async function ensureMilestoneSchema(pool) {
+  if (!(await columnExists(pool, "Milestones", "projectID"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD COLUMN projectID INT NULL AFTER contractID
+    `);
+  }
+
+  if (!(await columnExists(pool, "Milestones", "projectPhase"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD COLUMN projectPhase JSON NULL AFTER projectID
+    `);
+  }
+
+  if (!(await columnExists(pool, "Milestones", "deadline"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD COLUMN deadline DATETIME NULL AFTER dueDate
+    `);
+  }
+
+  if (!(await columnExists(pool, "Milestones", "budget"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD COLUMN budget DECIMAL(12,2) NULL AFTER deadline
+    `);
+  }
+
+  if (!(await columnExists(pool, "Milestones", "status"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD COLUMN status ENUM('pending', 'in_progress', 'completed', 'overdue')
+      NOT NULL DEFAULT 'pending' AFTER budget
+    `);
+  }
+
+  if (!(await columnExists(pool, "Milestones", "completionDate"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD COLUMN completionDate DATETIME NULL AFTER status
+    `);
+  }
+
+  if (!(await columnExists(pool, "Milestones", "comments"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD COLUMN comments TEXT NULL AFTER completionDate
+    `);
+  }
+
+  if (!(await columnExists(pool, "Milestones", "attachments"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD COLUMN attachments JSON NULL AFTER comments
+    `);
+  }
+
+  await pool.query(`
+    UPDATE Milestones
+    SET projectPhase = COALESCE(projectPhase, JSON_ARRAY()),
+        attachments = COALESCE(attachments, JSON_ARRAY()),
+        budget = COALESCE(budget, amountPayable),
+        deadline = COALESCE(deadline, dueDate),
+        status = CASE
+          WHEN status = 'completed' THEN 'completed'
+          WHEN dueDate IS NOT NULL AND dueDate < UTC_DATE() THEN 'overdue'
+          ELSE COALESCE(status, 'pending')
+        END
+  `);
+
+  if (!(await indexExists(pool, "Milestones", "idx_milestones_project_deadline"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD INDEX idx_milestones_project_deadline (projectID, deadline)
+    `);
+  }
+
+  if (!(await indexExists(pool, "Milestones", "idx_milestones_status_deadline"))) {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD INDEX idx_milestones_status_deadline (status, deadline)
+    `);
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE Milestones
+      ADD CONSTRAINT fk_milestones_project
+      FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE SET NULL
+    `);
+  } catch {}
+}
+
 async function ensurePaymentSchema(pool) {
   let paymentTableExists = await tableExists(pool, "Payment");
   const hasStripeColumn = paymentTableExists
@@ -393,6 +487,7 @@ try {
   await ensureChatSchema(db);
   await ensureContractSchema(db);
   await ensureBusinessEntitySchema(db);
+  await ensureMilestoneSchema(db);
   await ensurePaymentSchema(db);
   await ensureFullTextIndexes(db);
 } catch (err) {

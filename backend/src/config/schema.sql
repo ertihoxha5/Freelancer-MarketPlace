@@ -284,12 +284,23 @@ CREATE TABLE IF NOT EXISTS Milestones(
     mDesc VARCHAR(255) NOT NULL,
     amountPayable DECIMAL(10,2) NOT NULL,
     dueDate DATE,
+    projectID INT NULL,
+    projectPhase JSON NULL,
+    deadline DATETIME NULL,
+    budget DECIMAL(12,2) NULL,
+    status ENUM('pending', 'in_progress', 'completed', 'overdue') NOT NULL DEFAULT 'pending',
+    completionDate DATETIME NULL,
+    comments TEXT NULL,
+    attachments JSON NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     contractID INT NOT NULL,
     mStatus ENUM('pending', 'in_progress', 'submitted', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
     
-    FOREIGN KEY (contractID) REFERENCES Contracts(id)
+    FOREIGN KEY (contractID) REFERENCES Contracts(id),
+    FOREIGN KEY (projectID) REFERENCES Project(id),
+    INDEX idx_milestones_project_deadline (projectID, deadline),
+    INDEX idx_milestones_status_deadline (status, deadline)
 );
 
 CREATE TABLE IF NOT EXISTS Payment(

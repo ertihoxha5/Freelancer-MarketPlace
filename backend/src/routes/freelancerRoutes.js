@@ -80,11 +80,33 @@ router.get(
   validateRequest({ params: paramSchemas.contractId }),
   milestoneController.getMilestones,
 );
+router.get(
+  "/projects/:projectID/milestones",
+  validateRequest({
+    params: paramSchemas.projectID,
+    query: querySchemas.milestoneList,
+  }),
+  milestoneController.getProjectMilestones,
+);
+router.get(
+  "/my-milestones",
+  validateRequest({ query: querySchemas.milestoneList }),
+  milestoneController.getFreelancerMilestones,
+);
+router.get(
+  "/projects",
+  validateRequest({ query: querySchemas.milestoneList }),
+  milestoneController.getFreelancerProjectsWithMilestones,
+);
+router.get(
+  "/milestones/overdue",
+  milestoneController.getOverdueMilestones,
+);
 router.patch(
   "/milestones/:id/status",
   validateRequest({
     params: paramSchemas.id,
-    body: milestoneSchemas.status,
+    body: milestoneSchemas.statusFlexible,
   }),
   milestoneController.updateMilestoneStatus,
 );

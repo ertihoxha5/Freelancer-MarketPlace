@@ -12,6 +12,7 @@ import {
   profileSchemas,
   projectSchemas,
   proposalSchemas,
+  querySchemas,
   reviewSchemas,
 } from "../validation/schemas.js";
 
@@ -76,7 +77,7 @@ router.patch(
   "/milestones/:id/status",
   validateRequest({
     params: paramSchemas.id,
-    body: milestoneSchemas.status,
+    body: milestoneSchemas.statusFlexible,
   }),
   milestoneController.updateMilestoneStatus,
 );

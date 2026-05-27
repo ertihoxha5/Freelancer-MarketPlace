@@ -503,6 +503,14 @@ export async function getContractByProjectId(projectID) {
   return rows[0] ?? null;
 }
 
+export async function getFreelancerContractByProjectId(projectID, freelancerID) {
+  const [rows] = await db.execute(
+    `${contractSelectSql("WHERE p.id = ? AND c.freelancerID = ?")} ORDER BY c.id DESC LIMIT 1`,
+    [projectID, freelancerID],
+  );
+  return rows[0] ?? null;
+}
+
 export async function updateContractStatus(contractID, cStatus) {
   const endDateSql = cStatus === "completed" || cStatus === "terminated"
     ? ", endDate = COALESCE(endDate, CURDATE())"

@@ -31,6 +31,45 @@ function coercePositiveInt(value, label) {
   return num;
 }
 
+function nowUtcIso() {
+  return new Date().toISOString();
+}
+
+function isPastDate(value) {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  return date.getTime() < Date.now();
+}
+
+function normalizeMilestoneRow(milestone) {
+  let parsedPhase = milestone.projectPhase ?? [];
+  let parsedAttachments = milestone.attachments ?? [];
+  try {
+    if (typeof milestone.projectPhase === "string") {
+      parsedPhase = JSON.parse(milestone.projectPhase || "[]");
+    }
+    if (typeof milestone.attachments === "string") {
+      parsedAttachments = JSON.parse(milestone.attachments || "[]");
+    }
+  } catch {
+    parsedPhase = [];
+    parsedAttachments = [];
+  }
+
+  const computedStatus =
+    milestone.status !== "completed" && isPastDate(milestone.deadline)
+      ? "overdue"
+      : milestone.status;
+
+  return {
+    ...milestone,
+    projectPhase: Array.isArray(parsedPhase) ? parsedPhase : [],
+    attachments: Array.isArray(parsedAttachments) ? parsedAttachments : [],
+    status: computedStatus,
+  };
+}
+
 async function getContractForActor(contractID, userID, role) {
   const contractId = coercePositiveInt(contractID, "contract ID");
   const userId = coercePositiveInt(userID, "user ID");
@@ -101,6 +140,14 @@ export async function createMilestone(contractID, clientID, payload) {
     amountPayable: amount,
     dueDate,
     contractID: contract.id,
+    projectID: contract.projectID,
+    projectPhase: [],
+    deadline: dueDate || null,
+    budget: amount,
+    status: "pending",
+    completionDate: null,
+    comments: null,
+    attachments: [],
   });
 
   notifyParties(contract, {
@@ -112,14 +159,159 @@ export async function createMilestone(contractID, clientID, payload) {
   return milestone;
 }
 
+export async function createProjectMilestone(projectID, freelancerID, payload) {
+  const projectId = coercePositiveInt(projectID, "project ID");
+  const freelancerId = coercePositiveInt(freelancerID, "freelancer ID");
+  const contract = await projectRepository.getFreelancerContractByProjectId(
+    projectId,
+    freelancerId,
+  );
+
+  if (!contract) {
+    throw forbiddenError("Only the assigned freelancer can create milestones.");
+  }
+
+  const {
+    title,
+    mDesc,
+    projectPhase,
+    budget,
+    deadline,
+    comments,
+    attachments,
+  } = validate(milestoneSchemas.projectCreate, payload ?? {});
+
+  if (Number(budget) <= 0) {
+    throw validationError("Milestone budget must be greater than zero.");
+  }
+
+  if (!deadline) {
+    throw validationError("Milestone deadline is required.");
+  }
+
+  const due = new Date(deadline);
+  if (Number.isNaN(due.getTime()) || due.getTime() <= Date.now()) {
+    throw validationError("Milestone deadline must be in the future.");
+  }
+
+  const milestone = await milestoneRepository.createMilestone({
+    title,
+    mDesc: mDesc || "",
+    amountPayable: Number(budget),
+    dueDate: deadline,
+    contractID: contract.id,
+    projectID: contract.projectID,
+    projectPhase,
+    deadline,
+    budget: Number(budget),
+    status: "pending",
+    completionDate: null,
+    comments,
+    attachments,
+  });
+
+  return normalizeMilestoneRow(milestone);
+}
+
 export async function getMilestones(contractID, userID, role) {
   const contract = await getContractForActor(contractID, userID, role);
   return milestoneRepository.getMilestonesByContractId(contract.id);
 }
 
+export async function getMilestonesByProject(projectID, userID, query = {}) {
+  const projectId = coercePositiveInt(projectID, "project ID");
+  const userId = coercePositiveInt(userID, "user ID");
+
+  const freelancerContract = await projectRepository.getFreelancerContractByProjectId(
+    projectId,
+    userId,
+  );
+  const clientContract = await projectRepository.getContractByProjectId(projectId);
+  const isProjectClient = Number(clientContract?.clientID) === userId;
+  const isProjectFreelancer = Number(freelancerContract?.freelancerID) === userId;
+
+  if (!isProjectClient && !isProjectFreelancer) {
+    throw forbiddenError("You do not have access to this project's milestones.");
+  }
+
+  const milestones = await milestoneRepository.getMilestonesByProjectId(projectId, query);
+  return milestones.map(normalizeMilestoneRow);
+}
+
+export async function getFreelancerMilestones(freelancerID, query = {}) {
+  const freelancerId = coercePositiveInt(freelancerID, "freelancer ID");
+  const rows = await milestoneRepository.getFreelancerMilestones(freelancerId, query);
+  return rows.map(normalizeMilestoneRow);
+}
+
+export async function calculateProjectProgress(projectID, userID) {
+  const milestones = await getMilestonesByProject(projectID, userID, {});
+  const total = milestones.length;
+  const completed = milestones.filter((item) => item.status === "completed").length;
+  const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+  return { projectID: Number(projectID), total, completed, progress };
+}
+
+export async function getFreelancerProjectsWithMilestones(freelancerID, query = {}) {
+  const milestones = await getFreelancerMilestones(freelancerID, query);
+  const grouped = milestones.reduce((acc, item) => {
+    const key = String(item.projectID || "unknown");
+    if (!acc[key]) {
+      acc[key] = {
+        projectID: item.projectID,
+        projectTitle: item.projectTitle,
+        projectStatus: item.projectStatus,
+        milestones: [],
+      };
+    }
+    acc[key].milestones.push(item);
+    return acc;
+  }, {});
+
+  const projects = Object.values(grouped).map((project) => {
+    const total = project.milestones.length;
+    const completed = project.milestones.filter(
+      (item) => item.status === "completed",
+    ).length;
+    return {
+      ...project,
+      progress: total === 0 ? 0 : Math.round((completed / total) * 100),
+    };
+  });
+
+  const reminders = milestones
+    .filter(
+      (item) =>
+        item.status !== "completed" &&
+        item.deadline &&
+        new Date(item.deadline).getTime() - Date.now() <= 2 * 24 * 60 * 60 * 1000 &&
+        new Date(item.deadline).getTime() > Date.now(),
+    )
+    .map((item) => ({
+      milestoneID: item.id,
+      title: item.title,
+      projectID: item.projectID,
+      projectTitle: item.projectTitle,
+      deadline: item.deadline,
+      reminderType: "upcoming_deadline",
+    }));
+
+  return { projects, reminders };
+}
+
+export async function getOverdueMilestones(freelancerID) {
+  const freelancerId = coercePositiveInt(freelancerID, "freelancer ID");
+  const rows = await milestoneRepository.getOverdueMilestonesByFreelancer(freelancerId);
+  return rows.map(normalizeMilestoneRow);
+}
+
 export async function updateMilestoneStatus(id, userID, role, payload) {
   const milestoneId = coercePositiveInt(id, "milestone ID");
-  const { mStatus } = validate(milestoneSchemas.status, payload ?? {});
+  const parsedPayload = validate(milestoneSchemas.statusFlexible, payload ?? {});
+  const mStatus = parsedPayload.mStatus ?? null;
+  const statusPayload = parsedPayload.status
+    ? validate(milestoneSchemas.statusV2, parsedPayload)
+    : null;
 
   const milestone = await milestoneRepository.getMilestoneById(milestoneId);
   if (!milestone) {
@@ -136,16 +328,24 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     throw conflictError("Only active contracts can change milestones.");
   }
 
-  if (milestone.mStatus === "approved" && mStatus !== "approved") {
+  if (mStatus && milestone.mStatus === "approved" && mStatus !== "approved") {
     throw conflictError("Approved milestones cannot change status.");
   }
 
-  if (role === "freelancer" && !["in_progress", "submitted"].includes(mStatus)) {
+  if (!mStatus && role === "freelancer") {
+    throw forbiddenError("Freelancers must provide mStatus for updates.");
+  }
+
+  if (role === "freelancer" && mStatus && !["in_progress", "submitted"].includes(mStatus)) {
     throw forbiddenError("Freelancers can only start or submit milestones.");
   }
 
   if (role === "freelancer" && milestone.mStatus === "approved") {
     throw conflictError("Approved milestones cannot be submitted again.");
+  }
+
+  if (!mStatus && statusPayload && role !== "client") {
+    throw forbiddenError("Only clients can update project milestone status.");
   }
 
   if (role === "freelancer" && mStatus === "in_progress" && milestone.mStatus !== "pending") {
@@ -156,23 +356,38 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     throw conflictError("Only in-progress or rejected milestones can be submitted.");
   }
 
-  if (role === "client" && !["pending", "in_progress", "approved", "rejected"].includes(mStatus)) {
+  if (
+    role === "client" &&
+    mStatus &&
+    !["pending", "in_progress", "approved", "rejected"].includes(mStatus)
+  ) {
     throw forbiddenError("Clients can approve, reject, or manage milestone progress.");
   }
 
-  if (role === "client" && ["approved", "rejected"].includes(mStatus)) {
+  if (role === "client" && mStatus && ["approved", "rejected"].includes(mStatus)) {
     if (!["submitted", "in_progress"].includes(milestone.mStatus)) {
       throw conflictError("Only submitted milestones can be approved or rejected.");
     }
   }
 
-  const updated = await milestoneRepository.updateMilestoneStatus(
-    milestoneId,
-    mStatus,
-  );
+  const updated = mStatus
+    ? await milestoneRepository.updateMilestoneStatus(milestoneId, mStatus)
+    : await milestoneRepository.getMilestoneById(milestoneId);
 
   if (!updated) {
     throw notFoundError("Milestone not found.");
+  }
+
+  if (role === "client" && statusPayload) {
+    const completionDate =
+      statusPayload.status === "completed"
+        ? statusPayload.completionDate || nowUtcIso()
+        : null;
+    await milestoneRepository.updateMilestoneProjectStatus(milestoneId, {
+      status: statusPayload.status,
+      completionDate,
+      comments: statusPayload.comments ?? null,
+    });
   }
 
   if (mStatus === "submitted") {
@@ -289,7 +504,8 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     }).catch(() => {});
   }
 
-  return updated;
+  const refreshed = await milestoneRepository.getMilestoneById(milestoneId);
+  return normalizeMilestoneRow(refreshed ?? updated);
 }
 
 export async function deleteMilestone(id, clientID) {

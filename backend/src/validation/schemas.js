@@ -144,6 +144,16 @@ export const querySchemas = {
     maxBudget: z.coerce.number().nonnegative().optional(),
     sort: z.string().trim().max(50).optional(),
   }),
+  milestoneList: z.object({
+    status: z
+      .enum(["pending", "in_progress", "completed", "overdue"])
+      .optional(),
+    from: nullableDateString.optional(),
+    to: nullableDateString.optional(),
+    sortBy: z.enum(["deadline", "createdAt"]).optional().default("deadline"),
+    sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
+    groupBy: z.enum(["project"]).optional(),
+  }),
 };
 
 export const authSchemas = {
@@ -333,6 +343,38 @@ export const milestoneSchemas = {
       .positive("Milestone amount must be greater than zero."),
     dueDate: nullableDateString,
   }),
+  projectCreate: z.object({
+    title: trimmedString("Milestone title", 100),
+    mDesc: optionalTrimmedString(1000, "Milestone description").default(""),
+    projectPhase: z
+      .array(trimmedString("Project phase", 100))
+      .max(30, "At most 30 project phases are allowed.")
+      .optional()
+      .default([]),
+    budget: z.coerce.number().positive("Milestone budget must be greater than zero."),
+    deadline: nullableDateString,
+    comments: optionalTrimmedString(2000, "Comments").optional().default(null),
+    attachments: z.array(z.string().trim().max(500)).optional().default([]),
+  }),
+  statusV2: z.object({
+    status: z.enum(["pending", "in_progress", "completed", "overdue"]),
+    comments: optionalTrimmedString(2000, "Comments").optional(),
+    completionDate: nullableDateString.optional(),
+  }),
+  statusFlexible: z
+    .object({
+      mStatus: z
+        .enum(["pending", "in_progress", "submitted", "approved", "rejected"])
+        .optional(),
+      status: z
+        .enum(["pending", "in_progress", "completed", "overdue"])
+        .optional(),
+      comments: optionalTrimmedString(2000, "Comments").optional(),
+      completionDate: nullableDateString.optional(),
+    })
+    .refine((data) => Boolean(data.mStatus || data.status), {
+      message: "Either mStatus or status is required.",
+    }),
   status: z.object({
     mStatus: z.enum([
       "pending",
