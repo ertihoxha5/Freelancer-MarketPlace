@@ -1,6 +1,80 @@
 export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 const TOKEN_KEY = "accessToken";
 
+let cachedCsrfToken = null;
+
+export function clearCsrfToken() {
+  cachedCsrfToken = null;
+}
+
+/** Fetch and cache CSRF token (required for POST /api/auth/*). */
+export async function ensureCsrfToken() {
+  if (cachedCsrfToken) return cachedCsrfToken;
+
+  const res = await fetch(`${API_BASE}/api/auth/csrf-token`, {
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      data.message || data.error || `Failed to obtain CSRF token (${res.status})`,
+    );
+  }
+  if (!data.csrfToken) {
+    throw new Error("Failed to obtain CSRF token.");
+  }
+  cachedCsrfToken = data.csrfToken;
+  return cachedCsrfToken;
+}
+
+async function csrfJsonHeaders() {
+  const token = await ensureCsrfToken();
+  return {
+    "Content-Type": "application/json",
+    "X-CSRF-Token": token,
+  };
+}
+
+/** POST/PATCH/DELETE to /api/auth/* with CSRF + cookies. */
+async function authPost(url, options = {}) {
+  const headers = await csrfJsonHeaders();
+  let res = await fetch(url, {
+    ...options,
+    credentials: "include",
+    headers: {
+      ...headers,
+      ...options.headers,
+    },
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (res.status === 403 && data.message?.includes("CSRF")) {
+    clearCsrfToken();
+    const retryHeaders = await csrfJsonHeaders();
+    res = await fetch(url, {
+      ...options,
+      credentials: "include",
+      headers: {
+        ...retryHeaders,
+        ...options.headers,
+      },
+    });
+    const retryData = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(
+        retryData.message || retryData.error || `Request failed (${res.status})`,
+      );
+    }
+    return retryData;
+  }
+
+  if (!res.ok) {
+    throw new Error(data.message || data.error || `Request failed (${res.status})`);
+  }
+  return data;
+}
+
 export function setAccessToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
 }
@@ -28,6 +102,7 @@ export function clearRefreshToken() {
 export function clearAuthTokens() {
   clearAccessToken();
   clearRefreshToken();
+  clearCsrfToken();
 }
 
 export function authHeaders() {
@@ -78,63 +153,24 @@ async function authedFetch(url, options = {}) {
  * Accepts payload and registers user
  */
 export async function registerUser(payload) {
-  const res = await fetch(`${API_BASE}/api/auth/register`, {
+  return authPost(`${API_BASE}/api/auth/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Registration failed (${res.status})`,
-    );
-  }
-  return data;
-}
-
-export async function verifyEmail(token) {
-  const res = await fetch(`${API_BASE}/api/auth/verify-email`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Verification failed (${res.status})`,
-    );
-  }
-  return data;
 }
 
 export async function requestPasswordReset(email) {
-  const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+  return authPost(`${API_BASE}/api/auth/forgot-password`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Request failed (${res.status})`,
-    );
-  }
-  return data;
 }
 
 export async function resetPassword(payload) {
-  const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+  return authPost(`${API_BASE}/api/auth/reset-password`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Password reset failed (${res.status})`,
-    );
-  }
-  return data;
 }
 
 /**
@@ -143,10 +179,16 @@ export async function resetPassword(payload) {
  */
 
 export async function changeUserPassword(payload) {
-  return authedFetch(`${API_BASE}/api/auth/changePassword`, {
+  const headers = await csrfJsonHeaders();
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const data = await authPost(`${API_BASE}/api/auth/changePassword`, {
     method: "POST",
+    headers,
     body: JSON.stringify(payload),
   });
+  return data;
 }
 
 /**
@@ -154,18 +196,10 @@ export async function changeUserPassword(payload) {
  * accepts payload and attempts login
  */
 export async function login(payload) {
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
+  const data = await authPost(`${API_BASE}/api/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify(payload),
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      data.message || data.error || `Login failed (${res.status})`,
-    );
-  }
   if (data.token) {
     setAccessToken(data.token);
   }
@@ -176,33 +210,33 @@ export async function login(payload) {
  * POST /api/auth/refresh — rotates the HttpOnly refresh-token cookie.
  */
 export async function refreshSession() {
-  const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
+  try {
+    const data = await authPost(`${API_BASE}/api/auth/refresh`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    if (data.token) {
+      setAccessToken(data.token);
+    }
+    return data;
+  } catch (err) {
     clearAuthTokens();
-    throw new Error(
-      data.message || data.error || `Refresh failed (${res.status})`,
-    );
+    throw err;
   }
-  if (data.token) {
-    setAccessToken(data.token);
-  }
-  return data;
 }
 
 /**
  * POST /api/auth/logout — revokes refresh token server-side and clears cookie.
  */
 export async function logout() {
-  await fetch(`${API_BASE}/api/auth/logout`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-  }).catch(() => {});
+  try {
+    await authPost(`${API_BASE}/api/auth/logout`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  } catch {
+    /* ignore logout errors */
+  }
   clearAuthTokens();
 }
 

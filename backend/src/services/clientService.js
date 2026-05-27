@@ -3,6 +3,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "node:crypto";
 import * as projectRepository from "../repositories/projectRepository.js";
+import * as userRepository from "../repositories/userRepository.js";
+import { sendFreelancerAcceptedEmail } from "./emailService.js";
 import * as auditRepository from "../repositories/auditRepository.js";
 import * as profileRepository from "../repositories/profileRepository.js";
 import * as fileRepository from "../repositories/fileRepository.js";
@@ -210,6 +212,25 @@ export async function updateMyApplicationStatus(
     }).catch(() => {});
 
     if (propStatus === "accepted" && contract) {
+      userRepository
+        .findUserContactById(existing.freelancerID)
+        .then((freelancer) => {
+          if (!freelancer?.email) return;
+          return sendFreelancerAcceptedEmail({
+            email: freelancer.email,
+            fullName: freelancer.fullName,
+            projectTitle,
+            contractID: contract.id,
+            totalAmount: contract.totalAmount ?? existing.bidAmount ?? null,
+          });
+        })
+        .catch((err) => {
+          console.error(
+            "[client] acceptance email failed:",
+            err?.message || err,
+          );
+        });
+
       const io = getIO();
       if (io) {
         const payload = {

@@ -34,6 +34,17 @@ export async function findActiveAuthUserById(id) {
     return findUserWithRoleById(id);
 }
 
+export async function findUserContactById(id) {
+    const [rows] = await db.execute(
+        `SELECT id, email, fullName
+         FROM Users
+         WHERE id = ? AND isActive = TRUE
+         LIMIT 1`,
+        [id],
+    );
+    return rows[0] ?? null;
+}
+
 export async function findUserWithPasswordById(id) {
     const [rows] = await db.execute(
         `SELECT id, email, passwordHash
@@ -51,7 +62,9 @@ export async function createUserWithRole({ email, passwordHash, fullName, roleID
     try {
         await conn.beginTransaction();
         const [result] = await conn.execute(
-            'INSERT INTO Users (email, passwordHash, fullName) VALUES (?, ?, ?)', [email, passwordHash, fullName]
+            `INSERT INTO Users (email, passwordHash, fullName, emailVerified, emailVerifiedAt)
+             VALUES (?, ?, ?, TRUE, NOW())`,
+            [email, passwordHash, fullName],
         );
         const userID = result.insertId;
         await conn.execute('INSERT INTO UserRole (userID, roleID) VALUES (?, ?)', [userID, roleID]);

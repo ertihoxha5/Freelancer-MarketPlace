@@ -1,6 +1,8 @@
 export {
   changeUserPassword,
   clearAuthTokens,
+  clearCsrfToken,
+  ensureCsrfToken,
   fetchCurrentUser,
   getAccessToken,
   login,
@@ -10,5 +12,4 @@ export {
   requestPasswordReset,
   resetPassword,
   setAccessToken,
-  verifyEmail,
 } from "../apiServices.js";

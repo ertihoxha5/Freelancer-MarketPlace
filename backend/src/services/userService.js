@@ -3,10 +3,7 @@ import bcrypt from "bcryptjs";
 import * as userRepository from "../repositories/userRepository.js";
 import * as refreshTokenRepository from "../repositories/refreshTokenRepository.js";
 import * as emailTokenRepository from "../repositories/emailTokenRepository.js";
-import {
-  sendPasswordResetEmail,
-  sendVerificationEmail,
-} from "./emailService.js";
+import { sendPasswordResetEmail } from "./emailService.js";
 import { signAccessToken } from "../utils/jwt.js";
 import { pushToAllAdmins } from "./notificationService.js";
 import { validate } from "../validation/validate.js";
@@ -102,35 +99,7 @@ export async function registerUser(input) {
     msg: `${nameNorm} joined as a ${roleName} (${emailNorm}).`,
   }).catch(() => {});
 
-  try {
-    const token = await issueEmailToken(result.userID, "email_verification");
-    await sendVerificationEmail(emailNorm, nameNorm, token);
-  } catch (err) {
-    console.error("[registerUser] Failed to send verification email:", err.message);
-  }
-
-  return { ...result, emailVerificationSent: true };
-}
-
-/**
- * @param {{ token: string }} input
- */
-export async function verifyEmail(input) {
-  const { token } = validate(authSchemas.verifyEmail, input ?? {});
-  const tokenHash = emailTokenRepository.hashEmailToken(token);
-  const row = await emailTokenRepository.findValidEmailTokenByHash(
-    tokenHash,
-    "email_verification",
-  );
-
-  if (!row) {
-    throw validationError("Invalid or expired verification link.");
-  }
-
-  await userRepository.setEmailVerified(row.userID);
-  await emailTokenRepository.markEmailTokenUsed(row.id);
-
-  return { ok: true, message: "Email verified successfully. You can now sign in." };
+  return result;
 }
 
 /**
@@ -250,12 +219,6 @@ export async function loginUser(input) {
   if (!match) {
     recordFailedLogin(emailNorm);
     throw unauthorized(isAccountLocked(emailNorm) ? getLockoutMessage(emailNorm) : undefined);
-  }
-
-  if (!user.emailVerified) {
-    throw unauthorized(
-      "Please verify your email before signing in. Check your inbox for the verification link.",
-    );
   }
 
   clearFailedLogins(emailNorm);

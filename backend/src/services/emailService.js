@@ -20,7 +20,10 @@ function createTransport() {
   });
 }
 
-function baseTemplate({ title, bodyHtml, ctaLabel, ctaUrl }) {
+function baseTemplate({ title, bodyHtml, ctaLabel, ctaUrl, footerNote }) {
+  const footer =
+    footerNote ??
+    "You received this email because of activity on your Freelancer Marketplace account.";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,7 +53,7 @@ function baseTemplate({ title, bodyHtml, ctaLabel, ctaUrl }) {
                   : ""
               }
               <p style="margin:28px 0 0;font-size:13px;color:#64748b;line-height:1.6;">
-                If you did not request this email, you can safely ignore it. This link expires in 24 hours.
+                ${footer}
               </p>
             </td>
           </tr>
@@ -85,27 +88,95 @@ async function sendMail({ to, subject, html }) {
   return true;
 }
 
+function formatUsdFromCents(cents) {
+  return `$${(Number(cents) / 100).toFixed(2)}`;
+}
+
 /**
- * @param {string} email
- * @param {string} fullName
- * @param {string} token Raw verification token (sent in link, stored hashed in DB)
+ * Email freelancer when their proposal is accepted.
  */
-export async function sendVerificationEmail(email, fullName, token) {
-  const verifyUrl = `${FRONTEND_URL}/verify-email?token=${encodeURIComponent(token)}`;
+export async function sendFreelancerAcceptedEmail({
+  email,
+  fullName,
+  projectTitle,
+  contractID,
+  totalAmount,
+}) {
+  const contractsUrl = `${FRONTEND_URL}/freelancer/contracts`;
+  const amountLine =
+    totalAmount != null
+      ? `<p style="margin:12px 0 0;font-size:16px;color:#334155;"><strong>Vlera e kontratës:</strong> $${Number(totalAmount).toFixed(2)}</p>`
+      : "";
+
   const html = baseTemplate({
-    title: "Verify your email",
+    title: "Aplikimi juaj u pranua",
     bodyHtml: `<p style="margin:0 0 12px;font-size:16px;color:#334155;line-height:1.6;">
-        Hi ${fullName},</p>
+        Përshëndetje ${fullName},</p>
       <p style="margin:0;font-size:16px;color:#334155;line-height:1.6;">
-        Thanks for joining Freelancer Marketplace. Please confirm your email address to activate your account and sign in.
-      </p>`,
-    ctaLabel: "Verify email",
-    ctaUrl: verifyUrl,
+        Urime! Aplikimi juaj për projektin <strong>${projectTitle}</strong> u pranua.
+        Kontrata #${contractID} është aktive — mund të filloni punën.
+      </p>
+      ${amountLine}`,
+    ctaLabel: "Shiko kontratat",
+    ctaUrl: contractsUrl,
   });
 
   return sendMail({
     to: email,
-    subject: "Verify your Freelancer Marketplace account",
+    subject: `Aplikimi u pranua — ${projectTitle}`,
+    html,
+  });
+}
+
+/**
+ * Email after a successful payment (client + freelancer).
+ */
+export async function sendPaymentConfirmationEmail({
+  email,
+  fullName,
+  role,
+  amountCents,
+  projectTitle,
+  milestoneTitle,
+  isMilestoneHold,
+}) {
+  const dashboardUrl =
+    role === "client"
+      ? `${FRONTEND_URL}/client/contracts`
+      : `${FRONTEND_URL}/freelancer/contracts`;
+
+  const amount = formatUsdFromCents(amountCents);
+  const milestoneLine = milestoneTitle
+    ? `<p style="margin:8px 0 0;font-size:15px;color:#334155;"><strong>Milestone:</strong> ${milestoneTitle}</p>`
+    : "";
+
+  const holdNote = isMilestoneHold
+    ? `<p style="margin:16px 0 0;font-size:14px;color:#64748b;">
+        Fondet mbahen në escrow derisa klienti të aprovojë milestone-in.
+      </p>`
+    : "";
+
+  const roleMessage =
+    role === "client"
+      ? `Pagesa juaj prej <strong>${amount}</strong> për <strong>${projectTitle}</strong> u regjistrua me sukses.`
+      : `Klienti pagoi <strong>${amount}</strong> për <strong>${projectTitle}</strong>.`;
+
+  const html = baseTemplate({
+    title: "Konfirmim pagese",
+    bodyHtml: `<p style="margin:0 0 12px;font-size:16px;color:#334155;line-height:1.6;">
+        Përshëndetje ${fullName},</p>
+      <p style="margin:0;font-size:16px;color:#334155;line-height:1.6;">
+        ${roleMessage}
+      </p>
+      ${milestoneLine}
+      ${holdNote}`,
+    ctaLabel: "Hap panelin",
+    ctaUrl: dashboardUrl,
+  });
+
+  return sendMail({
+    to: email,
+    subject: `Pagesa u krye — ${projectTitle}`,
     html,
   });
 }
@@ -123,6 +194,8 @@ export async function sendPasswordResetEmail(email, token) {
       </p>`,
     ctaLabel: "Reset password",
     ctaUrl: resetUrl,
+    footerNote:
+      "If you did not request a password reset, you can safely ignore this email. This link expires in 24 hours.",
   });
 
   return sendMail({

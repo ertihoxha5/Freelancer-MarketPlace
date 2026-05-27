@@ -39,12 +39,6 @@ router.post(
   userController.register,
 );
 router.post(
-  "/auth/verify-email",
-  csrfProtection,
-  validateRequest({ body: authSchemas.verifyEmail }),
-  userController.verifyEmail,
-);
-router.post(
   "/auth/forgot-password",
   csrfProtection,
   validateRequest({ body: authSchemas.forgotPassword }),

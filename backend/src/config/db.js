@@ -138,14 +138,15 @@ async function ensureUserAuthSchema(pool) {
   if (!(await columnExists(pool, 'Users', 'emailVerified'))) {
     await pool.query(`
       ALTER TABLE Users
-      ADD COLUMN emailVerified BOOLEAN NOT NULL DEFAULT FALSE AFTER isActive,
+      ADD COLUMN emailVerified BOOLEAN NOT NULL DEFAULT TRUE AFTER isActive,
       ADD COLUMN emailVerifiedAt DATETIME NULL AFTER emailVerified
     `);
-    await pool.query(`
-      UPDATE Users SET emailVerified = TRUE, emailVerifiedAt = NOW()
-      WHERE emailVerified = FALSE
-    `);
   }
+
+  await pool.query(`
+    UPDATE Users SET emailVerified = TRUE, emailVerifiedAt = COALESCE(emailVerifiedAt, NOW())
+    WHERE emailVerified = FALSE
+  `);
 
   if (!(await tableExists(pool, 'EmailTokens'))) {
     await pool.query(`

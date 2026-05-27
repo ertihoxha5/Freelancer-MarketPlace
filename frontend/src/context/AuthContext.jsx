@@ -41,6 +41,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    api.ensureCsrfToken().catch(() => {});
     refreshUser();
   }, [refreshUser]);
 

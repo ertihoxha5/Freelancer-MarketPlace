@@ -111,7 +111,7 @@ export async function register(req, res, next) {
             email: result.email,
             fullName: result.fullName,
             roleID: result.roleID,
-            message: 'Account created. Please check your email to verify your address before signing in.',
+            message: 'Account created. You can sign in now.',
         });
     } catch (err) {
         if (err.statusCode) {
@@ -119,18 +119,6 @@ export async function register(req, res, next) {
         }
         if (err.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ message: 'An account with this email already exists.' });
-        }
-        next(err);
-    }
-}
-
-export async function verifyEmail(req, res, next) {
-    try {
-        const result = await userService.verifyEmail(validatedBody(req));
-        return res.status(200).json(result);
-    } catch (err) {
-        if (err.statusCode) {
-            return res.status(err.statusCode).json({ message: err.message });
         }
         next(err);
     }

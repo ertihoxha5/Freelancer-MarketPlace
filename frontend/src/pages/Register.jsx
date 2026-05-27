@@ -51,7 +51,11 @@ function Register() {
     setSubmitting(true);
     try {
       await registerUser(payload);
-      navigate(`/verify-email?email=${encodeURIComponent(payload.email)}`);
+      navigate("/login", {
+        state: {
+          message: "Llogaria u krijua. Mund të hysh tani me email dhe fjalëkalimin tënd.",
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {

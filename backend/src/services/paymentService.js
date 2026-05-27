@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as projectRepository from "../repositories/projectRepository.js";
 import * as milestoneRepository from "../repositories/milestoneRepository.js";
+import * as userRepository from "../repositories/userRepository.js";
+import { sendPaymentConfirmationEmail } from "./emailService.js";
 import { getStripe, isStripeConfigured } from "../utils/stripeClient.js";
 import {
   conflictError,
@@ -110,9 +112,67 @@ async function applyPaymentIntentStatus(paymentIntent) {
 
   if (pStatus === "succeeded") {
     await holdMilestoneFundsOnSuccess(updated);
+    await notifyPaymentSucceeded(updated).catch((err) => {
+      console.error("[payment] payment email failed:", err?.message || err);
+    });
   }
 
   return updated;
+}
+
+async function notifyPaymentSucceeded(payment) {
+  if (!payment || payment.pStatus !== "succeeded") return;
+
+  const contract = await projectRepository.getContractById(payment.contractID);
+  if (!contract) return;
+
+  let milestoneTitle = null;
+  if (payment.milestoneID) {
+    const milestone = await milestoneRepository.getMilestoneById(
+      payment.milestoneID,
+    );
+    milestoneTitle = milestone?.title ?? null;
+  }
+
+  const projectTitle = contract.projectTitle || "Project";
+  const isMilestoneHold = Boolean(payment.milestoneID);
+
+  const [client, freelancer] = await Promise.all([
+    userRepository.findUserContactById(contract.clientID),
+    userRepository.findUserContactById(contract.freelancerID),
+  ]);
+
+  const sends = [];
+
+  if (client?.email) {
+    sends.push(
+      sendPaymentConfirmationEmail({
+        email: client.email,
+        fullName: client.fullName,
+        role: "client",
+        amountCents: payment.amount,
+        projectTitle,
+        milestoneTitle,
+        isMilestoneHold,
+      }),
+    );
+  }
+
+  if (freelancer?.email) {
+    sends.push(
+      sendPaymentConfirmationEmail({
+        email: freelancer.email,
+        fullName: freelancer.fullName,
+        role: "freelancer",
+        amountCents: payment.amount,
+        projectTitle,
+        milestoneTitle,
+        isMilestoneHold,
+      }),
+    );
+  }
+
+  await Promise.allSettled(sends);
 }
 
 /**
