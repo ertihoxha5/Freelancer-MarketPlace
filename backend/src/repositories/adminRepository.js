@@ -1,7 +1,18 @@
 import { db } from '../config/db.js';
+import { validationError } from '../utils/errors.js';
 
 export async function getUsers({ page = 1, limit = 50 } = {}) {
-    const offset = (page - 1) * limit;
+    const currentPage = Number(page);
+    const pageSize = Number(limit);
+
+    if (!Number.isInteger(currentPage) || currentPage < 1) {
+        throw validationError('Invalid page value.');
+    }
+    if (!Number.isInteger(pageSize) || pageSize < 1) {
+        throw validationError('Invalid limit value.');
+    }
+
+    const offset = (currentPage - 1) * pageSize;
     const [rows] = await db.execute(
         `SELECT u.id, u.email, u.fullName, u.createdAt, u.updatedAt, ur.roleID, r.roleName
          FROM Users u
@@ -9,8 +20,7 @@ export async function getUsers({ page = 1, limit = 50 } = {}) {
          INNER JOIN Roles r ON r.id = ur.roleID
          WHERE (r.roleName = 'Freelancer' OR r.roleName = 'Client') AND u.isActive = 1
          ORDER BY u.id ASC
-         LIMIT ? OFFSET ?`,
-        [limit, offset]
+         LIMIT ${pageSize} OFFSET ${offset}`
     );
     const [[{ total }]] = await db.execute(
         `SELECT COUNT(*) as total FROM Users u
@@ -18,7 +28,7 @@ export async function getUsers({ page = 1, limit = 50 } = {}) {
          INNER JOIN Roles r ON r.id = ur.roleID
          WHERE (r.roleName = 'Freelancer' OR r.roleName = 'Client') AND u.isActive = 1`
     );
-    return { users: rows, total, page, limit };
+    return { users: rows, total, page: currentPage, limit: pageSize };
 }
 
 export async function deleteUser(id){

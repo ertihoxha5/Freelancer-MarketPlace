@@ -41,6 +41,8 @@ function buildReviewFilter(receiverID, options = {}) {
   return filter;
 }
 
+// ==================== MAIN FIXES APPLIED ====================
+
 export async function createReview({
   rating,
   title,
@@ -50,17 +52,21 @@ export async function createReview({
   reviewerID,
   receiverID,
 }) {
-  const review = await Review.create({
-    rating,
-    title,
-    comment,
-    tags: tags ?? [],
-    contractID,
-    reviewerID,
-    receiverID,
-  });
-
-  return review.toObject();
+  try {
+    const review = await Review.create({
+      rating,
+      title,
+      comment,
+      tags: tags ?? [],
+      contractID,
+      reviewerID,
+      receiverID,
+    });
+    return review.toObject();
+  } catch (err) {
+    console.error("❌ Error creating review:", err);
+    throw err;
+  }
 }
 
 export async function getReviewById(reviewID) {
@@ -89,19 +95,37 @@ export async function getReviewsByReceiverId(receiverID, options = {}) {
 }
 
 export async function getReviewByContractAndReviewer(contractID, reviewerID) {
-  return Review.findOne({ contractID, reviewerID, deletedAt: null }).lean();
+  try {
+    console.log(`🔍 Checking review for contract ${contractID} by reviewer ${reviewerID}`);
+    
+    const review = await Review.findOne({ 
+      contractID, 
+      reviewerID, 
+      deletedAt: null 
+    }).lean();
+
+    return review;
+  } catch (err) {
+    console.error("❌ Error in getReviewByContractAndReviewer:", err.message);
+    throw err;
+  }
 }
 
 export async function hasReviewedAlready(contractID, reviewerID) {
-  const review = await getReviewByContractAndReviewer(contractID, reviewerID);
-  return Boolean(review);
+  try {
+    const review = await getReviewByContractAndReviewer(contractID, reviewerID);
+    return Boolean(review);
+  } catch (err) {
+    console.error(`❌ hasReviewedAlready failed for contract ${contractID}:`, err.message);
+    return false; // Safe fallback - very important to prevent 500 errors
+  }
 }
 
 export async function updateReviewById(reviewID, updates) {
   const review = await Review.findOneAndUpdate(
     { reviewID, deletedAt: null },
     { $set: updates },
-    { new: true },
+    { new: true }
   );
   return review ? review.toObject() : null;
 }
@@ -110,7 +134,7 @@ export async function softDeleteReview(reviewID) {
   const review = await Review.findOneAndUpdate(
     { reviewID, deletedAt: null },
     { $set: { deletedAt: new Date() } },
-    { new: true },
+    { new: true }
   );
   return review ? review.toObject() : null;
 }
@@ -155,18 +179,8 @@ export async function getRatingStatsByReceiverId(receiverID) {
       acc.total += entry.count;
       return acc;
     },
-    {
-      1: 0,
-      2: 0,
-      3: 0,
-      4: 0,
-      5: 0,
-      total: 0,
-    },
+    { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, total: 0 }
   );
 
-  return {
-    receiverID,
-    stats,
-  };
+  return { receiverID, stats };
 }

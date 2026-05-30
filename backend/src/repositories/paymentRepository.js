@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { validationError } from "../utils/errors.js";
 
 function parseMetadata(row) {
   if (!row) return row;
@@ -87,6 +88,16 @@ export async function updatePaymentStatusByStripeId(
 }
 
 export async function getPaymentHistory(userID, limit = 20, offset = 0) {
+  const pageSize = Number(limit);
+  const pageOffset = Number(offset);
+
+  if (!Number.isInteger(pageSize) || pageSize < 1) {
+    throw validationError("Invalid limit value.");
+  }
+  if (!Number.isInteger(pageOffset) || pageOffset < 0) {
+    throw validationError("Invalid offset value.");
+  }
+
   const [rows] = await db.execute(
     `SELECT p.*,
             c.clientID,
@@ -100,8 +111,8 @@ export async function getPaymentHistory(userID, limit = 20, offset = 0) {
      LEFT JOIN Milestones m ON m.id = p.milestoneID
      WHERE c.clientID = ? OR c.freelancerID = ?
      ORDER BY p.createdAt DESC
-     LIMIT ? OFFSET ?`,
-    [userID, userID, limit, offset],
+     LIMIT ${pageSize} OFFSET ${pageOffset}`,
+    [userID, userID],
   );
   return rows.map(parseMetadata);
 }

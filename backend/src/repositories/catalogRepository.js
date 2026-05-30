@@ -184,6 +184,103 @@ export async function getSkillsInCategory(
   return rows;
 }
 
+export async function getSkills({ includeInactive = false } = {}) {
+  const where = includeInactive ? "1=1" : "s.isActive = TRUE";
+  const [rows] = await db.execute(
+    `SELECT s.id, s.skillName, s.slug, s.isActive, s.createdAt, s.categoryID,
+            c.cName AS categoryName
+     FROM Skills s
+     INNER JOIN Categories c ON c.id = s.categoryID
+     WHERE ${where}
+     ORDER BY s.skillName ASC`,
+  );
+  return rows;
+}
+
+export async function searchSkills(query, { includeInactive = false } = {}) {
+  const normalized = String(query || "").trim();
+  if (!normalized) {
+    return getSkills({ includeInactive });
+  }
+
+  const like = `%${normalized}%`;
+  const whereParts = ["(s.skillName LIKE ? OR s.slug LIKE ? OR c.cName LIKE ?)"];
+  const params = [like, like, like];
+  if (!includeInactive) {
+    whereParts.unshift("s.isActive = TRUE");
+  }
+
+  const [rows] = await db.execute(
+    `SELECT s.id, s.skillName, s.slug, s.isActive, s.createdAt, s.categoryID,
+            c.cName AS categoryName
+     FROM Skills s
+     INNER JOIN Categories c ON c.id = s.categoryID
+     WHERE ${whereParts.join(" AND ")}
+     ORDER BY s.skillName ASC`,
+    params,
+  );
+  return rows;
+}
+
+export async function getSkillById(id, { includeInactive = false } = {}) {
+  const where = includeInactive ? "1=1" : "s.isActive = TRUE";
+  const [rows] = await db.execute(
+    `SELECT s.id, s.skillName, s.slug, s.isActive, s.createdAt, s.categoryID,
+            c.cName AS categoryName
+     FROM Skills s
+     INNER JOIN Categories c ON c.id = s.categoryID
+     WHERE s.id = ? AND ${where}
+     LIMIT 1`,
+    [id],
+  );
+  return rows[0] || null;
+}
+
+export async function findSkillByName(skillName) {
+  const [rows] = await db.execute(
+    `SELECT id FROM Skills WHERE skillName = ? LIMIT 1`,
+    [skillName],
+  );
+  return rows[0] || null;
+}
+
+export async function createSkill({
+  skillName,
+  slug,
+  categoryID,
+  isActive,
+}) {
+  const [result] = await db.execute(
+    `INSERT INTO Skills (skillName, slug, categoryID, isActive)
+     VALUES (?, ?, ?, ?)`,
+    [skillName, slug || null, categoryID, Boolean(isActive)],
+  );
+  return getSkillById(result.insertId, { includeInactive: true });
+}
+
+export async function updateSkill(
+  id,
+  { skillName, slug, categoryID, isActive },
+) {
+  const [result] = await db.execute(
+    `UPDATE Skills
+     SET skillName = ?, slug = ?, categoryID = ?, isActive = ?
+     WHERE id = ?`,
+    [skillName, slug || null, categoryID, Boolean(isActive), id],
+  );
+  return result.affectedRows > 0
+    ? getSkillById(id, { includeInactive: true })
+    : null;
+}
+
+export async function deactivateSkill(id) {
+  const [result] = await db.execute(
+    `UPDATE Skills SET isActive = FALSE WHERE id = ?`,
+    [id],
+  );
+  return result.affectedRows > 0;
+}
+
 export async function updateCategoryOrder(orders) {
   if (!Array.isArray(orders) || !orders.length) {
     return 0;

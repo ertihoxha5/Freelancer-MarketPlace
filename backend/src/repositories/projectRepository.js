@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { validationError } from "../utils/errors.js";
 
 
 export async function getProjectsWithFreelancer() {
@@ -596,9 +597,19 @@ export async function getBrowseProjectsForFreelancer(
   paging = { page: 1, limit: 10 },
 ) {
   const { sort, categoryID, skillIds } = filters;
-  const page = Math.max(1, Number(paging.page) || 1);
-  const limit = Math.min(50, Math.max(1, Number(paging.limit) || 10));
-  const offset = (page - 1) * limit;
+  const page = Number(paging.page) || 1;
+  const limit = Number(paging.limit) || 10;
+
+  if (!Number.isInteger(page) || page < 1) {
+    throw validationError("Invalid page value.");
+  }
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw validationError("Invalid limit value.");
+  }
+
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(50, Math.max(1, limit));
+  const offset = (safePage - 1) * safeLimit;
 
   const joins = `
     FROM Project p
@@ -652,9 +663,9 @@ export async function getBrowseProjectsForFreelancer(
     query += ` ORDER BY p.createdAt DESC`;
   }
 
-  query += ` LIMIT ? OFFSET ?`;
+  query += ` LIMIT ${safeLimit} OFFSET ${offset}`;
 
-  const [rows] = await db.execute(query, [...params, limit, offset]);
+  const [rows] = await db.execute(query, params);
   const [[countRow]] = await db.execute(
     `SELECT COUNT(DISTINCT p.id) AS totalItems ${joins} ${where}`,
     params,

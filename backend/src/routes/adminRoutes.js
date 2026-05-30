@@ -4,7 +4,6 @@ import * as adminController from "../controllers/adminController.js";
 import * as catalogController from "../controllers/catalogController.js";
 import * as projectController from "../controllers/projectController.js";
 import * as notificationController from "../controllers/notificationController.js";
-import * as skillsController from "../controllers/skillsController.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
   adminSchemas,
@@ -12,7 +11,6 @@ import {
   paramSchemas,
   projectSchemas,
   querySchemas,
-  skillSchemas,
   userSchemas,
 } from "../validation/schemas.js";
 
@@ -69,32 +67,32 @@ router.delete(
 router.get(
   "/skills",
   validateRequest({ query: querySchemas.search }),
-  skillsController.getAllSkills,
+  catalogController.getSkills,
 );
 router.get(
   "/skills/search",
   validateRequest({ query: querySchemas.search }),
-  skillsController.searchSkills,
+  catalogController.searchSkills,
 );
 router.get(
   "/skills/:id",
-  validateRequest({ params: paramSchemas.mongoId }),
-  skillsController.getSkillById,
+  validateRequest({ params: paramSchemas.id }),
+  catalogController.getSkillById,
 );
 router.post(
   "/skills",
-  validateRequest({ body: skillSchemas.create }),
-  skillsController.createSkill,
+  validateRequest({ body: catalogSchemas.skill }),
+  catalogController.createSkill,
 );
 router.patch(
   "/skills/:id",
-  validateRequest({ params: paramSchemas.mongoId, body: skillSchemas.update }),
-  skillsController.updateSkill,
+  validateRequest({ params: paramSchemas.id, body: catalogSchemas.skill }),
+  catalogController.updateSkill,
 );
 router.delete(
   "/skills/:id",
-  validateRequest({ params: paramSchemas.mongoId }),
-  skillsController.deleteSkill,
+  validateRequest({ params: paramSchemas.id }),
+  catalogController.deleteSkill,
 );
 
 router.get(

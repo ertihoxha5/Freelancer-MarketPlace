@@ -2,6 +2,7 @@ import * as catalogService from "../services/catalogService.js";
 import {
   validatedBody,
   validatedParams,
+  validatedQuery,
 } from "../middleware/validateRequest.js";
 
 function includeInactive(req) {
@@ -91,6 +92,30 @@ export async function getSkills(req, res, next) {
       includeInactive: includeInactive(req),
     });
     return res.status(200).json({ skills });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function searchSkills(req, res, next) {
+  try {
+    const { q } = validatedQuery(req);
+    const skills = await catalogService.searchSkills(q ?? "", {
+      includeInactive: includeInactive(req),
+    });
+    return res.status(200).json({ skills, total: skills.length });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getSkillById(req, res, next) {
+  try {
+    const { id } = validatedParams(req);
+    const skill = await catalogService.getSkillById(id, {
+      includeInactive: true,
+    });
+    return res.status(200).json({ skill });
   } catch (err) {
     next(err);
   }

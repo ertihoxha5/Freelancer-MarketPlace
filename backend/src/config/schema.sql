@@ -1,9 +1,4 @@
--- NOTE: This schema is designed to run ONCE on a fresh database.
--- The application's db.js handles incremental migrations via ensureChatSchema().
--- Do not re-run this file on an existing database.
-
 CREATE DATABASE IF NOT EXISTS freelancerMarketplace;
-
 USE freelancerMarketplace;
 
 CREATE TABLE IF NOT EXISTS Users(

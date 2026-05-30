@@ -94,6 +94,36 @@ function validateCategoryPayload(payload, existing = null) {
   };
 }
 
+function validateSkillPayload(payload, existing = null) {
+  const skillName =
+    typeof payload?.skillName === "string" ? payload.skillName.trim() : "";
+  const slugInput =
+    typeof payload?.slug === "string" ? payload.slug.trim() : "";
+
+  if (!skillName) throw validationError("Skill name is required.");
+  if (skillName.length < 3) {
+    throw validationError("Skill name must be at least 3 characters.");
+  }
+  if (skillName.length > 30) {
+    throw validationError("Skill name must be 30 characters or fewer.");
+  }
+
+  const slug = slugify(slugInput || skillName, 20);
+  if (!slug) throw validationError("Valid skill slug is required.");
+
+  const categoryID = parsePositiveInt(payload?.categoryID, "categoryID");
+
+  return {
+    skillName,
+    slug,
+    categoryID,
+    isActive:
+      payload?.isActive == null
+        ? (existing?.isActive ?? true)
+        : Boolean(payload.isActive),
+  };
+}
+
 async function ensureUniqueCategoryNameAndSlug(categoryId, cName, slug) {
   const existingByName = await catalogRepository.findCategoryByName(cName);
   if (existingByName && existingByName.id !== categoryId) {
@@ -280,6 +310,15 @@ export function getSkills(options) {
   return catalogRepository.getSkills(options);
 }
 
+export function getSkillById(id, options) {
+  const skillId = parsePositiveInt(id, "skill ID");
+  return catalogRepository.getSkillById(skillId, options);
+}
+
+export async function searchSkills(query, options = {}) {
+  return catalogRepository.searchSkills(query, options);
+}
+
 export async function createSkill(payload) {
   const validated = validateSkillPayload(payload);
   const category = await catalogRepository.getCategoryById(
@@ -288,6 +327,14 @@ export async function createSkill(payload) {
   if (!category || !category.isActive) {
     throw conflictError("Skill must belong to an active category.");
   }
+
+  const existingSkill = await catalogRepository.findSkillByName(
+    validated.skillName,
+  );
+  if (existingSkill) {
+    throw conflictError("Skill name already exists.");
+  }
+
   return catalogRepository.createSkill(validated);
 }
 
@@ -302,6 +349,14 @@ export async function updateSkill(id, payload) {
   if (!category || !category.isActive) {
     throw conflictError("Skill must belong to an active category.");
   }
+
+  const duplicateSkill = await catalogRepository.findSkillByName(
+    validated.skillName,
+  );
+  if (duplicateSkill && duplicateSkill.id !== skillId) {
+    throw conflictError("Skill name already exists.");
+  }
+
   return catalogRepository.updateSkill(skillId, validated);
 }
 

@@ -4,7 +4,6 @@ import * as reviewRepository from "../repositories/reviewRepository.js";
 import {
   forbiddenError,
   notFoundError,
-  validationError,
 } from "../utils/errors.js";
 import { validatedParams } from "../middleware/validateRequest.js";
 
@@ -33,43 +32,66 @@ async function getContractForRequest(req) {
 
 export async function getMyContracts(req, res, next) {
   try {
+    console.log(`✅ getMyContracts called by user ${req.user?.id} (Role: ${req.user?.roleID})`);
+
     const contractsRaw = isClient(req)
       ? await projectRepository.getContractsByClientId(req.user.id)
       : await projectRepository.getContractsByFreelancerId(req.user.id);
+
+    console.log(`📦 Found ${contractsRaw.length} raw contracts`);
+
+    // Improved version with error handling per contract
     const contracts = await Promise.all(
-      contractsRaw.map(async (contract) => ({
-        ...contract,
-        hasReviewed: await reviewRepository.hasReviewedAlready(
-          contract.id,
-          req.user.id,
-        ),
-      })),
+      contractsRaw.map(async (contract) => {
+        try {
+          const hasReviewed = await reviewRepository.hasReviewedAlready(
+            contract.id,
+            req.user.id
+          );
+          return { ...contract, hasReviewed };
+        } catch (reviewErr) {
+          console.error(`❌ Failed to check review for contract ${contract.id}:`, reviewErr.message);
+          return { ...contract, hasReviewed: false }; // Safe fallback
+        }
+      })
     );
 
     return res.status(200).json({ contracts });
   } catch (err) {
+    console.error("🔥 Critical error in getMyContracts:", err);
+    
     if (err.statusCode) {
       return res.status(err.statusCode).json({ message: err.message });
     }
-    next(err);
+    
+    next(err); // Let global error handler catch it
   }
 }
 
 export async function getMyContractById(req, res, next) {
   try {
     const contract = await getContractForRequest(req);
+    
     const milestones = await milestoneRepository.getMilestonesByContractId(
-      contract.id,
+      contract.id
     );
-    const hasReviewed = await reviewRepository.hasReviewedAlready(
-      contract.id,
-      req.user.id,
-    );
+    
+    let hasReviewed = false;
+    try {
+      hasReviewed = await reviewRepository.hasReviewedAlready(
+        contract.id,
+        req.user.id
+      );
+    } catch (reviewErr) {
+      console.error(`❌ Failed to check review for contract ${contract.id}:`, reviewErr.message);
+    }
 
     return res.status(200).json({
       contract: { ...contract, hasReviewed, milestones },
     });
   } catch (err) {
+    console.error("🔥 Error in getMyContractById:", err);
+    
     if (err.statusCode) {
       return res.status(err.statusCode).json({ message: err.message });
     }
