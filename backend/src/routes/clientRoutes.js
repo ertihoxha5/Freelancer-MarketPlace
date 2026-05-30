@@ -5,6 +5,7 @@ import * as notificationController from "../controllers/notificationController.j
 import * as contractController from "../controllers/contractController.js";
 import * as milestoneController from "../controllers/milestoneController.js";
 import * as reviewController from "../controllers/reviewController.js";
+import * as testimonialController from "../controllers/testimonialController.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
   milestoneSchemas,
@@ -13,6 +14,7 @@ import {
   projectSchemas,
   proposalSchemas,
   querySchemas,
+  testimonialSchemas,
   reviewSchemas,
 } from "../validation/schemas.js";
 
@@ -61,6 +63,11 @@ router.get(
   contractController.getMyContractById,
 );
 router.post(
+  "/contracts/:id/sign",
+  validateRequest({ params: paramSchemas.id }),
+  contractController.signContract,
+);
+router.post(
   "/contracts/:contractId/milestones",
   validateRequest({
     params: paramSchemas.contractId,
@@ -93,6 +100,11 @@ router.post(
     body: reviewSchemas.create,
   }),
   reviewController.createReview,
+);
+router.post(
+  "/testimonials",
+  validateRequest({ body: testimonialSchemas.create }),
+  testimonialController.createTestimonial,
 );
 router.get(
   "/reviews",

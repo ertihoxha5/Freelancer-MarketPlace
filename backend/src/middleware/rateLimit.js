@@ -7,11 +7,24 @@ const authRateLimitDefaults = {
   validate: { trustProxy: false },
 };
 
-/** Strict limits for credential and token endpoints. */
+const defaultLoginLimit = process.env.NODE_ENV === "production" ? 5 : 10;
+const loginMax = Math.max(
+  1,
+  Number(process.env.AUTH_LOGIN_MAX_ATTEMPTS) || defaultLoginLimit,
+);
+const loginWindowMs =
+  Math.max(
+    1,
+    Number(process.env.AUTH_LOGIN_WINDOW_MINUTES) || 15,
+  ) * 60 * 1000;
+
 export const authLoginLimiter = rateLimit({
   ...authRateLimitDefaults,
-  max: 5,
-  message: { message: "Too many login attempts. Try again in 15 minutes." },
+  windowMs: loginWindowMs,
+  max: loginMax,
+  message: {
+    message: `Too many login attempts. Try again in ${Math.round(loginWindowMs / 60000)} minutes.`,
+  },
 });
 
 export const authRegisterLimiter = rateLimit({

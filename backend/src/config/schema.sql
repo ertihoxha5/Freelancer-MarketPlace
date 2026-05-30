@@ -84,17 +84,28 @@ CREATE TABLE IF NOT EXISTS AuditLogs(
 CREATE TABLE IF NOT EXISTS Settings(
     id INT PRIMARY KEY AUTO_INCREMENT,
     sKey VARCHAR(50) NOT NULL,
-    sValue VARCHAR(20) NOT NULL,
-    sDesc VARCHAR(100),
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    sValue TEXT NOT NULL,
+    sDesc VARCHAR(255),
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_settings_key (sKey)
 );
+
+INSERT IGNORE INTO Settings (sKey, sValue, sDesc) VALUES
+('platformName', 'Freelancer MarketPlace', 'Public platform name'),
+('supportEmail', 'support@example.com', 'Support contact email'),
+('commissionRate', '10', 'Platform commission percent'),
+('landingHeadline', 'Hire exceptional talent', 'Homepage hero heading'),
+('landingSubheadline', 'Connect with verified freelancers and deliver projects with confidence.', 'Homepage hero subheading'),
+('allowNewRegistrations', 'true', 'Allow new users to register'),
+('maxFeaturedFreelancers', '6', 'Number of featured freelancers on the homepage'),
+('defaultProjectFreelancers', '1', 'Default number of freelancers per project');
 
 CREATE TABLE IF NOT EXISTS Files(
     id INT PRIMARY KEY AUTO_INCREMENT,
     entity VARCHAR(20) NOT NULL,
     entityID INT NOT NULL,
-    nameFile VARCHAR(20) NOT NULL,
-    filePath VARCHAR(100) NOT NULL,
+    nameFile VARCHAR(255) NOT NULL,
+    filePath VARCHAR(255) NOT NULL,
     fileSize INT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     uploadedBy INT NOT NULL,
@@ -134,6 +145,7 @@ CREATE TABLE IF NOT EXISTS Project(
     pStatus ENUM('pending', 'active', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
     deadline DATE,
     clientID INT NOT NULL,
+    maxFreelancers INT NOT NULL DEFAULT 1,
 
     FOREIGN KEY (clientID) REFERENCES Users(id)
 );
@@ -142,6 +154,7 @@ ALTER TABLE Project
     MODIFY title VARCHAR(150) NOT NULL,
     MODIFY pDesc TEXT NOT NULL,
     MODIFY budget DECIMAL(12,2) NOT NULL,
+    ADD COLUMN IF NOT EXISTS maxFreelancers INT NOT NULL DEFAULT 1,
     ADD COLUMN createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     ADD COLUMN categoryID INT NULL,
@@ -187,7 +200,9 @@ CREATE TABLE IF NOT EXISTS Contracts(
     totalAmount INT,
     cStatus ENUM('draft', 'active', 'completed', 'terminated') NOT NULL DEFAULT 'draft',
     startDate DATE,
-    endDate DATE
+    endDate DATE,
+    clientSignedAt DATETIME NULL,
+    freelancerSignedAt DATETIME NULL
 );
 
 CREATE TABLE IF NOT EXISTS Review(
@@ -384,6 +399,19 @@ CREATE TABLE IF NOT EXISTS SavedProjects (
     INDEX idx_saved_user_project (freelancerID, projectID),
     INDEX idx_saved_freelancer (freelancerID),
     INDEX idx_saved_project (projectID)
+);
+
+CREATE TABLE IF NOT EXISTS Testimonials(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    userID INT NOT NULL,
+    fullName VARCHAR(80) NOT NULL,
+    roleTitle VARCHAR(80) NOT NULL,
+    rating INT NOT NULL,
+    comment TEXT NOT NULL,
+    isPublished BOOLEAN NOT NULL DEFAULT FALSE,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 ALTER TABLE Project

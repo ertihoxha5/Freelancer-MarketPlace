@@ -37,6 +37,7 @@ const AdminNotifications = lazy(
   () => import("./pages/adminDashboard/AdminNotifications.jsx"),
 );
 const AdminReports = lazy(() => import("./pages/adminDashboard/Reports.jsx"));
+const AdminSettings = lazy(() => import("./pages/adminDashboard/Settings.jsx"));
 const ExportImport = lazy(
   () => import("./pages/adminDashboard/ExportImport.jsx"),
 );
@@ -52,6 +53,8 @@ const ClientNotifications = lazy(
 const ClientApplications = lazy(() => import("./pages/ClientApplications.jsx"));
 const ClientMessages = lazy(() => import("./pages/ClientMessages.jsx"));
 const ClientContracts = lazy(() => import("./pages/ClientContracts.jsx"));
+const ProjectMilestones = lazy(() => import("./pages/ProjectMilestones.jsx"));
+const ClientPayment = lazy(() => import("./pages/ClientPayment.jsx"));
 const FreelancerDashboard = lazy(
   () => import("./pages/FreelancerDashboard.jsx"),
 );
@@ -205,6 +208,26 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/project-milestones/:contractId",
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}>
+              <ProjectMilestones />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/client/payment",
+        element: (
+          <ClientRoute>
+            <Suspense fallback={<Loading />}>
+              <ClientPayment />
+            </Suspense>
+          </ClientRoute>
+        ),
+      },
+      {
         path: "/adminDashboard",
         element: (
           <AdminRoute>
@@ -280,6 +303,16 @@ const router = createBrowserRouter([
           <AdminRoute>
             <Suspense fallback={<Loading />}>
               <AdminReports />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/settings",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminSettings />
             </Suspense>
           </AdminRoute>
         ),

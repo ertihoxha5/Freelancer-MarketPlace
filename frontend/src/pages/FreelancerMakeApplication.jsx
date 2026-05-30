@@ -21,6 +21,18 @@ export default function FreelancerMakeApplication() {
     bidAmount: '',
     estimatedDays: '',
   });
+  const [cvFile, setCvFile] = useState(null);
+  const [cvFileName, setCvFileName] = useState('');
+  const [cvError, setCvError] = useState('');
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Unable to read file.'));
+      reader.readAsDataURL(file);
+    });
+  }
   useEffect(() => {
     let active = true;
     async function load() {
@@ -48,10 +60,18 @@ export default function FreelancerMakeApplication() {
       return;
     }
     try {
+      let attachmentBase64 = null;
+      let attachmentName = null;
+      if (cvFile instanceof File) {
+        attachmentBase64 = await readFileAsDataUrl(cvFile);
+        attachmentName = cvFile.name;
+      }
       await submitApplication(projectId, {
         coverLetter: form.coverLetter.trim(),
         bidAmount: form.bidAmount ? Number(form.bidAmount) : null,
         estimatedDays: form.estimatedDays ? Number(form.estimatedDays) : null,
+        attachmentBase64,
+        attachmentName,
       });
       setSuccess("Application submitted successfully!");
       setTimeout(() => navigate('/freelancer/applications'), 1800);
@@ -94,6 +114,48 @@ export default function FreelancerMakeApplication() {
                     onChange={(e) => setForm({ ...form, estimatedDays: e.target.value })}
                     className="w-full border border-slate-300 rounded-2xl p-4" placeholder="14"/>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Upload CV / Resume</label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setCvError('');
+                    if (!file) {
+                      setCvFile(null);
+                      setCvFileName('');
+                      return;
+                    }
+                    const allowed = [
+                      'application/pdf',
+                      'application/msword',
+                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                      'text/plain',
+                    ];
+                    if (!allowed.includes(file.type)) {
+                      setCvError('Please upload a PDF, DOC, DOCX, or TXT file.');
+                      e.target.value = '';
+                      setCvFile(null);
+                      setCvFileName('');
+                      return;
+                    }
+                    if (file.size > 8 * 1024 * 1024) {
+                      setCvError('CV file must be smaller than 8MB.');
+                      e.target.value = '';
+                      setCvFile(null);
+                      setCvFileName('');
+                      return;
+                    }
+                    setCvFile(file);
+                    setCvFileName(file.name);
+                  }}
+                  className="w-full border border-slate-300 rounded-2xl p-4 bg-white"
+                />
+                <p className="mt-2 text-xs text-slate-500">PDF, DOC, DOCX, or TXT only.</p>
+                {cvFileName ? <p className="mt-2 text-xs font-medium text-emerald-700">Selected file: {cvFileName}</p> : null}
+                {cvError ? <p className="mt-2 text-xs font-medium text-red-600">{cvError}</p> : null}
               </div>
               <button type="submit" disabled={submitting}
                 className="w-full bg-[#1a3c2e] text-white font-semibold py-4 rounded-2xl hover:bg-[#2a5c46] disabled:opacity-50">

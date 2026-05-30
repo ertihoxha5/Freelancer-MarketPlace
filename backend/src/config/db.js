@@ -110,6 +110,13 @@ async function ensureProposalSchema(pool) {
       ADD COLUMN notes TEXT NULL
     `);
   }
+
+  if (!(await columnExists(pool, "Proposal", "attachmentID"))) {
+    await pool.query(`
+      ALTER TABLE Proposal
+      ADD COLUMN attachmentID INT NULL
+    `);
+  }
 }
 
 async function tableExists(pool, tableName) {
@@ -340,8 +347,202 @@ async function ensureContractSchema(pool) {
     `);
   }
 
+  if (!(await columnExists(pool, "Contracts", "clientSignedAt"))) {
+    await pool.query(`
+      ALTER TABLE Contracts
+      ADD COLUMN clientSignedAt DATETIME NULL
+    `);
+  }
+
+  if (!(await columnExists(pool, "Contracts", "freelancerSignedAt"))) {
+    await pool.query(`
+      ALTER TABLE Contracts
+      ADD COLUMN freelancerSignedAt DATETIME NULL
+    `);
+  }
+
   // Contracts.clientID and Contracts.freelancerID are expected to reference Users
   // in fresh schemas. Existing databases may already have those constraints.
+}
+
+async function ensureProjectCapacitySchema(pool) {
+  if (!(await columnExists(pool, "Project", "maxFreelancers"))) {
+    await pool.query(`
+      ALTER TABLE Project
+      ADD COLUMN maxFreelancers INT NOT NULL DEFAULT 1
+    `);
+  }
+}
+
+async function ensureFilesSchema(pool) {
+  if (!(await tableExists(pool, "Files"))) {
+    await pool.query(`
+      CREATE TABLE Files(
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        entity VARCHAR(20) NOT NULL,
+        entityID INT NOT NULL,
+        nameFile VARCHAR(255) NOT NULL,
+        filePath VARCHAR(255) NOT NULL,
+        fileSize INT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        uploadedBy INT NOT NULL,
+        FOREIGN KEY (uploadedBy) REFERENCES Users(id)
+      )
+    `);
+    return;
+  }
+
+  if (await columnExists(pool, "Files", "nameFile")) {
+    try {
+      await pool.query(`ALTER TABLE Files MODIFY COLUMN nameFile VARCHAR(255) NOT NULL`);
+    } catch {}
+  }
+
+  if (await columnExists(pool, "Files", "filePath")) {
+    try {
+      await pool.query(`ALTER TABLE Files MODIFY COLUMN filePath VARCHAR(255) NOT NULL`);
+    } catch {}
+  }
+}
+
+async function ensureSettingsSchema(pool) {
+  if (!(await tableExists(pool, "Settings"))) {
+    await pool.query(`
+      CREATE TABLE Settings(
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        sKey VARCHAR(50) NOT NULL,
+        sValue TEXT NOT NULL,
+        sDesc VARCHAR(255),
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_settings_key (sKey)
+      )
+    `);
+  } else if (!(await indexExists(pool, "Settings", "uq_settings_key"))) {
+    try {
+      await pool.query(`ALTER TABLE Settings ADD UNIQUE KEY uq_settings_key (sKey)`);
+    } catch {}
+  }
+
+  if (await columnExists(pool, "Settings", "sValue")) {
+    try {
+      await pool.query(`ALTER TABLE Settings MODIFY COLUMN sValue TEXT NOT NULL`);
+    } catch {}
+  }
+
+  if (await columnExists(pool, "Settings", "sDesc")) {
+    try {
+      await pool.query(`ALTER TABLE Settings MODIFY COLUMN sDesc VARCHAR(255) NULL`);
+    } catch {}
+  }
+
+  await pool.query(`
+    INSERT IGNORE INTO Settings (sKey, sValue, sDesc)
+    VALUES
+      ('platformName', 'Freelancer MarketPlace', 'Public platform name'),
+      ('supportEmail', 'support@example.com', 'Support contact email'),
+      ('commissionRate', '10', 'Platform commission percent'),
+      ('landingHeadline', 'Hire exceptional talent', 'Homepage hero heading'),
+      ('landingSubheadline', 'Connect with verified freelancers and deliver projects with confidence.', 'Homepage hero subheading'),
+      ('allowNewRegistrations', 'true', 'Allow new users to register'),
+      ('maxFeaturedFreelancers', '6', 'Number of featured freelancers on the homepage'),
+      ('defaultProjectFreelancers', '1', 'Default number of freelancers per project')
+  `);
+}
+
+async function ensureTestimonialsSchema(pool) {
+  if (!(await tableExists(pool, "Testimonials"))) {
+    await pool.query(`
+      CREATE TABLE Testimonials(
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        userID INT NOT NULL,
+        fullName VARCHAR(80) NOT NULL,
+        roleTitle VARCHAR(80) NOT NULL,
+        rating INT NOT NULL,
+        comment TEXT NOT NULL,
+        isPublished BOOLEAN NOT NULL DEFAULT FALSE,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE
+      )
+    `);
+  }
+}
+
+async function ensureSavedProjectsSchema(pool) {
+  if (!(await tableExists(pool, "SavedProjects"))) {
+    await pool.query(`
+      CREATE TABLE SavedProjects (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        savedProjectID VARCHAR(36) NOT NULL UNIQUE,
+        freelancerID INT NOT NULL,
+        projectID INT NOT NULL,
+        notes VARCHAR(500) NULL,
+        folder VARCHAR(100) NOT NULL DEFAULT 'default',
+        priority ENUM('high','medium','low') NOT NULL DEFAULT 'medium',
+        savedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE,
+        FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_save (freelancerID, projectID),
+        INDEX idx_saved_user_project (freelancerID, projectID),
+        INDEX idx_saved_freelancer (freelancerID),
+        INDEX idx_saved_project (projectID)
+      )
+    `);
+    return;
+  }
+
+  if (!(await columnExists(pool, "SavedProjects", "savedProjectID"))) {
+    await pool.query(`
+      ALTER TABLE SavedProjects
+      ADD COLUMN savedProjectID VARCHAR(36) NULL AFTER id
+    `);
+    await pool.query(`
+      UPDATE SavedProjects
+      SET savedProjectID = UUID()
+      WHERE savedProjectID IS NULL OR savedProjectID = ''
+    `);
+    await pool.query(`
+      ALTER TABLE SavedProjects
+      MODIFY COLUMN savedProjectID VARCHAR(36) NOT NULL
+    `);
+  }
+
+  if (!(await columnExists(pool, "SavedProjects", "notes"))) {
+    await pool.query(`
+      ALTER TABLE SavedProjects
+      ADD COLUMN notes VARCHAR(500) NULL AFTER projectID
+    `);
+  }
+
+  if (!(await columnExists(pool, "SavedProjects", "folder"))) {
+    await pool.query(`
+      ALTER TABLE SavedProjects
+      ADD COLUMN folder VARCHAR(100) NOT NULL DEFAULT 'default'
+    `);
+  }
+
+  if (!(await columnExists(pool, "SavedProjects", "priority"))) {
+    await pool.query(`
+      ALTER TABLE SavedProjects
+      ADD COLUMN priority ENUM('high','medium','low') NOT NULL DEFAULT 'medium'
+    `);
+  }
+
+  if (!(await columnExists(pool, "SavedProjects", "savedAt"))) {
+    await pool.query(`
+      ALTER TABLE SavedProjects
+      ADD COLUMN savedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `);
+  }
+
+  if (!(await indexExists(pool, "SavedProjects", "unique_save"))) {
+    try {
+      await pool.query(`
+        ALTER TABLE SavedProjects
+        ADD UNIQUE KEY unique_save (freelancerID, projectID)
+      `);
+    } catch {}
+  }
 }
 
 async function ensureBusinessEntitySchema(pool) {
@@ -560,6 +761,11 @@ try {
   await ensureCategorySchema(db);
   await ensureChatSchema(db);
   await ensureContractSchema(db);
+  await ensureProjectCapacitySchema(db);
+  await ensureFilesSchema(db);
+  await ensureSettingsSchema(db);
+  await ensureTestimonialsSchema(db);
+  await ensureSavedProjectsSchema(db);
   await ensureBusinessEntitySchema(db);
   await ensureMilestoneSchema(db);
   await ensurePaymentSchema(db);

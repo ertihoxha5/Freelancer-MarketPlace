@@ -436,7 +436,7 @@ export async function updateMyProfile(clientID, payload) {
 }
 
 export async function createMyProject(payload) {
-  const { title, pDesc, budget, deadline } = validate(
+  const { title, pDesc, budget, deadline, categoryID, maxFreelancers } = validate(
     projectSchemas.clientCreateOrUpdate,
     payload ?? {},
   );
@@ -451,7 +451,9 @@ export async function createMyProject(payload) {
     pDesc,
     budget: budget != null ? Number(budget) : null,
     deadline,
+    categoryID: categoryID != null ? Number(categoryID) : null,
     clientID,
+    maxFreelancers: Number(maxFreelancers) || 1,
   });
 
   const trimmedTitle = title.slice(0, 50);
@@ -478,7 +480,7 @@ export async function updateMyProject(projectID, clientID, payload) {
     throw validationError("Valid client ID is required.");
   }
 
-  const { title, pDesc, budget, deadline, pStatus } = validate(
+  const { title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus } = validate(
     projectSchemas.clientCreateOrUpdate,
     payload ?? {},
   );
@@ -504,6 +506,8 @@ export async function updateMyProject(projectID, clientID, payload) {
     pDesc,
     budget: budget != null ? Number(budget) : null,
     deadline,
+    categoryID: categoryID != null ? Number(categoryID) : null,
+    maxFreelancers: Number(maxFreelancers) || 1,
     pStatus: nextStatus,
   };
 

@@ -77,17 +77,19 @@ export async function createProject({
   budget,
   deadline,
   clientID,
+  maxFreelancers,
   pStatus,
 }) {
   const [result] = await db.execute(
-    `INSERT INTO Project (title, pDesc, budget, deadline, clientID, pStatus)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO Project (title, pDesc, budget, deadline, clientID, maxFreelancers, pStatus)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       title,
       pDesc || null,
       budget ?? null,
       deadline || null,
       clientID,
+      maxFreelancers ?? 1,
       pStatus || "pending",
     ],
   );
@@ -98,6 +100,7 @@ export async function createProject({
     budget,
     deadline,
     clientID,
+    maxFreelancers: maxFreelancers ?? 1,
     pStatus: pStatus || "pending",
   };
 }
@@ -105,13 +108,21 @@ export async function createProject({
 
 export async function updateProject(
   id,
-  { title, pDesc, budget, deadline, pStatus },
+  { title, pDesc, budget, deadline, maxFreelancers, pStatus },
 ) {
   const [result] = await db.execute(
     `UPDATE Project
-         SET title = ?, pDesc = ?, budget = ?, deadline = ?, pStatus = ?
+         SET title = ?, pDesc = ?, budget = ?, deadline = ?, maxFreelancers = ?, pStatus = ?
          WHERE id = ?`,
-    [title, pDesc || null, budget ?? null, deadline || null, pStatus, id],
+    [
+      title,
+      pDesc || null,
+      budget ?? null,
+      deadline || null,
+      maxFreelancers ?? 1,
+      pStatus,
+      id,
+    ],
   );
 
   if (result.affectedRows === 0) {
@@ -120,7 +131,7 @@ export async function updateProject(
     throw err;
   }
 
-  return { id, title, pDesc, budget, deadline, pStatus };
+  return { id, title, pDesc, budget, deadline, maxFreelancers, pStatus };
 }
 
 export async function updateProjectStatus(projectID, pStatus) {
@@ -454,6 +465,8 @@ function contractSelectSql(whereClause) {
       c.cStatus,
       c.startDate,
       c.endDate,
+      c.clientSignedAt,
+      c.freelancerSignedAt,
       p.id AS projectID,
       p.title AS projectTitle,
       p.pDesc AS projectDescription,
@@ -523,23 +536,42 @@ export async function updateContractStatus(contractID, cStatus) {
   return result.affectedRows > 0;
 }
 
+export async function updateContractSignature(contractID, role, signedAt = new Date()) {
+  const column = role === "client" ? "clientSignedAt" : "freelancerSignedAt";
+  const [result] = await db.execute(
+    `UPDATE Contracts
+     SET ${column} = ?,
+         cStatus = CASE
+           WHEN cStatus IN ('draft', 'pending') THEN 'active'
+           ELSE cStatus
+         END
+     WHERE id = ?`,
+    [signedAt, contractID],
+  );
+  return result.affectedRows > 0;
+}
+
 
 export async function createClientProject({
   title,
   pDesc,
   budget,
   deadline,
+  categoryID,
   clientID,
+  maxFreelancers,
 }) {
   const [result] = await db.execute(
-    `INSERT INTO Project (title, pDesc, budget, deadline, clientID, pStatus)
-         VALUES (?, ?, ?, ?, ?, 'pending')`,
+    `INSERT INTO Project (title, pDesc, budget, deadline, categoryID, clientID, maxFreelancers, pStatus)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
     [
       title,
       pDesc || null,
       budget ?? null,
       deadline || null,
+      categoryID ?? null,
       clientID,
+      maxFreelancers ?? 1,
     ],
   );
   return {
@@ -548,7 +580,9 @@ export async function createClientProject({
     pDesc,
     budget,
     deadline,
+    categoryID,
     clientID,
+    maxFreelancers: maxFreelancers ?? 1,
     pStatus: 'pending',
   };
 }
@@ -557,13 +591,23 @@ export async function createClientProject({
 export async function updateClientProject(
   projectID,
   clientID,
-  { title, pDesc, budget, deadline, pStatus },
+  { title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus },
 ) {
   const [result] = await db.execute(
-    `UPDATE Project
-         SET title = ?, pDesc = ?, budget = ?, deadline = ?, pStatus = ?
-         WHERE id = ? AND clientID = ?`,
-    [title, pDesc || null, budget ?? null, deadline || null, pStatus, projectID, clientID],
+      `UPDATE Project
+           SET title = ?, pDesc = ?, budget = ?, deadline = ?, categoryID = ?, maxFreelancers = ?, pStatus = ?
+           WHERE id = ? AND clientID = ?`,
+      [
+        title,
+        pDesc || null,
+        budget ?? null,
+        deadline || null,
+        categoryID ?? null,
+        maxFreelancers ?? 1,
+        pStatus,
+        projectID,
+      clientID,
+    ],
   );
 
   if (result.affectedRows === 0) {
@@ -572,8 +616,8 @@ export async function updateClientProject(
     throw err;
   }
 
-  return { id: projectID, title, pDesc, budget, deadline, pStatus };
-}
+    return { id: projectID, title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus };
+  }
 
 
 export async function deleteClientProject(projectID, clientID) {
@@ -708,11 +752,18 @@ export async function getFreelancerProjectDetails(projectID, freelancerID) {
     return rows[0] ?? null;
 }
 
-export async function createApplication(freelancerID, projectID, coverLetter, bidAmount, estimatedDays) {
+export async function createApplication(
+  freelancerID,
+  projectID,
+  coverLetter,
+  bidAmount,
+  estimatedDays,
+  attachmentID = null,
+) {
     const [result] = await db.execute(
-        `INSERT INTO Proposal (projectID, userID, coverLetter, bidAmount, estimatedDays, propStatus)
-         VALUES (?, ?, ?, ?, ?, 'pending')`,
-        [projectID, freelancerID, coverLetter, bidAmount || null, estimatedDays || null]
+        `INSERT INTO Proposal (projectID, userID, coverLetter, bidAmount, estimatedDays, attachmentID, propStatus)
+         VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+        [projectID, freelancerID, coverLetter, bidAmount || null, estimatedDays || null, attachmentID]
     );
     return { id: result.insertId };
 }
@@ -732,7 +783,7 @@ export async function getExistingApplication(freelancerID, projectID) {
 
 export async function getApplicationByIdForFreelancer(applicationID, freelancerID) {
   const [rows] = await db.execute(
-    `SELECT id, projectID, userID, coverLetter, bidAmount, estimatedDays, propStatus, isDeleted, createdAt, updatedAt
+    `SELECT id, projectID, userID, coverLetter, bidAmount, estimatedDays, attachmentID, propStatus, isDeleted, createdAt, updatedAt
      FROM Proposal
      WHERE id = ? AND userID = ? AND isDeleted = FALSE
      LIMIT 1`,

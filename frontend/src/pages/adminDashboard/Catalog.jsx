@@ -13,6 +13,8 @@ import {
   updateAdminCategory,
   updateAdminSkill,
 } from "../../apiServices.js";
+import { exportCSV, exportJSON } from "../../utils/export.js";
+import { exportPdf } from "../../utils/pdf.js";
 
 const emptyCategory = { cName: "", slug: "", cDesc: "", isActive: true };
 const emptySkill = { skillName: "", slug: "", categoryID: "", isActive: true };
@@ -50,6 +52,19 @@ function Modal({ title, children, onClose }) {
   );
 }
 
+const CATEGORY_COLORS = [
+  "bg-sky-50 text-sky-700 border-sky-200",
+  "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "bg-amber-50 text-amber-700 border-amber-200",
+  "bg-rose-50 text-rose-700 border-rose-200",
+  "bg-violet-50 text-violet-700 border-violet-200",
+  "bg-cyan-50 text-cyan-700 border-cyan-200",
+];
+
+function getCategoryColor(index) {
+  return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+}
+
 export default function Catalog() {
   const { user } = useAuth();
   const [categories, setCategories] = useState([]);
@@ -62,6 +77,9 @@ export default function Catalog() {
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [skillForm, setSkillForm] = useState(emptySkill);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   async function loadCatalog() {
     setLoading(true);
@@ -88,6 +106,70 @@ export default function Catalog() {
     () => categories.filter((category) => category.isActive),
     [categories],
   );
+
+  const categoryLookup = useMemo(
+    () => new Map(categories.map((category) => [String(category.id), category])),
+    [categories],
+  );
+
+  const filteredCategories = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return categories.filter((category) => {
+      if (statusFilter !== "all" && String(category.isActive) !== statusFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return [category.cName, category.slug, category.cDesc]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
+    });
+  }, [categories, search, statusFilter]);
+
+  const filteredSkills = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return skills.filter((skill) => {
+      if (statusFilter !== "all" && String(skill.isActive) !== statusFilter) {
+        return false;
+      }
+      if (categoryFilter !== "all" && String(skill.categoryID) !== categoryFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return [skill.skillName, skill.slug, skill.categoryName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
+    });
+  }, [skills, search, statusFilter, categoryFilter]);
+
+  function exportCurrent(format) {
+    const rows =
+      activeTab === "categories"
+        ? filteredCategories.map((category) => ({
+            id: category.id,
+            name: category.cName,
+            slug: category.slug,
+            description: category.cDesc,
+            status: category.isActive ? "active" : "inactive",
+          }))
+        : filteredSkills.map((skill) => ({
+            id: skill.id,
+            skill: skill.skillName,
+            category: skill.categoryName,
+            slug: skill.slug,
+            status: skill.isActive ? "active" : "inactive",
+          }));
+
+    const filename =
+      activeTab === "categories" ? "categories-export" : "skills-export";
+
+    if (format === "csv") return exportCSV(rows, filename);
+    if (format === "json") return exportJSON(rows, filename);
+    if (format === "pdf") {
+      const lines = rows.map((row) => Object.values(row).join(" | "));
+      return exportPdf(lines, filename, activeTab === "categories" ? "Categories Export" : "Skills Export");
+    }
+    return undefined;
+  }
 
   function openCreateCategory() {
     setCategoryForm(emptyCategory);
@@ -221,6 +303,55 @@ export default function Catalog() {
               </div>
             </div>
 
+            <div className="mb-4 grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_auto]">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search skills, categories, slugs..."
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              />
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="all">All statuses</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+              <select
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="all">All categories</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.cName}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={activeTab}
+                onChange={(event) => setActiveTab(event.target.value)}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="categories">Categories</option>
+                <option value="skills">Skills</option>
+              </select>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => exportCurrent("pdf")} className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold">
+                  PDF
+                </button>
+                <button type="button" onClick={() => exportCurrent("csv")} className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold">
+                  CSV
+                </button>
+                <button type="button" onClick={() => exportCurrent("json")} className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold">
+                  JSON
+                </button>
+              </div>
+            </div>
+
             {error ? (
               <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
                 {error}
@@ -258,7 +389,7 @@ export default function Catalog() {
                     description="Create categories before assigning skills."
                   />
                 }
-                rows={categories}
+                rows={filteredCategories}
                 renderRow={(category) => (
                   <tr key={category.id}>
                     <td className="px-4 py-3">{category.id}</td>
@@ -286,12 +417,20 @@ export default function Catalog() {
                     description="Create skills and assign them to active categories."
                   />
                 }
-                rows={skills}
+                rows={filteredSkills}
                 renderRow={(skill) => (
                   <tr key={skill.id}>
                     <td className="px-4 py-3">{skill.id}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{skill.skillName}</td>
-                    <td className="px-4 py-3 text-slate-600">{skill.categoryName || "-"}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getCategoryColor(Number(skill.categoryID) || 0)}`}>
+                        {skill.skillName}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getCategoryColor(skill.categoryID ? Number(skill.categoryID) : 0)}`}>
+                        {skill.categoryName || "-"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-slate-600">{skill.slug || "-"}</td>
                     <td className="px-4 py-3"><StatusBadge active={skill.isActive} /></td>
                     <td className="px-4 py-3">

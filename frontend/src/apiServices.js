@@ -148,6 +148,22 @@ async function authedFetch(url, options = {}) {
 
   return data;
 }
+
+async function publicFetch(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || data.error || `Request failed (${res.status})`);
+  }
+  return data;
+}
 /**
  * @param {{ fullName: string; email: string; password: string; roleID: number }} payload
  * Accepts payload and registers user
@@ -337,6 +353,10 @@ export function deleteAdminProject(id) {
 export function fetchAdminCategories(includeInactive = true) {
   const query = includeInactive ? "?includeInactive=true" : "";
   return authedFetch(`${API_BASE}/api/admin/categories${query}`);
+}
+
+export function fetchPublicCategories() {
+  return publicFetch(`${API_BASE}/api/categories/public`);
 }
 
 export function createAdminCategory(payload) {
@@ -630,7 +650,12 @@ export async function fetchPublicFreelancerProfile(userID) {
 }
 
 export async function fetchBrowseProjects(params = {}, signal) {
-  const query = new URLSearchParams(params).toString();
+  const sanitized = Object.fromEntries(
+    Object.entries(params).filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    ),
+  );
+  const query = new URLSearchParams(sanitized).toString();
 
   const url = query
     ? `${API_BASE}/api/freelancer/browse-projects?${query}`
@@ -866,6 +891,12 @@ export function fetchMyContract(id) {
   return authedFetch(`${API_BASE}/api/client/contracts/${id}`);
 }
 
+export function signContract(id, role = "client") {
+  return authedFetch(`${API_BASE}/api/${role}/contracts/${id}/sign`, {
+    method: "POST",
+  });
+}
+
 export function fetchFreelancerContracts() {
   return authedFetch(`${API_BASE}/api/freelancer/contracts`);
 }
@@ -917,6 +948,32 @@ export function searchFreelancers(params = {}) {
 // Reports
 export function fetchPlatformReport() {
   return authedFetch(`${API_BASE}/api/reports/platform-summary`);
+}
+
+export function fetchPublicHomeData() {
+  return publicFetch(`${API_BASE}/api/public/home-data`);
+}
+
+export function fetchPublicTestimonials(limit = 6) {
+  return publicFetch(`${API_BASE}/api/public/testimonials?limit=${limit}`);
+}
+
+export function createClientTestimonial(payload) {
+  return authedFetch(`${API_BASE}/api/client/testimonials`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchAdminSettings() {
+  return authedFetch(`${API_BASE}/api/admin/settings`);
+}
+
+export function updateAdminSettings(payload) {
+  return authedFetch(`${API_BASE}/api/admin/settings`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 // Export

@@ -17,6 +17,7 @@ const sidebarConfigs = {
     },
     { label: "Export/Import", href: "/adminDashboard/export" },
     { label: "Reports", href: "/adminDashboard/reports" },
+    { label: "Settings", href: "/adminDashboard/settings" },
     { label: "Notifications", href: "/adminDashboard/notifications" },
   ],
   freelancer: [

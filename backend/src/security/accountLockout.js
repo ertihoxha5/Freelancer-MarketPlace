@@ -1,5 +1,12 @@
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCK_DURATION_MS = 15 * 60 * 1000;
+const MAX_FAILED_ATTEMPTS = Math.max(
+  1,
+  Number(process.env.AUTH_LOCKOUT_MAX_ATTEMPTS) ||
+    (process.env.NODE_ENV === "production" ? 5 : 10),
+);
+const LOCK_DURATION_MS = Math.max(
+  1,
+  Number(process.env.AUTH_LOCKOUT_MINUTES) || 15,
+) * 60 * 1000;
 
 /** @type {Map<string, { failedAttempts: number; lockedUntil: number | null }>} */
 const attemptsByEmail = new Map();
@@ -28,7 +35,7 @@ export function getLockoutMessage(email) {
     return "Invalid email or password.";
   }
   const minutesLeft = Math.ceil((record.lockedUntil - Date.now()) / 60_000);
-  return `Account temporarily locked. Try again in ${minutesLeft} minute(s).`;
+  return `Account temporarily locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`;
 }
 
 export function recordFailedLogin(email) {
@@ -53,6 +60,10 @@ export function recordFailedLogin(email) {
 
 export function clearFailedLogins(email) {
   attemptsByEmail.delete(normalizeEmail(email));
+}
+
+export function clearAllFailedLogins() {
+  attemptsByEmail.clear();
 }
 
 /** Test helper — not used in production routes. */

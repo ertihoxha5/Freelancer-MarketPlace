@@ -11,6 +11,17 @@ function isClient(req) {
   return Number(req.user?.roleID) === 2;
 }
 
+function decorateContract(contract) {
+  const clientSigned = Boolean(contract.clientSignedAt);
+  const freelancerSigned = Boolean(contract.freelancerSignedAt);
+  return {
+    ...contract,
+    clientSigned,
+    freelancerSigned,
+    isFullySigned: clientSigned && freelancerSigned,
+  };
+}
+
 async function getContractForRequest(req) {
   const { id: contractID } = validatedParams(req);
   const contract = await projectRepository.getContractById(contractID);
@@ -48,10 +59,10 @@ export async function getMyContracts(req, res, next) {
             contract.id,
             req.user.id
           );
-          return { ...contract, hasReviewed };
+          return decorateContract({ ...contract, hasReviewed });
         } catch (reviewErr) {
           console.error(`❌ Failed to check review for contract ${contract.id}:`, reviewErr.message);
-          return { ...contract, hasReviewed: false }; // Safe fallback
+          return decorateContract({ ...contract, hasReviewed: false }); // Safe fallback
         }
       })
     );
@@ -83,15 +94,49 @@ export async function getMyContractById(req, res, next) {
         req.user.id
       );
     } catch (reviewErr) {
-      console.error(`❌ Failed to check review for contract ${contract.id}:`, reviewErr.message);
+      console.error(`Failed to check review for contract ${contract.id}:`, reviewErr.message);
     }
 
     return res.status(200).json({
-      contract: { ...contract, hasReviewed, milestones },
+      contract: decorateContract({ ...contract, hasReviewed, milestones }),
     });
   } catch (err) {
     console.error("🔥 Error in getMyContractById:", err);
     
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}
+
+export async function signContract(req, res, next) {
+  try {
+    const contract = await getContractForRequest(req);
+    const role = isClient(req) ? "client" : "freelancer";
+    const currentField = role === "client" ? contract.clientSignedAt : contract.freelancerSignedAt;
+    if (currentField) {
+      return res.status(200).json({
+        message: "Contract already signed.",
+        contract: decorateContract(contract),
+      });
+    }
+
+    const signed = await projectRepository.updateContractSignature(
+      contract.id,
+      role,
+      new Date(),
+    );
+    if (!signed) {
+      throw notFoundError("Contract not found.");
+    }
+
+    const updated = await projectRepository.getContractById(contract.id);
+    return res.status(200).json({
+      message: "Contract signed.",
+      contract: decorateContract(updated),
+    });
+  } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({ message: err.message });
     }

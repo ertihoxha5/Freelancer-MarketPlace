@@ -358,6 +358,12 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
     throw conflictError("Only active contracts can change milestones.");
   }
 
+  if (!contract.clientSignedAt || !contract.freelancerSignedAt) {
+    throw conflictError(
+      "Both parties must sign the contract before milestone progress can continue.",
+    );
+  }
+
   if (mStatus && milestone.mStatus === "approved" && mStatus !== "approved") {
     throw conflictError("Approved milestones cannot change status.");
   }

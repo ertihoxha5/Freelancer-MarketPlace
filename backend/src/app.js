@@ -14,6 +14,7 @@ import searchRoutes from "./routes/searchRoutes.js";
 import exportRoutes from "./routes/exportRoutes.js";
 import importRoutes from "./routes/importRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import { paymentController } from "./routes/paymentRoutes.js";
 import { connectMongoDB } from "./config/mongodb.js";
@@ -83,6 +84,7 @@ app.use("/api/search", searchRoutes);
 app.use("/api/export", exportRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/public", publicRoutes);
 app.use("/api/payment", paymentRoutes);
 
 app.use(csrfErrorHandler);

@@ -27,6 +27,18 @@ export default function FreelancerBrowseProjects() {
     bidAmount: '',
     estimatedDays: '',
   });
+  const [cvFile, setCvFile] = useState(null);
+  const [cvFileName, setCvFileName] = useState('');
+  const [cvError, setCvError] = useState('');
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Unable to read file.'));
+      reader.readAsDataURL(file);
+    });
+  }
 
   const loadProjects = useCallback(async (currentFilters) => {
     setLoading(true);
@@ -52,8 +64,11 @@ export default function FreelancerBrowseProjects() {
   const openApplyModal = useCallback((project) => {
     setSelectedProject(project);
     setApplyForm({ coverLetter: '', bidAmount: '', estimatedDays: '' });
+    setCvFile(null);
     setSubmitError('');
     setSubmitSuccess('');
+    setCvFileName('');
+    setCvError('');
     setApplyModalOpen(true);
   }, []);
 
@@ -63,6 +78,9 @@ export default function FreelancerBrowseProjects() {
     setSelectedProject(null);
     setSubmitError('');
     setSubmitSuccess('');
+    setCvFile(null);
+    setCvFileName('');
+    setCvError('');
   }, [submitting]);
 
   const handleApplySubmit = useCallback(async (e) => {
@@ -79,10 +97,18 @@ export default function FreelancerBrowseProjects() {
 
     setSubmitting(true);
     try {
+      let attachmentBase64 = null;
+      let attachmentName = null;
+      if (cvFile instanceof File) {
+        attachmentBase64 = await readFileAsDataUrl(cvFile);
+        attachmentName = cvFile.name;
+      }
       await submitApplication(selectedProject.id, {
         coverLetter: applyForm.coverLetter.trim(),
         bidAmount: applyForm.bidAmount ? Number(applyForm.bidAmount) : null,
         estimatedDays: applyForm.estimatedDays ? Number(applyForm.estimatedDays) : null,
+        attachmentBase64,
+        attachmentName,
       });
       setSubmitSuccess('Application submitted successfully.');
       setTimeout(() => {
@@ -95,7 +121,7 @@ export default function FreelancerBrowseProjects() {
     } finally {
       setSubmitting(false);
     }
-  }, [applyForm, selectedProject]);
+  }, [applyForm, selectedProject, cvFile]);
 
   const memoizedProjects = useMemo(() => projects, [projects]);
   return (
@@ -201,6 +227,59 @@ export default function FreelancerBrowseProjects() {
                     placeholder="14"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Upload CV / Resume
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0] || null;
+                    setCvError('');
+                    if (!file) {
+                      setCvFile(null);
+                      setCvFileName('');
+                      return;
+                    }
+                    const allowed = [
+                      'application/pdf',
+                      'application/msword',
+                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                      'text/plain',
+                    ];
+                    if (!allowed.includes(file.type)) {
+                      setCvError('Please upload a PDF, DOC, DOCX, or TXT file.');
+                      e.target.value = '';
+                      setCvFile(null);
+                      setCvFileName('');
+                      return;
+                    }
+                    if (file.size > 8 * 1024 * 1024) {
+                      setCvError('CV file must be smaller than 8MB.');
+                      e.target.value = '';
+                      setCvFile(null);
+                      setCvFileName('');
+                      return;
+                    }
+                    setCvFile(file);
+                    setCvFileName(file.name);
+                  }}
+                  className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm"
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  PDF, DOC, DOCX, or TXT only. This file is attached to your application.
+                </p>
+                {cvFileName ? (
+                  <p className="mt-2 text-xs font-medium text-emerald-700">
+                    Selected file: {cvFileName}
+                  </p>
+                ) : null}
+                {cvError ? (
+                  <p className="mt-2 text-xs font-medium text-red-600">{cvError}</p>
+                ) : null}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">

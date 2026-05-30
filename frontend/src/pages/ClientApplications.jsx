@@ -3,11 +3,19 @@ import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { fetchClientApplications, updateClientApplicationStatus } from "../apiServices.js";
+import { exportApplicationPdf } from "../utils/pdf.js";
 
 function formatDate(value) {
   if (!value) return "-";
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleDateString();
+}
+
+function getExcerpt(value, maxLength = 140) {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (!text) return "-";
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trimEnd()}...`;
 }
 
 function StatCard({ label, value }) {
@@ -114,6 +122,11 @@ export default function ClientApplications() {
     } finally {
       setSavingStatus(false);
     }
+  }
+
+  function handleExportPdf() {
+    if (!selectedApplication) return;
+    exportApplicationPdf(selectedApplication);
   }
 
   return (
@@ -260,6 +273,13 @@ export default function ClientApplications() {
                 </button>
                 <button
                   type="button"
+                  onClick={handleExportPdf}
+                  className="rounded-xl border border-[#1a3c2e] px-4 py-2 text-sm font-semibold text-[#1a3c2e] hover:bg-[#1a3c2e]/5"
+                >
+                  Export PDF
+                </button>
+                <button
+                  type="button"
                   onClick={closeDetails}
                   className="rounded-full border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"
                 >
@@ -293,9 +313,12 @@ export default function ClientApplications() {
                   <DetailRow label="Deadline" value={formatDate(selectedApplication.projectDeadline)} />
                 </Section>
 
-                <Section title="Cover letter">
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                    {selectedApplication.coverLetter || "-"}
+                <Section title="Preview">
+                  <p className="text-sm leading-6 text-slate-700">
+                    {getExcerpt(selectedApplication.coverLetter)}
+                  </p>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                    Full details, including the complete cover letter, are in the PDF export.
                   </p>
                 </Section>
               </div>

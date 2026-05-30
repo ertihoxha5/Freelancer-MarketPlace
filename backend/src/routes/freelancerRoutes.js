@@ -75,6 +75,11 @@ router.get(
   validateRequest({ params: paramSchemas.id }),
   contractController.getMyContractById,
 );
+router.post(
+  "/contracts/:id/sign",
+  validateRequest({ params: paramSchemas.id }),
+  contractController.signContract,
+);
 router.get(
   "/contracts/:contractId/milestones",
   validateRequest({ params: paramSchemas.contractId }),
@@ -131,6 +136,11 @@ router.post(
 );
 router.get(
   "/profile/reviews",
+  validateRequest({ query: querySchemas.reviewList }),
+  reviewController.getMyReceivedReviews,
+);
+router.get(
+  "/reviews",
   validateRequest({ query: querySchemas.reviewList }),
   reviewController.getMyReceivedReviews,
 );

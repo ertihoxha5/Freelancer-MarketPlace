@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import Sidebar from "../components/Sidebar.jsx";
@@ -12,6 +13,7 @@ import {
   downloadExport,
   fetchMyContract,
   fetchMyContracts,
+  signContract,
   updateMilestoneStatus,
 } from "../apiServices.js";
 import { exportCSV, exportJSON } from "../utils/export.js";
@@ -50,6 +52,7 @@ export default function ClientContracts() {
   const [clientSecret, setClientSecret] = useState("");
   const [paymentIntentId, setPaymentIntentId] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [agreementChecks, setAgreementChecks] = useState({});
   const [form, setForm] = useState({
     title: "",
     mDesc: "",
@@ -99,6 +102,16 @@ export default function ClientContracts() {
           : contract,
       ),
     );
+  }
+
+  async function handleSignContract(contractId) {
+    try {
+      await signContract(contractId, "client");
+      setAgreementChecks((current) => ({ ...current, [contractId]: false }));
+      await reloadContract(contractId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign contract.");
+    }
   }
 
   async function handleMilestoneSubmit(event) {
@@ -231,8 +244,67 @@ export default function ClientContracts() {
 
                     {expanded === contract.id ? (
                       <div className="border-t border-slate-200 p-5">
+                        <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">Contract Agreement</h3>
+                          <p className="mt-2 text-sm text-slate-600">
+                            Both parties must sign before milestone progress and payments can continue.
+                          </p>
+                          <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
+                            <p>Client signed: {contract.clientSignedAt ? String(contract.clientSignedAt).slice(0, 10) : "Pending"}</p>
+                            <p>Freelancer signed: {contract.freelancerSignedAt ? String(contract.freelancerSignedAt).slice(0, 10) : "Pending"}</p>
+                          </div>
+                          <div className="mt-4 flex items-center gap-3">
+                            <input
+                              id={`client-agree-${contract.id}`}
+                              type="checkbox"
+                              checked={Boolean(agreementChecks[contract.id])}
+                              onChange={(e) =>
+                                setAgreementChecks((current) => ({
+                                  ...current,
+                                  [contract.id]: e.target.checked,
+                                }))
+                              }
+                              disabled={Boolean(contract.clientSignedAt)}
+                              className="h-4 w-4 rounded border-slate-300"
+                            />
+                            <label htmlFor={`client-agree-${contract.id}`} className="text-sm text-slate-700">
+                              I agree to the contract terms and want to sign this agreement.
+                            </label>
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleSignContract(contract.id)}
+                              disabled={Boolean(contract.clientSignedAt) || !agreementChecks[contract.id]}
+                              className="rounded-lg bg-[#1f3a2d] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {contract.clientSignedAt ? "Signed" : "Sign Contract"}
+                            </button>
+                            {contract.isFullySigned ? (
+                              <span className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                                Fully signed
+                              </span>
+                            ) : (
+                              <span className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+                                Waiting for both signatures
+                              </span>
+                            )}
+                          </div>
+                        </div>
                         <div className="mb-4 flex flex-wrap gap-2">
-                          <button onClick={() => setMilestoneContract(contract)} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Create Milestone</button>
+                          <button
+                            onClick={() => setMilestoneContract(contract)}
+                            disabled={!contract.isFullySigned}
+                            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Create Milestone
+                          </button>
+                          <Link
+                            to={`/project-milestones/${contract.id}`}
+                            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                          >
+                            Project milestones
+                          </Link>
                           {contract.cStatus === "completed" && !hasReviewed ? (
                             <button onClick={() => setReviewContract(contract)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Leave Review</button>
                           ) : null}
@@ -249,6 +321,7 @@ export default function ClientContracts() {
                               <div className="flex flex-wrap items-center gap-2">
                                 <Badge status={milestone.mStatus} />
                                 {contract.cStatus === "active" &&
+                                contract.isFullySigned &&
                                 ["pending", "in_progress"].includes(milestone.mStatus) ? (
                                   <button
                                     type="button"
@@ -268,6 +341,11 @@ export default function ClientContracts() {
                             </div>
                           ))}
                         </div>
+                        {!contract.isFullySigned ? (
+                          <p className="mt-4 text-sm text-amber-700">
+                            Contract signatures are required before milestone payments and progress updates continue.
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                   </article>

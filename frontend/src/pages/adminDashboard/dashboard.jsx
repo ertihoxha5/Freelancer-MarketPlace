@@ -1,184 +1,216 @@
-import { useEffect, useState } from 'react';
-import Header from '../../components/Header.jsx';
-import Sidebar from '../../components/Sidebar.jsx';
-import { useAuth } from '../../context/AuthContext.jsx';
+import { useEffect, useState } from "react";
 import {
-  fetchProjectsWithFreelancer,
-  fetchProjectsWithoutFreelancer,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import Header from "../../components/Header.jsx";
+import Sidebar from "../../components/Sidebar.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
+import {
   fetchAdminUsers,
-} from '../../apiServices.js';
+  fetchPlatformSummaryReport,
+} from "../../apiServices.js";
+
+const COLORS = ["#0f172a", "#2563eb", "#16a34a", "#d97706", "#dc2626", "#7c3aed"];
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalProjects: 0,
-    projectsWithFreelancer: 0,
-    projectsWithoutFreelancer: 0,
-    activeProjects: 0,
-    totalUsers: 0,
-  });
+  const [summary, setSummary] = useState(null);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let alive = true;
-    async function loadStats() {
+    async function load() {
       setLoading(true);
-      setError('');
+      setError("");
       try {
-        const [withFL, withoutFL, users] = await Promise.all([
-          fetchProjectsWithFreelancer(),
-          fetchProjectsWithoutFreelancer(),
+        const [summaryData, usersData] = await Promise.all([
+          fetchPlatformSummaryReport(),
           fetchAdminUsers({ page: 1, limit: 1 }),
         ]);
-
-        if (alive) {
-          const projectsWithFL = Array.isArray(withFL.projects) ? withFL.projects : [];
-          const projectsWithoutFL = Array.isArray(withoutFL.projects) ? withoutFL.projects : [];
-
-          const activeCount = projectsWithFL.filter(
-            (p) => p.pStatus === 'active'
-          ).length;
-
-          setStats({
-            totalProjects: projectsWithFL.length + projectsWithoutFL.length,
-            projectsWithFreelancer: projectsWithFL.length,
-            projectsWithoutFreelancer: projectsWithoutFL.length,
-            activeProjects: activeCount,
-            totalUsers: Number(users.total) || 0,
-          });
-        }
+        if (!alive) return;
+        setSummary(summaryData);
+        setTotalUsers(Number(usersData.total) || 0);
       } catch (err) {
         if (alive) {
-          setError(err instanceof Error ? err.message : 'Failed to load stats.');
+          setError(err instanceof Error ? err.message : "Unable to load dashboard.");
         }
       } finally {
         if (alive) setLoading(false);
       }
     }
-    loadStats();
+    load();
     return () => {
       alive = false;
     };
   }, []);
 
-  const StatCard = ({ title, value, subtitle, bgColor }) => (
-    <div className={`rounded-3xl border p-6 shadow-sm ${bgColor}`}>
-      <p className="text-sm font-medium text-slate-500 mb-3">{title}</p>
-      <p className="text-4xl font-bold text-slate-900">{value}</p>
-      {subtitle && <p className="mt-3 text-sm text-slate-500">{subtitle}</p>}
-    </div>
-  );
-
-  const ActionCard = ({ title, description, href, accent }) => (
-    <a
-      href={href}
-      className={`rounded-3xl border border-slate-200 p-5 text-left transition ${accent} hover:-translate-y-0.5`}
-    >
-      <p className="text-sm font-semibold text-slate-900 mb-2">{title}</p>
-      <p className="text-sm text-slate-600">{description}</p>
-    </a>
-  );
+  const kpis = [
+    { label: "Projects", value: Number(summary?.totalProjects || 0) },
+    { label: "Users", value: totalUsers },
+    { label: "Revenue", value: `$${Number(summary?.totalRevenue || 0).toLocaleString()}` },
+    { label: "This Month", value: Number(summary?.activeThisMonth || 0) },
+    { label: "Contracts", value: Number(summary?.totalContracts || 0) },
+  ];
 
   return (
-    <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-slate-50">
       <Header />
-      <main className="flex-1 min-h-0 w-full p-0">
+      <main className="min-h-0 flex-1">
         <div className="flex h-full min-h-0 flex-col overflow-hidden border-t border-slate-200 bg-white lg:flex-row">
           <Sidebar roleID={user?.roleID} />
-
           <section className="min-h-full min-w-0 flex-1 overflow-auto p-6 sm:p-8">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-              <p className="mt-2 text-slate-600">
-                Welcome back{user?.fullName ? `, ${user.fullName}` : ''}. Here's what's happening on your platform.
-              </p>
+            <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Admin command center</p>
+                <h1 className="mt-2 text-4xl font-semibold text-slate-900">Platform dashboard</h1>
+                <p className="mt-3 max-w-2xl text-slate-600">
+                  Live system overview with user, project, contract, and revenue signals.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <QuickLink href="/adminDashboard/reports" label="Reports" />
+                <QuickLink href="/adminDashboard/catalog" label="Catalog" />
+                <QuickLink href="/adminDashboard/settings" label="Settings" />
+                <QuickLink href="/adminDashboard/export" label="Exports" />
+              </div>
             </div>
 
-            {error && (
-              <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200">
-                <p className="text-red-700 text-sm">{error}</p>
+            {error ? (
+              <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {error}
               </div>
-            )}
+            ) : null}
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {[...Array(5)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-32 bg-slate-200 rounded-xl animate-pulse"
-                  />
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                {[...Array(5)].map((_, index) => (
+                  <div key={index} className="h-28 animate-pulse rounded-3xl bg-slate-200" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                <StatCard
-                  title="Total Projects"
-                  value={stats.totalProjects}
-                  bgColor="bg-blue-50 hover:bg-blue-100"
-                  icon="📊"
-                />
-                <StatCard
-                  title="Active Projects"
-                  value={stats.activeProjects}
-                  bgColor="bg-green-50 hover:bg-green-100"
-                  icon="✅"
-                />
-                <StatCard
-                  title="With Freelancer"
-                  value={stats.projectsWithFreelancer}
-                  bgColor="bg-purple-50 hover:bg-purple-100"
-                  icon="👥"
-                />
-                <StatCard
-                  title="Pending Freelancer"
-                  value={stats.projectsWithoutFreelancer}
-                  bgColor="bg-yellow-50 hover:bg-yellow-100"
-                  icon="⏳"
-                />
-                <StatCard
-                  title="Total Users"
-                  value={stats.totalUsers}
-                  bgColor="bg-indigo-50 hover:bg-indigo-100"
-                  icon="👤"
-                />
-              </div>
-            )}
+              <>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                  {kpis.map((item) => (
+                    <div key={item.label} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                      <p className="text-sm font-medium text-slate-500">{item.label}</p>
+                      <p className="mt-3 text-3xl font-semibold text-slate-900">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Quick Access
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                <a
-                  href="/adminDashboard/jobs-with-freelancer"
-                  className="p-4 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 transition text-center font-medium"
-                >
-                  Projects with Freelancer
-                </a>
-                <a
-                  href="/adminDashboard/jobs-without-freelancer"
-                  className="p-4 rounded-lg bg-gradient-to-br from-yellow-500 to-yellow-600 text-white hover:from-yellow-600 hover:to-yellow-700 transition text-center font-medium"
-                >
-                  Projects Awaiting Freelancer
-                </a>
-                <a
-                  href="/adminDashboard/users"
-                  className="p-4 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition text-center font-medium"
-                >
-                  Manage Users
-                </a>
-                <a
-                  href="/adminDashboard/jobs-with-freelancer"
-                  className="p-4 rounded-lg bg-gradient-to-br from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transition text-center font-medium"
-                >
-                  Create New Project
-                </a>
-              </div>
-            </div>
+                <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
+                  <Card title="Projects by Status">
+                    <div className="h-80">
+                      <ResponsiveContainer>
+                        <BarChart data={summary?.projectsByStatus || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="status" />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="count" fill="#0f172a" radius={[10, 10, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+
+                  <Card title="Users by Role">
+                    <div className="h-80">
+                      <ResponsiveContainer>
+                        <PieChart>
+                          <Pie
+                            data={summary?.usersByRole || []}
+                            dataKey="count"
+                            nameKey="roleName"
+                            outerRadius={110}
+                            innerRadius={50}
+                          >
+                            {(summary?.usersByRole || []).map((_, index) => (
+                              <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                </div>
+
+                <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                  <Card title="Top Freelancers">
+                    <div className="overflow-hidden rounded-2xl border border-slate-200">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-slate-100 text-left">
+                          <tr>
+                            <th className="px-4 py-3">Freelancer</th>
+                            <th className="px-4 py-3">Rating</th>
+                            <th className="px-4 py-3">Earned</th>
+                            <th className="px-4 py-3">Contracts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 bg-white">
+                          {(summary?.topFreelancers || []).map((row) => (
+                            <tr key={row.id}>
+                              <td className="px-4 py-3">
+                                <div className="font-medium text-slate-900">{row.fullName}</div>
+                                <div className="text-xs text-slate-500">{row.email}</div>
+                              </td>
+                              <td className="px-4 py-3">{row.avgRating ?? "-"}</td>
+                              <td className="px-4 py-3">${Number(row.totalEarned || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3">{row.contractCount ?? 0}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+
+                  <Card title="System Notes">
+                    <div className="space-y-4 text-sm text-slate-600">
+                      <p>Use the settings page to adjust general platform values and visible site content.</p>
+                      <p>Use the reports page to drill into user, project, and revenue activity.</p>
+                      <p>Catalog changes now flow through SQL so categories and skills stay in one source of truth.</p>
+                    </div>
+                  </Card>
+                </div>
+              </>
+            )}
           </section>
         </div>
       </main>
     </div>
   );
 }
+
+function Card({ title, children }) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function QuickLink({ href, label }) {
+  return (
+    <a
+      href={href}
+      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50"
+    >
+      {label}
+    </a>
+  );
+}
+

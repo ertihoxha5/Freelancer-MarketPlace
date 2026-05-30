@@ -125,17 +125,22 @@ export default function FreelancerProfile() {
     setError("");
     setSuccess("");
     try {
-      const result = await updateFreelancerProfile({
+      const payload = {
         hourlyRate: profile.hourlyRate === "" ? null : Number(profile.hourlyRate),
         portofoliUrl: profile.portofoliUrl,
         bio: profile.bio,
-        pictureBase64,
         skills: profile.skills.map((skill) => ({
           skillID: skill.skillID,
           sLevel: skill.sLevel,
           yearsOfExp: Number(skill.yearsOfExp) || 0,
         })),
-      });
+      };
+
+      if (pictureBase64) {
+        payload.pictureBase64 = pictureBase64;
+      }
+
+      const result = await updateFreelancerProfile(payload);
 
       const nextProfile = result.profile ?? {};
       setProfile({

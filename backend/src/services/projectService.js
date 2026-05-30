@@ -1,4 +1,5 @@
 import * as projectRepository from "../repositories/projectRepository.js";
+import * as fileRepository from "../repositories/fileRepository.js";
 import { pushNotification, pushToAllAdmins } from "./notificationService.js";
 import { pushFreelancerNotification } from "./freelancerNotificationService.js";
 import { createActivity } from "./activityService.js";
@@ -11,6 +12,47 @@ import { validateStatusTransition } from "../utils/statusTransition.js";
 import { validate } from "../validation/validate.js";
 import { projectSchemas, proposalSchemas } from "../validation/schemas.js";
 import { conflictError, notFoundError, validationError } from "../utils/errors.js";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import { randomUUID } from "node:crypto";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const UPLOADS_DIR = path.join(__dirname, "../uploads");
+
+async function ensureUploadsDir() {
+  await fs.mkdir(UPLOADS_DIR, { recursive: true });
+}
+
+function parseBase64Document(data) {
+  if (typeof data !== "string" || !data.includes("base64,")) {
+    throw validationError("Invalid attachment data.");
+  }
+
+  const [meta, payload] = data.split("base64,");
+  const mimeMatch = meta.match(/data:([^;]+);/);
+  if (!mimeMatch) {
+    throw validationError("Invalid attachment type.");
+  }
+
+  const supported = {
+    "application/pdf": "pdf",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "text/plain": "txt",
+  };
+  const extension = supported[mimeMatch[1]];
+  if (!extension) {
+    throw validationError("Unsupported attachment type.");
+  }
+
+  const buffer = Buffer.from(payload, "base64");
+  if (buffer.length > 8 * 1024 * 1024) {
+    throw validationError("Attachment must be smaller than 8MB.");
+  }
+
+  return { buffer, extension };
+}
 
 export async function getProjectsWithFreelancer() {
   return projectRepository.getProjectsWithFreelancer();
@@ -40,6 +82,7 @@ export async function createProject(payload) {
     budget: budget != null ? Number(budget) : null,
     deadline,
     clientID: clientId,
+    maxFreelancers: Number(payload?.maxFreelancers) || 1,
     pStatus: pStatus || "pending",
   });
 
@@ -77,6 +120,7 @@ export async function updateProject(id, payload) {
     pDesc,
     budget: budget != null ? Number(budget) : null,
     deadline,
+    maxFreelancers: Number(payload?.maxFreelancers) || 1,
     pStatus: nextStatus,
   });
 
@@ -214,6 +258,24 @@ export async function createApplication(userID, projectID, payload) {
     return conflictError("You have already applied to this project.");
   };
 
+  let attachmentID = null;
+  if (payload?.attachmentBase64) {
+    const { buffer, extension } = parseBase64Document(payload.attachmentBase64);
+    const fileName = `${randomUUID()}.${extension}`;
+    await ensureUploadsDir();
+    const filePath = `/uploads/${fileName}`;
+    await fs.writeFile(path.join(UPLOADS_DIR, fileName), buffer);
+    const fileRecord = await fileRepository.createFile({
+      entity: "Proposal",
+      entityID: 0,
+      nameFile: fileName,
+      filePath,
+      fileSize: buffer.length,
+      uploadedBy: freelancerId,
+    });
+    attachmentID = fileRecord.id;
+  }
+
   const existingApplication = await projectRepository.getExistingApplication(
     freelancerId,
     projectId,
@@ -230,6 +292,7 @@ export async function createApplication(userID, projectID, payload) {
       coverLetter,
       bidAmount,
       estimatedDays,
+      attachmentID,
     );
   } catch (err) {
     if (err?.code === "ER_DUP_ENTRY") {
@@ -262,6 +325,7 @@ export async function createApplication(userID, projectID, payload) {
       applicationID: result.id,
       bidAmount,
       estimatedDays,
+      attachmentID,
     },
   }).catch(() => {});
   pushNotification({
@@ -335,6 +399,7 @@ export async function updateMyApplication(userID, applicationID, payload) {
     coverLetter,
     bidAmount,
     estimatedDays,
+    attachmentID: existing.attachmentID ?? null,
     propStatus: "pending",
   };
 }

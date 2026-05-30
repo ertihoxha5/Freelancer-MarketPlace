@@ -52,6 +52,15 @@ export default function Reports() {
   }
 
   const monthlyLine = freelancerReport?.earningsByMonth || clientReport?.monthlyActivity || [];
+  const platformStats = summary
+    ? [
+        { label: "Users", value: Number(summary.totalUsers || 0) },
+        { label: "Projects", value: Number(summary.totalProjects || 0) },
+        { label: "Contracts", value: Number(summary.totalContracts || 0) },
+        { label: "Revenue", value: `$${Number(summary.totalRevenue || 0).toLocaleString()}` },
+        { label: "Active this month", value: Number(summary.activeThisMonth || 0) },
+      ]
+    : [];
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-slate-50">
@@ -66,6 +75,15 @@ export default function Reports() {
             </div>
 
             {error ? <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              {platformStats.map((item) => (
+                <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm text-slate-500">{item.label}</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-900">{item.value ?? "-"}</p>
+                </div>
+              ))}
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {[
@@ -126,6 +144,43 @@ export default function Reports() {
               </div>
             </div>
 
+            <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold text-slate-900">Top Freelancers</h2>
+                <button
+                  onClick={() => downloadProjectReport("json", filters)}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                >
+                  Export Project Feed
+                </button>
+              </div>
+              <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-100 text-left">
+                    <tr>
+                      <th className="px-4 py-3">Freelancer</th>
+                      <th className="px-4 py-3">Rating</th>
+                      <th className="px-4 py-3">Earned</th>
+                      <th className="px-4 py-3">Contracts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {(summary?.topFreelancers || []).map((row) => (
+                      <tr key={row.id}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-slate-900">{row.fullName}</div>
+                          <div className="text-xs text-slate-500">{row.email}</div>
+                        </td>
+                        <td className="px-4 py-3">{row.avgRating ?? "-"}</td>
+                        <td className="px-4 py-3">${Number(row.totalEarned || 0).toLocaleString()}</td>
+                        <td className="px-4 py-3">{row.contractCount ?? 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
             <div className="mt-6 grid gap-6 xl:grid-cols-2">
               <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Client Report</h2>
@@ -133,7 +188,17 @@ export default function Reports() {
                   <input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="Client ID" className="rounded-lg border px-3 py-2 text-sm" />
                   <button onClick={loadClientReport} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Load</button>
                 </div>
-                {clientReport ? <pre className="mt-4 overflow-auto rounded-lg bg-slate-50 p-3 text-xs">{JSON.stringify(clientReport, null, 2)}</pre> : null}
+                {clientReport ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 md:grid-cols-4">
+                      <MiniStat label="Spent" value={`$${Number(clientReport.totalSpent || 0).toLocaleString()}`} />
+                      <MiniStat label="Projects" value={clientReport.projectsPosted ?? 0} />
+                      <MiniStat label="Proposals" value={clientReport.proposalsReceived ?? 0} />
+                      <MiniStat label="Acceptance" value={`${clientReport.acceptanceRate ?? 0}%`} />
+                    </div>
+                    <pre className="overflow-auto rounded-lg bg-slate-50 p-3 text-xs">{JSON.stringify(clientReport, null, 2)}</pre>
+                  </div>
+                ) : null}
               </section>
               <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Freelancer Report</h2>
@@ -141,7 +206,17 @@ export default function Reports() {
                   <input value={freelancerId} onChange={(e) => setFreelancerId(e.target.value)} placeholder="Freelancer ID" className="rounded-lg border px-3 py-2 text-sm" />
                   <button onClick={loadFreelancerReport} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Load</button>
                 </div>
-                {freelancerReport ? <pre className="mt-4 overflow-auto rounded-lg bg-slate-50 p-3 text-xs">{JSON.stringify(freelancerReport, null, 2)}</pre> : null}
+                {freelancerReport ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 md:grid-cols-4">
+                      <MiniStat label="Earned" value={`$${Number(freelancerReport.totalEarned || 0).toLocaleString()}`} />
+                      <MiniStat label="Completed" value={freelancerReport.projectsCompleted ?? 0} />
+                      <MiniStat label="Rating" value={freelancerReport.avgRating ?? "-"} />
+                      <MiniStat label="Success" value={`${freelancerReport.applicationSuccessRate ?? 0}%`} />
+                    </div>
+                    <pre className="overflow-auto rounded-lg bg-slate-50 p-3 text-xs">{JSON.stringify(freelancerReport, null, 2)}</pre>
+                  </div>
+                ) : null}
               </section>
             </div>
 
@@ -168,6 +243,15 @@ export default function Reports() {
           </section>
         </div>
       </main>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-slate-900">{value}</p>
     </div>
   );
 }

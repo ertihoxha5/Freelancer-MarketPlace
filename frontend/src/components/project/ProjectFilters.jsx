@@ -11,8 +11,8 @@ export default function ProjectFilters({ currentFilters, onFilterChange }) {
     const timer = setTimeout(() => {
       onFilterChange({
         sort: local.sort,
-        categoryID: local.categoryID,
-        skillIds: local.skillIds,
+        categoryID: local.categoryID || undefined,
+        skillIds: local.skillIds || undefined,
       });
     }, 400);
     return () => clearTimeout(timer);

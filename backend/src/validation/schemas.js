@@ -326,7 +326,7 @@ export const profileSchemas = {
         .transform((v) => (v === "" ? null : v)),
       portofoliUrl: z.string().trim().max(500).optional().nullable(),
       bio: z.string().trim().max(255).optional().nullable(),
-      pictureBase64: z.string().max(7_000_000).optional(),
+      pictureBase64: z.string().max(7_000_000).optional().nullable(),
       skills: z
         .array(
           z.object({
@@ -355,7 +355,9 @@ export const projectSchemas = {
     pDesc: optionalTrimmedString(5000, "Description"),
     budget: nullablePositiveMoney("Budget"),
     deadline: nullableDateString,
+    categoryID: positiveIntSchema("categoryID").optional().nullable(),
     clientID: positiveIntSchema("clientID").optional(),
+    maxFreelancers: z.coerce.number().int().min(1).max(20).optional().default(1),
     pStatus: z
       .enum(["pending", "active", "completed", "cancelled"])
       .optional()
@@ -366,6 +368,8 @@ export const projectSchemas = {
     pDesc: optionalTrimmedString(5000, "Description"),
     budget: nullablePositiveMoney("Budget"),
     deadline: nullableDateString,
+    categoryID: positiveIntSchema("categoryID").optional().nullable(),
+    maxFreelancers: z.coerce.number().int().min(1).max(20).optional().default(1),
     pStatus: z.enum(["pending", "active", "completed", "cancelled"]).optional(),
   }),
 };
@@ -375,11 +379,39 @@ export const proposalSchemas = {
     coverLetter: trimmedString("Cover letter", 5000),
     bidAmount: nullablePositiveMoney("Bid amount"),
     estimatedDays: nullablePositiveInt("Estimated days"),
+    attachmentBase64: z.string().max(8_000_000).optional().nullable(),
+    attachmentName: z.string().trim().max(255).optional().nullable(),
   }),
   status: z.object({
     propStatus: z.enum(["pending", "accepted", "rejected"], {
       error: "Status must be pending, accepted, or rejected.",
     }),
+  }),
+};
+
+export const testimonialSchemas = {
+  create: z.object({
+    fullName: trimmedString("fullName", 80),
+    roleTitle: trimmedString("roleTitle", 80),
+    rating: z.coerce.number().int().min(1).max(5),
+    comment: trimmedString("comment", 1000),
+  }),
+  adminUpdate: z.object({
+    isPublished: z.coerce.boolean().optional(),
+  }),
+};
+
+export const settingsSchemas = {
+  update: z.object({
+    items: z
+      .array(
+        z.object({
+          sKey: trimmedString("sKey", 50),
+          sValue: z.string().trim().max(2000),
+          sDesc: z.string().trim().max(500).optional().nullable(),
+        }),
+      )
+      .min(1),
   }),
 };
 

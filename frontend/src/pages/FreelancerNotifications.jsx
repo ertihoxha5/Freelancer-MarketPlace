@@ -56,7 +56,7 @@ export default function FreelancerNotifications() {
   const { user } = useAuth();
 
   // Tab aktiv: "notifications" (MySQL) ose "activities" (MongoDB)
-  const [activeTab, setActiveTab] = useState("activities");
+  const [activeTab, setActiveTab] = useState("notifications");
 
   // ─── STATE: Notifications (MySQL) ────────────────────────────────────
   const [notifications, setNotifications] = useState([]);

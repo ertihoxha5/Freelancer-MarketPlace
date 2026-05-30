@@ -3,13 +3,21 @@ import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { fetchClientProjects } from '../apiServices.js';
+import { createClientTestimonial, fetchClientProjects } from '../apiServices.js';
 
 export default function ClientDashboard() {
   const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [testimonial, setTestimonial] = useState({
+    fullName: '',
+    roleTitle: '',
+    rating: 5,
+    comment: '',
+  });
+  const [testimonialMessage, setTestimonialMessage] = useState('');
+  const [testimonialError, setTestimonialError] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -82,6 +90,24 @@ export default function ClientDashboard() {
     'Review freelancer profiles and portfolios before hiring.',
     'Communicate regularly with your chosen freelancer.',
   ];
+
+  async function submitTestimonial(event) {
+    event.preventDefault();
+    setTestimonialMessage('');
+    setTestimonialError('');
+    try {
+      await createClientTestimonial({
+        fullName: testimonial.fullName.trim() || user?.fullName || 'Client',
+        roleTitle: testimonial.roleTitle.trim() || 'Client',
+        rating: Number(testimonial.rating) || 5,
+        comment: testimonial.comment.trim(),
+      });
+      setTestimonialMessage('Thanks! Your testimonial was posted to the homepage.');
+      setTestimonial({ fullName: '', roleTitle: '', rating: 5, comment: '' });
+    } catch (err) {
+      setTestimonialError(err instanceof Error ? err.message : 'Unable to submit testimonial.');
+    }
+  }
 
   return (
     <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden">
@@ -212,6 +238,25 @@ export default function ClientDashboard() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-900">Share a Testimonial</h2>
+              <p className="mt-2 text-sm text-slate-600">Post a public review about your experience using the platform.</p>
+              {testimonialMessage ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{testimonialMessage}</div> : null}
+              {testimonialError ? <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{testimonialError}</div> : null}
+              <form onSubmit={submitTestimonial} className="mt-4 grid gap-4 md:grid-cols-2">
+                <input value={testimonial.fullName} onChange={(e) => setTestimonial((curr) => ({ ...curr, fullName: e.target.value }))} placeholder="Full name" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                <input value={testimonial.roleTitle} onChange={(e) => setTestimonial((curr) => ({ ...curr, roleTitle: e.target.value }))} placeholder="Role / Company" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                <select value={testimonial.rating} onChange={(e) => setTestimonial((curr) => ({ ...curr, rating: e.target.value }))} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+                  {[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} Stars</option>)}
+                </select>
+                <div />
+                <textarea value={testimonial.comment} onChange={(e) => setTestimonial((curr) => ({ ...curr, comment: e.target.value }))} placeholder="What do you like most about the platform?" rows={4} className="md:col-span-2 rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                <div className="md:col-span-2 flex justify-end">
+                  <button className="rounded-2xl bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white">Publish Testimonial</button>
+                </div>
+              </form>
             </div>
           </section>
         </div>

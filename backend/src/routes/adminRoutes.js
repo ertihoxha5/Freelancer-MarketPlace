@@ -4,6 +4,7 @@ import * as adminController from "../controllers/adminController.js";
 import * as catalogController from "../controllers/catalogController.js";
 import * as projectController from "../controllers/projectController.js";
 import * as notificationController from "../controllers/notificationController.js";
+import * as settingsController from "../controllers/settingsController.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
   adminSchemas,
@@ -11,6 +12,7 @@ import {
   paramSchemas,
   projectSchemas,
   querySchemas,
+  settingsSchemas,
   userSchemas,
 } from "../validation/schemas.js";
 
@@ -143,6 +145,13 @@ router.delete(
   "/notifications/:id",
   validateRequest({ params: paramSchemas.id }),
   notificationController.deleteNotification,
+);
+
+router.get("/settings", settingsController.getSettings);
+router.put(
+  "/settings",
+  validateRequest({ body: settingsSchemas.update }),
+  settingsController.updateSettings,
 );
 
 export default router;
