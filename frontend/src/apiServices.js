@@ -432,6 +432,20 @@ export function updateAdminDispute(id, payload) {
   });
 }
 
+/** GET /api/admin/payments - all payments (admin) */
+export function fetchAdminPayments(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const suffix = query ? `?${query}` : '';
+  return authedFetch(`${API_BASE}/api/admin/payments${suffix}`);
+}
+
+/** GET /api/admin/applications - all proposals/applications (admin) */
+export function fetchAdminApplications(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const suffix = query ? `?${query}` : '';
+  return authedFetch(`${API_BASE}/api/admin/applications${suffix}`);
+}
+
 // ─── CLIENT PROJECT APIs ───────────────────────────────────────────────────
 
 /**
@@ -969,6 +983,17 @@ export function createReview(contractId, payload, role = "client") {
 
 export function fetchMyReviews() {
   return authedFetch(`${API_BASE}/api/freelancer/reviews`);
+}
+
+// Freelancer Payments
+export function fetchFreelancerPayments(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const suffix = query ? `?${query}` : '';
+  return authedFetch(`${API_BASE}/api/freelancer/payments${suffix}`);
+}
+
+export function fetchFreelancerPayment(id) {
+  return authedFetch(`${API_BASE}/api/freelancer/payments/${id}`);
 }
 
 // Search

@@ -6,6 +6,7 @@ import * as activityController from "../controllers/activityController.js";
 import * as contractController from "../controllers/contractController.js";
 import * as milestoneController from "../controllers/milestoneController.js";
 import * as reviewController from "../controllers/reviewController.js";
+import * as paymentController from "../controllers/paymentController.js";
 import * as freelancerNotifController from "../controllers/freelancerNotificationController.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
@@ -221,6 +222,17 @@ router.delete(
   "/activities/:id",
   validateRequest({ params: paramSchemas.mongoId }),
   activityController.deleteActivity,
+);
+
+router.get(
+  "/payments",
+  validateRequest({ query: querySchemas.pagination }),
+  paymentController.getFreelancerPayments,
+);
+router.get(
+  "/payments/:id",
+  validateRequest({ params: paramSchemas.id }),
+  paymentController.getFreelancerPaymentDetail,
 );
 
 export default router;

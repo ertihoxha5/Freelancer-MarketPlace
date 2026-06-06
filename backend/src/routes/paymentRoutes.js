@@ -12,29 +12,28 @@ router.post(
   "/intent",
   authMiddleware.requireRole(2),
   validateRequest({ body: paymentSchemas.createIntent }),
-  paymentController.createIntent,
+  paymentController.createIntent
 );
 
 router.post(
   "/confirm",
   authMiddleware.requireRole(2, 3),
   validateRequest({ body: paymentSchemas.confirm }),
-  paymentController.confirm,
+  paymentController.confirm
 );
 
 router.post(
   "/refund",
   authMiddleware.requireRole(2),
   validateRequest({ body: paymentSchemas.refund }),
-  paymentController.refund,
+  paymentController.refund
 );
 
 router.get(
   "/history",
   authMiddleware.requireRole(2, 3),
   validateRequest({ query: paymentSchemas.historyQuery }),
-  paymentController.history,
+  paymentController.history
 );
 
 export default router;
-export { paymentController };

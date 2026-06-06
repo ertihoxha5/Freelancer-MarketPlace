@@ -16,6 +16,8 @@ const sidebarConfigs = {
       href: "/adminDashboard/jobs-without-freelancer",
     },
     { label: "Disputes", href: "/adminDashboard/disputes" },
+    { label: "Payments", href: "/adminDashboard/payments" },
+    { label: "Applications", href: "/adminDashboard/applications" },
     { label: "Export/Import", href: "/adminDashboard/export" },
     { label: "Reports", href: "/adminDashboard/reports" },
     { label: "Settings", href: "/adminDashboard/settings" },
@@ -33,7 +35,7 @@ const sidebarConfigs = {
     { label: "My Applications", href: "/freelancer/applications", badge: "applications" },
     { label: "My Reports", href: "/freelancer/reports" },
     { label: "My Reviews", href: "/freelancer/reviews", badge: "reviews" },
-
+    { label: "Payments", href: "/freelancer/payments" },
   ],
   client: [
     { label: "Dashboard", href: "/client/dashboard" },

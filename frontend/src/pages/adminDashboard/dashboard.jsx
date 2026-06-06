@@ -79,6 +79,8 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
+                <QuickLink href="/adminDashboard/payments" label="Payments" />
+                <QuickLink href="/adminDashboard/applications" label="Applications" />
                 <QuickLink href="/adminDashboard/reports" label="Reports" />
                 <QuickLink href="/adminDashboard/catalog" label="Catalog" />
                 <QuickLink href="/adminDashboard/settings" label="Settings" />

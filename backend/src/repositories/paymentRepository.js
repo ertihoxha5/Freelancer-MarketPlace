@@ -20,22 +20,24 @@ function parseMetadata(row) {
  *   amount: number;
  *   currency?: string;
  *   pStatus: string;
- *   stripePaymentIntentId: string;
+ *   transactionID?: string | null;
+ *   notes?: string | null;
  *   metadata?: object | null;
  * }} data
  */
 export async function createPayment(data) {
   const [result] = await db.execute(
     `INSERT INTO Payment
-       (contractID, milestoneID, amount, currency, pStatus, stripePaymentIntentId, metadata)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (contractID, milestoneID, amount, currency, pStatus, transactionID, notes, metadata)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.contractID,
       data.milestoneID ?? null,
       data.amount,
-      data.currency ?? "usd",
+      data.currency ?? "USD",
       data.pStatus,
-      data.stripePaymentIntentId,
+      data.transactionID ?? null,
+      data.notes ?? null,
       data.metadata ? JSON.stringify(data.metadata) : null,
     ],
   );
@@ -53,13 +55,13 @@ export async function getPaymentById(paymentID) {
   return parseMetadata(rows[0] ?? null);
 }
 
-export async function getPaymentByStripeId(stripePaymentIntentId) {
+export async function getPaymentByTransactionId(transactionID) {
   const [rows] = await db.execute(
     `SELECT *
      FROM Payment
-     WHERE stripePaymentIntentId = ?
+     WHERE transactionID = ?
      LIMIT 1`,
-    [stripePaymentIntentId],
+    [transactionID],
   );
   return parseMetadata(rows[0] ?? null);
 }
@@ -75,16 +77,6 @@ export async function updatePaymentStatus(paymentID, status, metadata = null) {
     [status, metadataJson, paymentID],
   );
   return getPaymentById(paymentID);
-}
-
-export async function updatePaymentStatusByStripeId(
-  stripePaymentIntentId,
-  status,
-  metadata = null,
-) {
-  const payment = await getPaymentByStripeId(stripePaymentIntentId);
-  if (!payment) return null;
-  return updatePaymentStatus(payment.id, status, metadata);
 }
 
 export async function getPaymentHistory(userID, limit = 20, offset = 0) {
@@ -123,7 +115,6 @@ export async function getMilestonePayments(contractID) {
             m.title AS milestoneTitle,
             m.mStatus AS milestoneStatus,
             m.amountPayable,
-            p.stripePaymentIntentId,
             p.pStatus AS paymentStatus,
             p.contractID
      FROM MilestonePayment mp
@@ -201,9 +192,234 @@ export async function refundMilestonePayment(milestoneID) {
 // Backward-compatible aliases
 export const insertPayment = createPayment;
 export const findPaymentById = getPaymentById;
-export const findPaymentByStripeIntentId = getPaymentByStripeId;
 export const findPaymentsForUser = (userID, { limit, offset }) =>
   getPaymentHistory(userID, limit, offset);
 export const insertMilestonePayment = createMilestonePayment;
 export const findMilestonePaymentByMilestoneId = getMilestonePaymentByMilestoneId;
-export const updatePaymentByStripeIntentId = updatePaymentStatusByStripeId;
+
+/**
+ * Admin: Get all payments with rich joins (IDs focused + details)
+ */
+export async function getAllPayments({ limit = 50, offset = 0, pStatus = null } = {}) {
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+  const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+  const params = [];
+  let where = '';
+  if (pStatus) {
+    where = 'WHERE p.pStatus = ?';
+    params.push(pStatus);
+  }
+
+  const [rows] = await db.execute(
+    `SELECT 
+        p.id,
+        p.contractID,
+        p.milestoneID,
+        p.amount,
+        p.currency,
+        p.pStatus,
+        p.transactionID,
+        p.notes,
+        p.createdAt,
+        p.updatedAt,
+        c.clientID,
+        c.freelancerID,
+        pr.title AS projectTitle,
+        m.title AS milestoneTitle,
+        uc.fullName AS clientName,
+        uf.fullName AS freelancerName,
+        mp.pStatus AS milestonePaymentStatus,
+        mp.releasedAt
+     FROM Payment p
+     INNER JOIN Contracts c ON c.id = p.contractID
+     INNER JOIN Proposal prop ON prop.id = c.proposalID
+     INNER JOIN Project pr ON pr.id = prop.projectID
+     INNER JOIN Users uc ON uc.id = c.clientID
+     INNER JOIN Users uf ON uf.id = c.freelancerID
+     LEFT JOIN Milestones m ON m.id = p.milestoneID
+     LEFT JOIN MilestonePayment mp ON mp.paymentID = p.id
+     ${where}
+     ORDER BY p.createdAt DESC
+     LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+    params
+  );
+
+  return rows.map(parseMetadata);
+}
+
+export async function countAllPayments({ pStatus = null } = {}) {
+  const params = [];
+  let where = '';
+  if (pStatus) {
+    where = 'WHERE p.pStatus = ?';
+    params.push(pStatus);
+  }
+
+  const [rows] = await db.execute(
+    `SELECT COUNT(*) AS total
+     FROM Payment p
+     INNER JOIN Contracts c ON c.id = p.contractID
+     ${where}`,
+    params
+  );
+  return rows[0]?.total || 0;
+}
+
+/* =========================
+   payment_legacy (ARCHIVE) helpers
+   =========================
+   The payment_legacy table is created automatically by the migration in db.js
+   when an old Stripe-based Payment table (with stripePaymentIntentId) is detected.
+   It is an immutable historical archive. New payments should NEVER be inserted here.
+*/
+
+// Detect which identifier column the legacy row actually has
+function getLegacyIdentifierColumn(row) {
+  if (!row) return null;
+  if (row.stripePaymentIntentId) return { key: 'stripePaymentIntentId', value: row.stripePaymentIntentId };
+  if (row.transactionID) return { key: 'transactionID', value: row.transactionID };
+  return null;
+}
+
+export async function getLegacyPayments(limit = 50, offset = 0) {
+  const pageSize = Number(limit);
+  const pageOffset = Number(offset);
+
+  const [rows] = await db.execute(
+    `SELECT *
+     FROM payment_legacy
+     ORDER BY archivedAt DESC, id DESC
+     LIMIT ${pageSize} OFFSET ${pageOffset}`
+  );
+
+  return rows.map((row) => {
+    const parsed = parseMetadata(row);
+    const ident = getLegacyIdentifierColumn(parsed);
+    if (ident) {
+      parsed.legacyTransactionId = ident.value;
+      parsed.legacyIdType = ident.key;
+    }
+    return parsed;
+  });
+}
+
+export async function getLegacyPaymentById(id) {
+  const [rows] = await db.execute(
+    `SELECT * FROM payment_legacy WHERE id = ? LIMIT 1`,
+    [id]
+  );
+  const row = rows[0] ?? null;
+  if (!row) return null;
+
+  const parsed = parseMetadata(row);
+  const ident = getLegacyIdentifierColumn(parsed);
+  if (ident) {
+    parsed.legacyTransactionId = ident.value;
+    parsed.legacyIdType = ident.key;
+  }
+  return parsed;
+}
+
+export async function findLegacyPaymentByTransactionId(txId) {
+  // Try both possible old identifier columns
+  const [rows] = await db.execute(
+    `SELECT * FROM payment_legacy 
+     WHERE transactionID = ? OR stripePaymentIntentId = ? 
+     LIMIT 1`,
+    [txId, txId]
+  );
+  const row = rows[0] ?? null;
+  if (!row) return null;
+
+  const parsed = parseMetadata(row);
+  const ident = getLegacyIdentifierColumn(parsed);
+  if (ident) {
+    parsed.legacyTransactionId = ident.value;
+    parsed.legacyIdType = ident.key;
+  }
+  return parsed;
+}
+
+export async function getLegacyPaymentsForUser(userID, limit = 20, offset = 0) {
+  // Join through Contracts so we can filter by client or freelancer
+  const pageSize = Number(limit);
+  const pageOffset = Number(offset);
+
+  const [rows] = await db.execute(
+    `SELECT pl.*,
+            c.clientID,
+            c.freelancerID,
+            pr.title AS projectTitle,
+            m.title AS milestoneTitle
+     FROM payment_legacy pl
+     INNER JOIN Contracts c ON c.id = pl.contractID
+     INNER JOIN Proposal prop ON prop.id = c.proposalID
+     INNER JOIN Project pr ON pr.id = prop.projectID
+     LEFT JOIN Milestones m ON m.id = pl.milestoneID
+     WHERE c.clientID = ? OR c.freelancerID = ?
+     ORDER BY pl.archivedAt DESC, pl.id DESC
+     LIMIT ${pageSize} OFFSET ${pageOffset}`,
+    [userID, userID]
+  );
+
+  return rows.map((row) => {
+    const parsed = parseMetadata(row);
+    const ident = getLegacyIdentifierColumn(parsed);
+    if (ident) {
+      parsed.legacyTransactionId = ident.value;
+      parsed.legacyIdType = ident.key;
+    }
+    return parsed;
+  });
+}
+
+/**
+ * Optional one-time backfill helper.
+ * Copies a legacy record into the modern Payment table (if a matching transactionID doesn't already exist).
+ * Returns the new Payment row or null if nothing was copied.
+ */
+export async function backfillLegacyPaymentToModern(legacyId) {
+  const legacy = await getLegacyPaymentById(legacyId);
+  if (!legacy) return null;
+
+  const txId = legacy.legacyTransactionId || legacy.transactionID || legacy.stripePaymentIntentId;
+  if (!txId) return null;
+
+  // Check if we already have it in the modern table
+  const existing = await getPaymentByTransactionId(txId);
+  if (existing) return existing;
+
+  const insertData = {
+    contractID: legacy.contractID,
+    milestoneID: legacy.milestoneID,
+    amount: legacy.amount,
+    currency: legacy.currency || 'USD',
+    pStatus: legacy.pStatus || 'succeeded',   // most old payments were successful
+    transactionID: txId,
+    notes: 'Backfilled from payment_legacy',
+    metadata: {
+      ...(legacy.metadata || {}),
+      backfilledFromLegacyId: legacy.id,
+      originalArchivedAt: legacy.archivedAt,
+      originalCreatedAt: legacy.originalCreatedAt,
+    },
+  };
+
+  const newPayment = await createPayment(insertData);
+
+  // Optionally also create a MilestonePayment record if one doesn't exist
+  if (legacy.milestoneID && newPayment) {
+    const existingMilestonePayment = await getMilestonePaymentByMilestoneId(legacy.milestoneID);
+    if (!existingMilestonePayment) {
+      await createMilestonePayment({
+        milestoneID: legacy.milestoneID,
+        paymentID: newPayment.id,
+        amount: legacy.amount,
+        pStatus: 'held', // or 'released' if you have evidence it was already paid out
+      });
+    }
+  }
+
+  return newPayment;
+}

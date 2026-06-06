@@ -118,7 +118,7 @@ export default function ProjectMilestones() {
     {
       step: "02",
       title: "Make the payment",
-      description: "The client releases the milestone payment from the payment page.",
+      description: "The client pays the milestone (simulated / demo). Funds are held until approval.",
       tone: isClient ? "amber" : "slate",
       action: paymentLink ? (
         <Link

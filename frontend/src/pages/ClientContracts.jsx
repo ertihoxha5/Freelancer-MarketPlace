@@ -50,6 +50,7 @@ export default function ClientContracts() {
   const [reviewContract, setReviewContract] = useState(null);
   const [payMilestone, setPayMilestone] = useState(null);
   const [payContract, setPayContract] = useState(null);
+  const [paidMilestoneIds, setPaidMilestoneIds] = useState(new Set());
   const [disputeContract, setDisputeContract] = useState(null);
   const [disputeReason, setDisputeReason] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -178,11 +179,18 @@ export default function ClientContracts() {
       try {
         await confirmPayment(paymentIntentId);
       } catch {
-        /* webhook may already have synced */
+        /* may have been confirmed already */
       }
     }
     const contractId = payContract?.id;
+    const mId = payMilestone?.id;
+
+    if (mId) {
+      setPaidMilestoneIds((prev) => new Set(prev).add(mId));
+    }
+
     closePaymentModal();
+
     if (contractId) {
       await reloadContract(contractId);
     }
@@ -365,17 +373,26 @@ export default function ClientContracts() {
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
                                 <Badge status={milestone.mStatus} />
+                                {paidMilestoneIds.has(milestone.id) || milestone.paymentHeld ? (
+                                  <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                    Paid (funds held)
+                                  </span>
+                                ) : null}
+
                                 {contract.cStatus === "active" &&
                                 contract.isFullySigned &&
-                                ["pending", "in_progress"].includes(milestone.mStatus) ? (
+                                ["pending", "in_progress"].includes(milestone.mStatus) &&
+                                !paidMilestoneIds.has(milestone.id) ? (
                                   <button
                                     type="button"
                                     onClick={() => openMilestonePayment(contract, milestone)}
                                     className="rounded-lg bg-[#2f4f2f] px-3 py-1.5 text-xs font-semibold text-white"
+                                    title="Simulated payment — funds will be held until you approve the work"
                                   >
                                     Pay milestone
                                   </button>
                                 ) : null}
+
                                 {milestone.mStatus === "submitted" ? (
                                   <>
                                     <button onClick={() => setMilestoneStatus(milestone, "approved")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">Approve</button>
@@ -426,12 +443,12 @@ export default function ClientContracts() {
             <p className="mt-1 text-sm text-slate-600">
               {payMilestone.title} · ${payMilestone.amountPayable}
             </p>
-            <p className="mt-2 text-xs text-slate-500">
-              Funds are held until you approve the submitted milestone work.
+            <p className="mt-2 text-xs text-emerald-700">
+              Simulated payment (demo). Funds will be held in escrow until you approve the freelancer’s submitted work.
             </p>
             <div className="mt-4">
               {paymentLoading ? (
-                <p className="text-sm text-slate-500">Loading secure checkout…</p>
+                <p className="text-sm text-slate-500">Preparing payment…</p>
               ) : (
                 <PaymentForm
                   clientSecret={clientSecret}

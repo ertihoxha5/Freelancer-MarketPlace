@@ -1,6 +1,8 @@
 import * as adminService from '../services/adminService.js';
 import * as userService from '../services/userService.js';
 import * as disputeRepository from '../repositories/disputeRepository.js';
+import * as paymentRepository from '../repositories/paymentRepository.js';
+import * as projectRepository from '../repositories/projectRepository.js';
 import {
     validatedBody,
     validatedParams,
@@ -103,6 +105,76 @@ export async function getDisputeById(req, res, next) {
         }
         next(err);
     }
+}
+
+export async function getAllPayments(req, res, next) {
+  try {
+    const { page = 1, limit = 50, pStatus } = validatedQuery(req);
+    const offset = (Math.max(Number(page), 1) - 1) * Math.min(Number(limit) || 50, 200);
+
+    const [payments, total] = await Promise.all([
+      paymentRepository.getAllPayments({ limit, offset, pStatus: pStatus || null }),
+      paymentRepository.countAllPayments({ pStatus: pStatus || null }),
+    ]);
+
+    // Quick statistics
+    const statusCounts = {};
+    payments.forEach((p) => {
+      statusCounts[p.pStatus] = (statusCounts[p.pStatus] || 0) + 1;
+    });
+
+    const totalVolume = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    return res.status(200).json({
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      payments,
+      statistics: {
+        totalPayments: total,
+        totalVolume: Number(totalVolume.toFixed(2)),
+        byStatus: statusCounts,
+      },
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}
+
+export async function getAllApplications(req, res, next) {
+  try {
+    const { page = 1, limit = 50, propStatus } = validatedQuery(req);
+    const offset = (Math.max(Number(page), 1) - 1) * Math.min(Number(limit) || 50, 200);
+
+    const [proposals, total] = await Promise.all([
+      projectRepository.getAllProposals({ limit, offset, propStatus: propStatus || null }),
+      projectRepository.countAllProposals({ propStatus: propStatus || null }),
+    ]);
+
+    const statusCounts = {};
+    proposals.forEach((p) => {
+      statusCounts[p.propStatus] = (statusCounts[p.propStatus] || 0) + 1;
+    });
+
+    return res.status(200).json({
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      applications: proposals,
+      statistics: {
+        totalApplications: total,
+        byStatus: statusCounts,
+      },
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
 }
 
 export async function updateDisputeStatus(req, res, next) {

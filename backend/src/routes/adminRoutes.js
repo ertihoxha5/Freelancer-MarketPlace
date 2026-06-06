@@ -170,4 +170,16 @@ router.patch(
   adminController.updateDisputeStatus,
 );
 
+// Admin Payments & Applications (Proposals)
+router.get(
+  "/payments",
+  validateRequest({ query: querySchemas.pagination }),
+  adminController.getAllPayments,
+);
+router.get(
+  "/applications",
+  validateRequest({ query: querySchemas.pagination }),
+  adminController.getAllApplications,
+);
+
 export default router;

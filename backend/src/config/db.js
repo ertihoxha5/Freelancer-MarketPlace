@@ -705,23 +705,52 @@ async function ensureMilestoneSchema(pool) {
 
 async function ensurePaymentSchema(pool) {
   let paymentTableExists = await tableExists(pool, "Payment");
+  const hasTransactionId = paymentTableExists
+    ? await columnExists(pool, "Payment", "transactionID")
+    : false;
   const hasStripeColumn = paymentTableExists
     ? await columnExists(pool, "Payment", "stripePaymentIntentId")
     : false;
 
-  if (paymentTableExists && !hasStripeColumn) {
-    await pool.query("RENAME TABLE Payment TO Payment_legacy");
-    paymentTableExists = false;
+  // Legacy migration: old stripe-based Payment table -> archive to legacy (if we don't already have one)
+  if (paymentTableExists && hasStripeColumn && !hasTransactionId) {
+    const legacyExists =
+      (await tableExists(pool, "Payment_legacy")) ||
+      (await tableExists(pool, "payment_legacy"));
+
+    if (legacyExists) {
+      // We already have a legacy copy. Do not drop/rename the current Payment (it may have FK dependents
+      // like MilestonePayment). Instead, just extend the existing table with the modern columns.
+      console.info(
+        "[db] Payment_legacy already exists — extending current Payment table with transactionID/notes (non-destructive)."
+      );
+      // Leave paymentTableExists=true; the upgrade block below will add the missing columns.
+    } else {
+      // First time we see a pure old stripe Payment: safely archive it.
+      try {
+        await pool.query("RENAME TABLE Payment TO Payment_legacy");
+        paymentTableExists = false;
+      } catch (renameErr) {
+        console.warn(
+          "[db] RENAME Payment TO Payment_legacy failed, falling back to DROP + CREATE:",
+          renameErr.message
+        );
+        await pool.query("DROP TABLE IF EXISTS Payment");
+        paymentTableExists = false;
+      }
+    }
   }
 
   if (!paymentTableExists) {
+    // Ensure clean state before create (defensive against partial previous runs or name collisions)
+    await pool.query("DROP TABLE IF EXISTS Payment");
     await pool.query(`
       CREATE TABLE Payment(
         id INT PRIMARY KEY AUTO_INCREMENT,
         contractID INT NOT NULL,
         milestoneID INT NULL,
-        amount INT NOT NULL,
-        currency CHAR(3) NOT NULL DEFAULT 'usd',
+        amount DECIMAL(12,2) NOT NULL,
+        currency CHAR(3) NOT NULL DEFAULT 'USD',
         pStatus ENUM(
           'pending',
           'processing',
@@ -730,18 +759,66 @@ async function ensurePaymentSchema(pool) {
           'canceled',
           'refunded'
         ) NOT NULL DEFAULT 'pending',
-        stripePaymentIntentId VARCHAR(255) NULL,
+        transactionID VARCHAR(255) NULL,
+        notes TEXT NULL,
         metadata JSON NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
         FOREIGN KEY (milestoneID) REFERENCES Milestones(id) ON DELETE SET NULL,
-        UNIQUE KEY uq_payment_stripe_intent (stripePaymentIntentId),
+        UNIQUE KEY uq_payment_transaction (transactionID),
         INDEX idx_payment_status (pStatus),
         INDEX idx_payment_contract (contractID),
         INDEX idx_payment_created (createdAt DESC)
       )
     `);
+    paymentTableExists = true;
+  }
+
+  // Upgrade existing Payment table (from schema.sql or partial state) to include transactionID + notes
+  // Use fresh column checks so this is safe even after we just created the table in this run.
+  if (paymentTableExists) {
+    const currentHasTransactionId = await columnExists(pool, "Payment", "transactionID");
+
+    if (!currentHasTransactionId) {
+      // Add transactionID if missing
+      try {
+        await pool.query(`
+          ALTER TABLE Payment
+          ADD COLUMN transactionID VARCHAR(255) NULL AFTER pStatus
+        `);
+      } catch {}
+      try {
+        await pool.query(`
+          ALTER TABLE Payment
+          ADD UNIQUE KEY uq_payment_transaction (transactionID)
+        `);
+      } catch {}
+
+      // Add notes if missing
+      try {
+        await pool.query(`
+          ALTER TABLE Payment
+          ADD COLUMN notes TEXT NULL AFTER transactionID
+        `);
+      } catch {}
+    }
+
+    // Ensure amount is DECIMAL(12,2) (upgrade from older INT versions)
+    try {
+      await pool.query(`
+        ALTER TABLE Payment
+        MODIFY COLUMN amount DECIMAL(12,2) NOT NULL
+      `);
+    } catch {}
+
+    // Ensure currency default is uppercase USD for consistency
+    try {
+      await pool.query(`
+        ALTER TABLE Payment
+        MODIFY COLUMN currency CHAR(3) NOT NULL DEFAULT 'USD'
+      `);
+    } catch {}
   }
 
   if (!(await tableExists(pool, "MilestonePayment"))) {
@@ -750,7 +827,7 @@ async function ensurePaymentSchema(pool) {
         id INT PRIMARY KEY AUTO_INCREMENT,
         milestoneID INT NOT NULL UNIQUE,
         paymentID INT NOT NULL,
-        amount INT NOT NULL,
+        amount DECIMAL(12,2) NOT NULL,
         pStatus ENUM('held', 'released', 'refunded') NOT NULL DEFAULT 'held',
         releasedAt DATETIME NULL,
         releasedBy INT NULL,
@@ -762,6 +839,14 @@ async function ensurePaymentSchema(pool) {
         INDEX idx_milestone_payment_status (pStatus)
       )
     `);
+  } else {
+    // Upgrade MilestonePayment amount to DECIMAL if needed
+    try {
+      await pool.query(`
+        ALTER TABLE MilestonePayment
+        MODIFY COLUMN amount DECIMAL(12,2) NOT NULL
+      `);
+    } catch {}
   }
 }
 

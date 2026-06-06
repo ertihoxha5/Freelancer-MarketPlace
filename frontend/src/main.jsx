@@ -41,8 +41,13 @@ const AdminNotifications = lazy(
 );
 const AdminReports = lazy(() => import("./pages/adminDashboard/Reports.jsx"));
 const AdminSettings = lazy(() => import("./pages/adminDashboard/Settings.jsx"));
+const AdminPayments = lazy(() => import("./pages/adminDashboard/Payments.jsx"));
+const AdminApplications = lazy(() => import("./pages/adminDashboard/Applications.jsx"));
 const ExportImport = lazy(
   () => import("./pages/adminDashboard/ExportImport.jsx"),
+);
+const FreelancerPayments = lazy(
+  () => import("./pages/FreelancerPayments.jsx"),
 );
 const SearchPage = lazy(() => import("./pages/SearchPage.jsx"));
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard.jsx"));
@@ -331,6 +336,26 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/adminDashboard/payments",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminPayments />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/applications",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminApplications />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
         path: "/freelancer/notifications",
         element: (
           <FreelancerRoute>
@@ -437,6 +462,16 @@ const router = createBrowserRouter([
           <FreelancerRoute>
             <Suspense fallback={<Loading />}>
               <FreelancerReviews />
+            </Suspense>
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/freelancer/payments",
+        element: (
+          <FreelancerRoute>
+            <Suspense fallback={<Loading />}>
+              <FreelancerPayments />
             </Suspense>
           </FreelancerRoute>
         ),

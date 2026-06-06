@@ -326,8 +326,8 @@ CREATE TABLE IF NOT EXISTS Payment(
     id INT PRIMARY KEY AUTO_INCREMENT,
     contractID INT NOT NULL,
     milestoneID INT NULL,
-    amount INT NOT NULL,
-    currency CHAR(3) NOT NULL DEFAULT 'usd',
+    amount DECIMAL(12,2) NOT NULL,
+    currency CHAR(3) NOT NULL DEFAULT 'USD',
     pStatus ENUM(
         'pending',
         'processing',
@@ -336,24 +336,44 @@ CREATE TABLE IF NOT EXISTS Payment(
         'canceled',
         'refunded'
     ) NOT NULL DEFAULT 'pending',
-    stripePaymentIntentId VARCHAR(255) NULL,
+    transactionID VARCHAR(255) NULL,
+    notes TEXT NULL,
     metadata JSON NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
     FOREIGN KEY (milestoneID) REFERENCES Milestones(id) ON DELETE SET NULL,
-    UNIQUE KEY uq_payment_stripe_intent (stripePaymentIntentId),
+    UNIQUE KEY uq_payment_transaction (transactionID),
     INDEX idx_payment_status (pStatus),
     INDEX idx_payment_contract (contractID),
     INDEX idx_payment_created (createdAt DESC)
+);
+
+CREATE TABLE IF NOT EXISTS payment_legacy(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    contractID INT NOT NULL,
+    milestoneID INT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    currency CHAR(3) NOT NULL DEFAULT 'USD',
+    pStatus VARCHAR(50) NOT NULL,
+    transactionID VARCHAR(255) NULL,
+    metadata JSON NULL,
+    archivedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    originalCreatedAt DATETIME NULL,
+    originalUpdatedAt DATETIME NULL,
+
+    FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
+    FOREIGN KEY (milestoneID) REFERENCES Milestones(id) ON DELETE SET NULL,
+    INDEX idx_payment_legacy_contract (contractID),
+    INDEX idx_payment_legacy_created (archivedAt DESC)
 );
 
 CREATE TABLE IF NOT EXISTS MilestonePayment(
     id INT PRIMARY KEY AUTO_INCREMENT,
     milestoneID INT NOT NULL UNIQUE,
     paymentID INT NOT NULL,
-    amount INT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
     pStatus ENUM('held', 'released', 'refunded') NOT NULL DEFAULT 'held',
     releasedAt DATETIME NULL,
     releasedBy INT NULL,
@@ -365,7 +385,7 @@ CREATE TABLE IF NOT EXISTS MilestonePayment(
     FOREIGN KEY (releasedBy) REFERENCES Users(id) ON DELETE SET NULL,
     INDEX idx_milestone_payment_status (pStatus)
 );
---
+
 CREATE TABLE IF NOT EXISTS Disputes(
     id INT PRIMARY KEY AUTO_INCREMENT,
     contractID INT NOT NULL,

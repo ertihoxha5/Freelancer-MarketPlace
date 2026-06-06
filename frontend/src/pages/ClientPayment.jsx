@@ -110,7 +110,7 @@ export default function ClientPayment() {
                 <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Payment</p>
                 <h1 className="mt-3 text-3xl font-semibold text-slate-900">Milestone payment</h1>
                 <p className="mt-2 max-w-2xl text-slate-600">
-                  Release payment for the selected milestone and continue the project workflow.
+                  Pay the milestone (simulated). Funds will be held safely until you approve the completed work.
                 </p>
               </div>
               <Link
@@ -138,9 +138,12 @@ export default function ClientPayment() {
                   <p className="mt-2 text-sm text-slate-600">
                     {contract?.projectTitle || "Project"} · {milestone?.title || "Milestone"}
                   </p>
+                  <p className="mt-2 text-xs text-emerald-700">
+                    Demo mode — simulated payment. No real charges. Funds are held until milestone approval.
+                  </p>
                   <div className="mt-4">
                     {paymentLoading ? (
-                      <p className="text-sm text-slate-500">Preparing secure checkout...</p>
+                      <p className="text-sm text-slate-500">Preparing payment…</p>
                     ) : (
                       <PaymentForm
                         clientSecret={clientSecret}

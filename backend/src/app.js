@@ -3,6 +3,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
+
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import clientRoutes from "./routes/clientRoutes.js";
@@ -16,7 +17,7 @@ import importRoutes from "./routes/importRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
-import { paymentController } from "./routes/paymentRoutes.js";
+
 import { connectMongoDB } from "./config/mongodb.js";
 import { db } from "./config/db.js";
 import { helmetMiddleware } from "./middleware/security.js";
@@ -41,10 +42,12 @@ connectMongoDB();
 app.use(helmetMiddleware);
 app.use(corsMiddleware);
 
+// Webhook duhet të vijë PARA express.json() sepse Stripe dërgon raw body
 app.post(
   "/api/payment/webhook",
   express.raw({ type: "application/json" }),
-  paymentController.webhook,
+  // webhook handler do ta shtojmë në paymentController
+  // Për momentin do ta vendosim më vonë pasi të kemi controller-in
 );
 
 app.use(express.json({ limit: "1mb" }));
@@ -58,6 +61,7 @@ app.use("/api", apiLimiter);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/", (req, res) => res.send("API is running"));
+
 app.get("/health", async (req, res) => {
   try {
     await db.query("SELECT 1");
@@ -89,6 +93,7 @@ app.use("/api/payment", paymentRoutes);
 
 app.use(csrfErrorHandler);
 
+// Error handler global
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   if (res.headersSent) {

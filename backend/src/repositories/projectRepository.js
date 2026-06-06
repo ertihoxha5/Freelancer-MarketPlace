@@ -843,3 +843,63 @@ export async function getMyApplications(freelancerID) {
     `, [freelancerID]);
     return rows;
 }
+
+/**
+ * Admin: Get all proposals/applications across the platform
+ */
+export async function getAllProposals({ limit = 50, offset = 0, propStatus = null } = {}) {
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+  const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+  const params = [];
+  let where = '';
+  if (propStatus) {
+    where = 'WHERE pr.propStatus = ?';
+    params.push(propStatus);
+  }
+
+  const [rows] = await db.execute(
+    `SELECT 
+        pr.id AS proposalId,
+        pr.projectID,
+        pr.userID AS freelancerID,
+        pr.coverLetter,
+        pr.bidAmount,
+        pr.estimatedDays,
+        pr.propStatus,
+        pr.createdAt,
+        pr.updatedAt,
+        pr.isDeleted,
+        p.title AS projectTitle,
+        p.budget AS projectBudget,
+        p.pStatus AS projectStatus,
+        uf.fullName AS freelancerName,
+        uf.email AS freelancerEmail,
+        uc.fullName AS clientName,
+        uc.email AS clientEmail
+     FROM Proposal pr
+     INNER JOIN Project p ON p.id = pr.projectID
+     INNER JOIN Users uf ON uf.id = pr.userID
+     INNER JOIN Users uc ON uc.id = p.clientID
+     ${where}
+     ORDER BY pr.createdAt DESC
+     LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+    params
+  );
+  return rows;
+}
+
+export async function countAllProposals({ propStatus = null } = {}) {
+  const params = [];
+  let where = '';
+  if (propStatus) {
+    where = 'WHERE propStatus = ?';
+    params.push(propStatus);
+  }
+
+  const [rows] = await db.execute(
+    `SELECT COUNT(*) AS total FROM Proposal ${where}`,
+    params
+  );
+  return rows[0]?.total || 0;
+}
