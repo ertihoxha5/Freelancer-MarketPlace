@@ -63,6 +63,7 @@ const ClientMessages = lazy(() => import("./pages/ClientMessages.jsx"));
 const ClientContracts = lazy(() => import("./pages/ClientContracts.jsx"));
 const ProjectMilestones = lazy(() => import("./pages/ProjectMilestones.jsx"));
 const ClientPayment = lazy(() => import("./pages/ClientPayment.jsx"));
+const ClientHiredFreelancers = lazy(() => import("./pages/ClientHiredFreelancers.jsx"));
 const FreelancerDashboard = lazy(
   () => import("./pages/FreelancerDashboard.jsx"),
 );
@@ -216,6 +217,16 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/client/hired-freelancers",
+        element: (
+          <ClientRoute>
+            <Suspense fallback={<Loading />}>
+              <ClientHiredFreelancers />
+            </Suspense>
+          </ClientRoute>
+        ),
+      },
+      {
         path: "/project-milestones/:contractId",
         element: (
           <ProtectedRoute>
@@ -235,6 +246,7 @@ const router = createBrowserRouter([
           </ClientRoute>
         ),
       },
+
       {
         path: "/adminDashboard",
         element: (

@@ -71,9 +71,16 @@ export default function ClientDashboard() {
     {
       title: 'Browse Freelancers',
       description: 'Find and connect with skilled professionals.',
-      href: '/browse-freelancers', 
+      href: '/search?tab=freelancers', 
       icon: '👥',
       color: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
+    },
+    {
+      title: 'My Hired Freelancers',
+      description: 'View unique freelancers from your contracts and leave reviews.',
+      href: '/client/hired-freelancers', 
+      icon: '👥⭐',
+      color: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
     },
     {
       title: 'Account Settings',

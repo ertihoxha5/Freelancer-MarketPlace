@@ -335,7 +335,7 @@ export default function ClientContracts() {
                           >
                             Project milestones
                           </Link>
-                          {contract.cStatus === "completed" && !hasReviewed ? (
+                          {!hasReviewed ? (
                             <button onClick={() => setReviewContract(contract)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Leave Review</button>
                           ) : null}
                           <button

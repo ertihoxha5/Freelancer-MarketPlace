@@ -1,15 +1,36 @@
 import http from "http";
 import app from "./app.js";
 import { db } from "./config/db.js";
+import { connectMongoDB } from "./config/mongodb.js";
 import { initSocketServer } from "./socket/index.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 
-const httpServer = http.createServer(app);
-initSocketServer(httpServer);
+async function startServer() {
+  const httpServer = http.createServer(app);
 
-httpServer.listen(PORT, () => {
-  console.info(`Server listening on port ${PORT}`);
+  try {
+    // Ensure MongoDB is connected before accepting traffic (reviews depend on it)
+    console.info("Connecting to MongoDB...");
+    await connectMongoDB();
+    console.info("✅ MongoDB ready for reviews.");
+  } catch (err) {
+    console.error("⚠️  MongoDB connection failed during startup.");
+    console.error("   Reviews will return errors until MongoDB is available.");
+    console.error("   Check your MONGO_URI and that MongoDB is running.");
+    // We still start the server so MySQL/MySQL-based features continue to function
+  }
+
+  initSocketServer(httpServer);
+
+  httpServer.listen(PORT, () => {
+    console.info(`🚀 Server listening on port ${PORT}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });
 
 function gracefulShutdown(signal) {

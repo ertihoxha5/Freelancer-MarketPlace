@@ -76,9 +76,9 @@ export async function getReviewStats(req, res, next) {
 
 export async function updateReview(req, res, next) {
   try {
-    const { reviewID } = validatedParams(req);
+    const { id } = validatedParams(req);
     const review = await reviewService.updateReview(
-      reviewID,
+      id,
       req.user.id,
       validatedBody(req),
     );
@@ -95,8 +95,8 @@ export async function updateReview(req, res, next) {
 
 export async function deleteReview(req, res, next) {
   try {
-    const { reviewID } = validatedParams(req);
-    const result = await reviewService.deleteReview(reviewID, req.user.id);
+    const { id } = validatedParams(req);
+    const result = await reviewService.deleteReview(id, req.user.id);
     return res
       .status(200)
       .json({ message: "Review deleted successfully.", result });

@@ -62,9 +62,7 @@ export async function createReview(contractID, reviewerID, role, payload) {
     throw notFoundError("Contract not found.");
   }
 
-  if (contract.cStatus !== "completed") {
-    throw conflictError("Reviews can only be left on completed contracts.");
-  }
+  // Reviews can be left at any time during or after the contract (not restricted to completed status)
 
   const partyContext = getContractPartyContext(contract, reviewerId, role);
 

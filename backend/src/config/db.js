@@ -603,6 +603,35 @@ async function ensureBusinessEntitySchema(pool) {
     ALTER TABLE Review
     MODIFY comment TEXT NOT NULL
   `);
+
+  // Upgrade Review table for full features (title, tags, rating as TINYINT, soft delete, etc.)
+  if (!(await columnExists(pool, "Review", "title"))) {
+    await pool.query(`ALTER TABLE Review ADD COLUMN title VARCHAR(100) NULL AFTER stars`);
+  }
+  if (!(await columnExists(pool, "Review", "tags"))) {
+    await pool.query(`ALTER TABLE Review ADD COLUMN tags JSON NULL AFTER comment`);
+  }
+  if (!(await columnExists(pool, "Review", "helpfulCount"))) {
+    await pool.query(`ALTER TABLE Review ADD COLUMN helpfulCount INT DEFAULT 0 AFTER tags`);
+  }
+  if (!(await columnExists(pool, "Review", "isVerified"))) {
+    await pool.query(`ALTER TABLE Review ADD COLUMN isVerified BOOLEAN DEFAULT FALSE AFTER helpfulCount`);
+  }
+  if (!(await columnExists(pool, "Review", "updatedAt"))) {
+    await pool.query(`ALTER TABLE Review ADD COLUMN updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER createdAt`);
+  }
+  if (!(await columnExists(pool, "Review", "deletedAt"))) {
+    await pool.query(`ALTER TABLE Review ADD COLUMN deletedAt DATETIME NULL AFTER updatedAt`);
+  }
+  // Change stars to TINYINT if it's still ENUM (data safe since values 1-5)
+  try {
+    await pool.query(`
+      ALTER TABLE Review 
+      MODIFY COLUMN stars TINYINT NOT NULL CHECK (stars BETWEEN 1 AND 5)
+    `);
+  } catch (e) {
+    // ignore if already changed or constraint not supported in old MySQL
+  }
 }
 
 async function ensureMilestoneSchema(pool) {

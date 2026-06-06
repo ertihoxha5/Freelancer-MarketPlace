@@ -18,7 +18,7 @@ import reportRoutes from "./routes/reportRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
-import { connectMongoDB } from "./config/mongodb.js";
+import { getMongoStatus } from "./config/mongodb.js";
 import { db } from "./config/db.js";
 import { helmetMiddleware } from "./middleware/security.js";
 import { corsMiddleware } from "./middleware/cors.js";
@@ -36,7 +36,8 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
-connectMongoDB();
+// MongoDB connection is now explicitly awaited in server.js before listening
+// connectMongoDB();  // removed - must be awaited at startup
 
 // Request → RateLimit → Helmet → CORS → body/cookies → routes → CSRF (auth) → Validate → Controller
 app.use(helmetMiddleware);
@@ -63,17 +64,24 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.get("/", (req, res) => res.send("API is running"));
 
 app.get("/health", async (req, res) => {
+  const mongoStatus = getMongoStatus();
+
   try {
     await db.query("SELECT 1");
     res.json({
       status: "ok",
-      db: "connected",
+      mysql: "connected",
+      mongo: mongoStatus,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
-    res
-      .status(503)
-      .json({ status: "error", db: "disconnected", error: err.message });
+    res.status(503).json({
+      status: "error",
+      mysql: "disconnected",
+      mongo: mongoStatus,
+      error: err.message,
+      timestamp: new Date().toISOString(),
+    });
   }
 });
 

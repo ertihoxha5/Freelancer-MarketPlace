@@ -44,6 +44,7 @@ const sidebarConfigs = {
     { label: "My Projects", href: "/client/projects", badge: "projects" },
     { label: "Applications", href: "/client/applications", badge: "applications" },
     { label: "Contracts", href: "/client/contracts", badge: "contracts" },
+    { label: "Hired Freelancers", href: "/client/hired-freelancers" },
     { label: "Notifications", href: "/client/notifications" },
     { label: "My Profile", href: "/client/profile" },
     { label: "Messages", href: "/client/messages" },

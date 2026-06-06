@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import Sidebar from "../components/Sidebar.jsx";
@@ -62,8 +63,8 @@ function ResultCard({ row, tab }) {
   const status = row.pStatus || row.propStatus || row.cStatus || row.roleName;
   const money = row.budget ?? row.hourlyRate ?? row.bidAmount ?? row.totalAmount;
 
-  return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+  const content = (
+    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase text-slate-500">
@@ -89,6 +90,16 @@ function ResultCard({ row, tab }) {
       </div>
     </article>
   );
+
+  if (tab === "freelancers" && row.id) {
+    return (
+      <a href={`/freelancers/${row.id}`} className="block">
+        {content}
+      </a>
+    );
+  }
+
+  return content;
 }
 
 export default function SearchPage() {
@@ -98,7 +109,11 @@ export default function SearchPage() {
     () => Object.keys(tabConfig).filter((tab) => isAdmin || tab !== "users"),
     [isAdmin],
   );
-  const [activeTab, setActiveTab] = useState("projects");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    initialTab && tabs.includes(initialTab) ? initialTab : "projects"
+  );
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState({});
   const [page, setPage] = useState(1);
@@ -236,6 +251,81 @@ export default function SearchPage() {
                 </select>
               ) : null}
             </div>
+
+            {/* More advanced filters for the freelancers search tab */}
+            {activeTab === "freelancers" && (
+              <div className="mb-6 rounded-2xl border border-purple-200 bg-purple-50/70 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold text-purple-900">Advanced Freelancer Filters</p>
+                  <button
+                    onClick={() => {
+                      setFilters((f) => {
+                        const copy = { ...f };
+                        delete copy.minRating;
+                        return copy;
+                      });
+                      setPage(1);
+                    }}
+                    className="text-xs text-purple-700 hover:underline"
+                  >
+                    Reset advanced
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs text-purple-700 mb-1">Minimum Rating</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="5"
+                      className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-400"
+                      placeholder="e.g. 4.0"
+                      value={filters.minRating || ""}
+                      onChange={(e) => updateFilter("minRating", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-purple-700 mb-1">Keywords (name, bio, skills)</label>
+                    <input
+                      className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm"
+                      placeholder="e.g. React, senior"
+                      value={q}
+                      onChange={(e) => {
+                        setQ(e.target.value);
+                        setPage(1);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-purple-700 mb-1">Sort by</label>
+                    <select
+                      className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm"
+                      value={filters.sort || "rating_desc"}
+                      onChange={(e) => updateFilter("sort", e.target.value)}
+                    >
+                      <option value="rating_desc">Highest rated</option>
+                      <option value="rate_desc">Highest hourly rate</option>
+                      <option value="rate_asc">Lowest hourly rate</option>
+                      <option value="date_desc">Newest on platform</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => {
+                        setFilters({});
+                        setQ("");
+                        setPage(1);
+                      }}
+                      className="w-full rounded-lg bg-purple-900 px-4 py-2 text-sm font-medium text-white hover:bg-purple-950"
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] text-purple-600">Note: Some advanced filters (like min rating) are enhanced client-side for better experience.</p>
+              </div>
+            )}
 
             {error ? <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
             {loading ? (

@@ -8,6 +8,7 @@ export default function ReviewModal({
   onSubmitted,
 }) {
   const [stars, setStars] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -24,7 +25,7 @@ export default function ReviewModal({
     try {
       const result = await createReview(
         contract.id,
-        { stars, comment: comment.trim() },
+        { rating: stars, comment: comment.trim() },
         role,
       );
       onSubmitted?.(result);
@@ -47,7 +48,7 @@ export default function ReviewModal({
               Leave Review
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              {contract.projectTitle || "Completed contract"}
+              {contract.projectTitle || "For this contract"}
             </p>
           </div>
           <button
@@ -62,7 +63,7 @@ export default function ReviewModal({
         <form onSubmit={handleSubmit} className="space-y-5 p-5">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Rating
+              Rate the freelancer (click stars)
             </label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((value) => (
@@ -70,15 +71,20 @@ export default function ReviewModal({
                   key={value}
                   type="button"
                   onClick={() => setStars(value)}
-                  className={`text-3xl ${
-                    value <= stars ? "text-amber-400" : "text-slate-300"
-                  }`}
+                  onMouseEnter={() => setHoverRating(value)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  className={`text-4xl transition-colors ${
+                    value <= (hoverRating || stars) ? "text-amber-400" : "text-slate-300"
+                  } hover:scale-110`}
                   aria-label={`${value} stars`}
                 >
                   ★
                 </button>
               ))}
             </div>
+            <p className="mt-1 text-xs text-slate-500">
+              {stars} star{stars > 1 ? "s" : ""} — {["Poor", "Fair", "Good", "Very Good", "Excellent"][stars - 1]}
+            </p>
           </div>
 
           <div>

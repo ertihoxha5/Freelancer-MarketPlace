@@ -28,12 +28,12 @@ router.get(
 );
 router.patch(
   "/:id",
-  validateRequest({ params: paramSchemas.mongoId, body: reviewSchemas.update }),
+  validateRequest({ params: paramSchemas.id, body: reviewSchemas.update }),
   reviewController.updateReview,
 );
 router.delete(
   "/:id",
-  validateRequest({ params: paramSchemas.mongoId }),
+  validateRequest({ params: paramSchemas.id }),
   reviewController.deleteReview,
 );
 
