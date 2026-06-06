@@ -89,6 +89,7 @@ const FreelancerNotifications = lazy(
 const FreelancerReports = lazy(() => import("./pages/FreelancerReports.jsx"));
 const FreelancerContracts = lazy(() => import("./pages/FreelancerContracts.jsx"));
 const FreelancerReviews = lazy(() => import("./pages/FreelancerReviews.jsx"));
+const ContractWorkspace = lazy(() => import("./pages/ContractWorkspace.jsx"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage.jsx"));
 
 // Add new pages as children of the layout below.
@@ -232,6 +233,16 @@ const router = createBrowserRouter([
           <ProtectedRoute>
             <Suspense fallback={<Loading />}>
               <ProjectMilestones />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/contracts/:id/workspace",
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}>
+              <ContractWorkspace />
             </Suspense>
           </ProtectedRoute>
         ),

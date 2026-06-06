@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -118,120 +119,173 @@ export default function ClientProfile() {
         <div className="flex h-full min-h-0 flex-col overflow-hidden border-t border-slate-200 bg-white lg:flex-row">
           <Sidebar roleID={user?.roleID} />
           <section className="min-h-full min-w-0 flex-1 overflow-auto p-6 sm:p-8">
-            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h1 className="text-3xl font-semibold text-slate-900">My Profile</h1>
-                <p className="mt-2 text-slate-600 max-w-2xl">Complete your profile and upload a photo to personalize your client dashboard.</p>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-500">My Profile</p>
+                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Manage your profile</h1>
+                <p className="mt-2 max-w-2xl text-slate-600">
+                  Keep your information up to date so freelancers can understand your needs.
+                </p>
               </div>
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                <span className="font-semibold text-slate-900">{completion}%</span> profile completed
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm">
+                  <span className="font-semibold text-slate-900">{completion}%</span> complete
+                </div>
+                <Link
+                  to="/client/dashboard"
+                  className="rounded-2xl bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white hover:bg-[#214b38]"
+                >
+                  Back to Dashboard
+                </Link>
               </div>
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="mb-6 flex items-center gap-4">
-                  <div className="h-20 w-20 overflow-hidden rounded-full bg-slate-200">
+              {/* Left info panel - consistent with Freelancer */}
+              <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 overflow-hidden rounded-full bg-slate-200 border border-slate-100">
                     {picturePreview ? (
                       <img src={picturePreview} alt="Profile" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xl text-slate-500">?</div>
+                      <div className="flex h-full w-full items-center justify-center text-2xl text-slate-400">👤</div>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Client</p>
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Client</p>
                     <h2 className="text-xl font-semibold text-slate-900">{user?.fullName ?? 'Client'}</h2>
                     <p className="text-sm text-slate-500">{user?.email}</p>
                   </div>
                 </div>
-                <div className="mb-3">
-                  <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Profile progress</p>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${completion}%` }} />
-                  </div>
-                </div>
-                <p className="text-sm text-slate-600">{formatCompletionText()}</p>
-                <div className="mt-8 space-y-4">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-slate-900">Profile photo</p>
-                    <p className="mt-1 text-sm text-slate-600">Upload a photo so freelancers can recognize your brand.</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-slate-900">Portfolio link</p>
-                    <p className="mt-1 text-sm text-slate-600">Share a portfolio or company site for stronger proposals.</p>
-                  </div>
-                </div>
-              </div>
 
+                <div className="mt-6">
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <span className="text-slate-500">Profile completion</span>
+                    <span className="font-semibold text-slate-900">{completion}%</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#1a3c2e] transition-all" style={{ width: `${completion}%` }} />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600">{formatCompletionText()}</p>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <SideInfo label="Hourly rate" value={profile.hourlyRate ? `$${profile.hourlyRate}/hr` : "Not set"} />
+                  <SideInfo label="Portfolio" value={profile.portofoliUrl ? "Added" : "Not set"} />
+                </div>
+              </aside>
+
+              {/* Main form */}
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                {error && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-                {success && <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{success}</div>}
+                {error && (
+                  <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+                    {success}
+                  </div>
+                )}
+
                 {loading ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">Loading profile...</div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
+                    Loading profile...
+                  </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Profile Photo</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-                      />
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Profile Photo</label>
+                      <div className="flex items-center gap-4">
+                        <div className="h-20 w-20 overflow-hidden rounded-full bg-slate-200 border">
+                          {picturePreview ? (
+                            <img src={picturePreview} alt="Preview" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xl text-slate-400">👤</div>
+                          )}
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id="client-photo"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="client-photo"
+                            className="cursor-pointer inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Change photo
+                          </label>
+                          {pictureBase64 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPicturePreview(profile.picturePath ? `${API_BASE}${profile.picturePath}` : '');
+                                setPictureBase64(null);
+                              }}
+                              className="ml-2 text-sm text-slate-500 hover:text-rose-600"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Hourly Rate</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Hourly Rate (optional)</label>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
                           value={profile.hourlyRate ?? ''}
                           onChange={(e) => setProfile((current) => ({ ...current, hourlyRate: e.target.value }))}
-                          className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3c2e]"
                           placeholder="e.g. 45.00"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Portfolio URL</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Portfolio / Company URL</label>
                         <input
                           value={profile.portofoliUrl ?? ''}
                           onChange={(e) => setProfile((current) => ({ ...current, portofoliUrl: e.target.value }))}
-                          className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="https://"
+                          className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3c2e]"
+                          placeholder="https://yourcompany.com"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Bio</label>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Bio / About your company</label>
                       <textarea
                         value={profile.bio ?? ''}
                         onChange={(e) => setProfile((current) => ({ ...current, bio: e.target.value }))}
                         rows={6}
-                        className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Tell freelancers about your requirements and company vision."
+                        className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3c2e]"
+                        placeholder="Describe what you're looking for in freelancers and your company..."
                       />
                     </div>
 
-                    <div className="flex justify-end gap-3 flex-wrap">
+                    <div className="flex justify-end gap-3">
                       <button
                         type="button"
                         onClick={() => {
                           setPicturePreview(profile.picturePath ? `${API_BASE}${profile.picturePath}` : '');
                           setPictureBase64(null);
                         }}
-                        className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                        className="rounded-2xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                       >
                         Reset Photo
                       </button>
                       <button
                         type="submit"
                         disabled={saving}
-                        className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+                        className="rounded-2xl bg-[#1a3c2e] px-6 py-3 text-sm font-semibold text-white hover:bg-[#214b38] disabled:opacity-50"
                       >
-                        {saving ? 'Saving...' : 'Save Profile'}
+                        {saving ? "Saving..." : "Save Profile"}
                       </button>
                     </div>
                   </form>
@@ -241,6 +295,15 @@ export default function ClientProfile() {
           </section>
         </div>
       </main>
+    </div>
+  );
+}
+
+function SideInfo({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
     </div>
   );
 }

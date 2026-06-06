@@ -235,6 +235,14 @@ export default function FreelancerContracts() {
                             >
                               Project milestones
                             </Link>
+                            {contract.isFullySigned && (
+                              <Link
+                                to={`/contracts/${contract.id}/workspace`}
+                                className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                              >
+                                Open Workspace
+                              </Link>
+                            )}
                           </div>
                         </div>
                         {contract.cStatus === "completed" && !hasReviewed ? (

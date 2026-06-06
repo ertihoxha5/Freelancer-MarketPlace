@@ -32,6 +32,18 @@ export default function FreelancerProfile() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const profileCompletion = Math.round(
+    [
+      Boolean(user?.fullName),
+      Boolean(user?.email),
+      Boolean(profile.picturePath),
+      Boolean(profile.hourlyRate),
+      Boolean(profile.portofoliUrl),
+      Boolean(profile.bio),
+      (profile.skills?.length ?? 0) > 0,
+    ].filter(Boolean).length / 7 * 100
+  );
+
   useEffect(() => {
     let active = true;
     async function load() {
@@ -173,23 +185,28 @@ export default function FreelancerProfile() {
             <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.24em] text-slate-500">
-                  Freelancer profile
+                  My Profile
                 </p>
-                <h1 className="mt-3 text-3xl font-semibold text-slate-900">
+                <h1 className="mt-2 text-3xl font-semibold text-slate-900">
                   Manage your profile
                 </h1>
                 <p className="mt-2 max-w-2xl text-slate-600">
-                  Update the information, skills, and work details that clients see on your public profile.
+                  Update the information and skills that clients see on your public profile.
                 </p>
               </div>
-              {user?.id && (
-                <Link
-                  to={`/freelancers/${user.id}`}
-                  className="rounded-2xl bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white hover:bg-[#2a5c46]"
-                >
-                  View Public Page
-                </Link>
-              )}
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm">
+                  <span className="font-semibold text-slate-900">{profileCompletion}%</span> complete
+                </div>
+                {user?.id && (
+                  <Link
+                    to={`/freelancers/${user.id}`}
+                    className="rounded-2xl bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white hover:bg-[#214b38]"
+                  >
+                    View Public Page
+                  </Link>
+                )}
+              </div>
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -215,7 +232,17 @@ export default function FreelancerProfile() {
                   </div>
                 </div>
 
-                <div className="mt-6 space-y-3">
+                <div className="mt-5">
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <span className="text-slate-500">Profile completion</span>
+                    <span className="font-semibold text-slate-900">{profileCompletion}%</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#1a3c2e] transition-all" style={{ width: `${profileCompletion}%` }} />
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3">
                   <SideInfo label="Hourly rate" value={profile.hourlyRate ? `$${profile.hourlyRate}/hr` : "Not set"} />
                   <SideInfo label="Skills" value={String(profile.skills.length)} />
                   <SideInfo label="Portfolio" value={profile.portofoliUrl ? "Added" : "Not set"} />
@@ -242,12 +269,30 @@ export default function FreelancerProfile() {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                       <label className="mb-2 block text-sm font-medium text-slate-700">Profile Photo</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-                      />
+                      <div className="flex items-center gap-4">
+                        <div className="h-20 w-20 overflow-hidden rounded-full bg-slate-200 border">
+                          {picturePreview ? (
+                            <img src={picturePreview} alt="Preview" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xl text-slate-400">👤</div>
+                          )}
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id="freelancer-photo"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="freelancer-photo"
+                            className="cursor-pointer inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Change photo
+                          </label>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">

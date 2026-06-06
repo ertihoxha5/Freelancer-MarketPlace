@@ -335,6 +335,14 @@ export default function ClientContracts() {
                           >
                             Project milestones
                           </Link>
+                          {contract.isFullySigned && (
+                            <Link
+                              to={`/contracts/${contract.id}/workspace`}
+                              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                            >
+                              Open Workspace
+                            </Link>
+                          )}
                           {!hasReviewed ? (
                             <button onClick={() => setReviewContract(contract)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Leave Review</button>
                           ) : null}

@@ -1076,3 +1076,48 @@ export async function runSavedReport(id) {
 export function exportData(resource, format = "csv") {
   return downloadExport(resource, format);
 }
+
+// ========== Contract Workspace (client + freelancer private space) ==========
+export async function fetchContractWorkspace(contractID) {
+  return authedFetch(`${API_BASE}/api/contracts/${contractID}/workspace`);
+}
+
+export async function addWorkspaceTodo(contractID, payload) {
+  return authedFetch(`${API_BASE}/api/contracts/${contractID}/workspace/todos`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateWorkspaceTodo(contractID, todoId, payload) {
+  return authedFetch(`${API_BASE}/api/contracts/${contractID}/workspace/todos/${todoId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteWorkspaceTodo(contractID, todoId) {
+  return authedFetch(`${API_BASE}/api/contracts/${contractID}/workspace/todos/${todoId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function addWorkspaceSection(contractID, payload) {
+  return authedFetch(`${API_BASE}/api/contracts/${contractID}/workspace/sections`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateWorkspaceSection(contractID, sectionId, payload) {
+  return authedFetch(`${API_BASE}/api/contracts/${contractID}/workspace/sections/${sectionId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteWorkspaceSection(contractID, sectionId) {
+  return authedFetch(`${API_BASE}/api/contracts/${contractID}/workspace/sections/${sectionId}`, {
+    method: "DELETE",
+  });
+}

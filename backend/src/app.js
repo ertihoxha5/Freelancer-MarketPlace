@@ -17,6 +17,7 @@ import importRoutes from "./routes/importRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import workspaceRoutes from "./routes/workspaceRoutes.js";
 
 import { getMongoStatus } from "./config/mongodb.js";
 import { db } from "./config/db.js";
@@ -98,6 +99,7 @@ app.use("/api/import", importRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api", workspaceRoutes);
 
 app.use(csrfErrorHandler);
 

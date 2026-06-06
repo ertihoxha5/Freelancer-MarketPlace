@@ -365,6 +365,50 @@ async function ensureContractSchema(pool) {
   // in fresh schemas. Existing databases may already have those constraints.
 }
 
+async function ensureWorkspaceSchema(pool) {
+  // Shared To-Do list for the contract workspace (freelancer manages, client views)
+  if (!(await tableExists(pool, "WorkspaceTodos"))) {
+    await pool.query(`
+      CREATE TABLE WorkspaceTodos (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        contractID INT NOT NULL,
+        freelancerID INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NULL,
+        status ENUM('todo', 'in_progress', 'done') NOT NULL DEFAULT 'todo',
+        dueDate DATE NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
+        FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE
+      )
+    `);
+  }
+
+  // Freelancer's customizable CMS / sections for the workspace (dynamic, hideable without code changes)
+  if (!(await tableExists(pool, "WorkspaceSections"))) {
+    await pool.query(`
+      CREATE TABLE WorkspaceSections (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        contractID INT NOT NULL,
+        freelancerID INT NOT NULL,
+        sectionKey VARCHAR(100) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        type ENUM('note', 'checklist', 'progress', 'links') NOT NULL DEFAULT 'note',
+        content TEXT NULL,
+        items JSON NULL,
+        visible BOOLEAN NOT NULL DEFAULT TRUE,
+        sortOrder INT NOT NULL DEFAULT 0,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
+        FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_section (contractID, freelancerID, sectionKey)
+      )
+    `);
+  }
+}
+
 async function ensureDisputeSchema(pool) {
   if (!(await tableExists(pool, "Disputes"))) {
     await pool.query(`
@@ -946,6 +990,7 @@ try {
   await ensureCategorySchema(db);
   await ensureChatSchema(db);
   await ensureContractSchema(db);
+  await ensureWorkspaceSchema(db);
   await ensureDisputeSchema(db);
   await ensureProjectCapacitySchema(db);
   await ensureFilesSchema(db);
