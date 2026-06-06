@@ -446,6 +446,13 @@ export function fetchAdminApplications(params = {}) {
   return authedFetch(`${API_BASE}/api/admin/applications${suffix}`);
 }
 
+/** GET /api/admin/contracts - all contracts for admin */
+export function fetchAdminContracts(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const suffix = query ? `?${query}` : '';
+  return authedFetch(`${API_BASE}/api/admin/contracts${suffix}`);
+}
+
 // ─── CLIENT PROJECT APIs ───────────────────────────────────────────────────
 
 /**

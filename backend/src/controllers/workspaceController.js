@@ -6,6 +6,15 @@ import {
   notFoundError,
 } from "../utils/errors.js";
 
+import { queryBus } from "../cqrs/query-bus.js";
+import { commandBus } from "../cqrs/command-bus.js";
+
+import { GetWorkspaceQuery } from "../cqrs/workspace/queries/get-workspace.query.js";
+import { AddTodoCommand } from "../cqrs/workspace/commands/add-todo.command.js";
+import { UpdateTodoCommand } from "../cqrs/workspace/commands/update-todo.command.js";
+import { DeleteTodoCommand } from "../cqrs/workspace/commands/delete-todo.command.js";
+import { AddSectionCommand } from "../cqrs/workspace/commands/add-section.command.js";
+
 function isClient(req) {
   return Number(req.user?.roleID) === 2;
 }
@@ -35,35 +44,9 @@ export async function getWorkspace(req, res, next) {
     const isFreelancer = !isClient(req);
     const freelancerID = contract.freelancerID;
 
-    // Todos (always shared view)
-    const [todos] = await db.execute(
-      `SELECT id, freelancerID, title, description, status, dueDate, createdAt, updatedAt
-       FROM WorkspaceTodos
-       WHERE contractID = ?
-       ORDER BY updatedAt DESC, createdAt DESC`,
-      [contract.id]
+    const workspaceData = await queryBus.execute(
+      new GetWorkspaceQuery(contract.id, isFreelancer, freelancerID)
     );
-
-    // Sections
-    let sectionsQuery = `
-      SELECT id, sectionKey, title, type, content, items, visible, sortOrder, updatedAt
-      FROM WorkspaceSections
-      WHERE contractID = ? AND freelancerID = ?
-    `;
-    const params = [contract.id, freelancerID];
-
-    if (!isFreelancer) {
-      sectionsQuery += ` AND visible = TRUE `;
-    }
-    sectionsQuery += ` ORDER BY sortOrder ASC, createdAt ASC `;
-
-    const [sections] = await db.execute(sectionsQuery, params);
-
-    // Parse items JSON
-    const parsedSections = sections.map((s) => ({
-      ...s,
-      items: s.items ? (typeof s.items === "string" ? JSON.parse(s.items) : s.items) : [],
-    }));
 
     return res.json({
       contract: {
@@ -73,8 +56,8 @@ export async function getWorkspace(req, res, next) {
         totalAmount: contract.totalAmount,
       },
       isFreelancer,
-      todos,
-      sections: parsedSections,
+      todos: workspaceData.todos,
+      sections: workspaceData.sections,
     });
   } catch (err) {
     next(err);
@@ -90,28 +73,19 @@ export async function addTodo(req, res, next) {
     }
 
     const { title, description, dueDate, status } = validatedBody(req);
-    if (!title?.trim()) {
-      return res.status(400).json({ message: "Title is required." });
-    }
 
-    const [result] = await db.execute(
-      `INSERT INTO WorkspaceTodos (contractID, freelancerID, title, description, status, dueDate)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
+    const todo = await commandBus.execute(
+      new AddTodoCommand(
         contract.id,
         contract.freelancerID,
-        title.trim(),
-        description || null,
-        status || "todo",
-        dueDate || null,
-      ]
+        title,
+        description,
+        dueDate,
+        status
+      )
     );
 
-    const [rows] = await db.execute(
-      `SELECT * FROM WorkspaceTodos WHERE id = ?`,
-      [result.insertId]
-    );
-    return res.status(201).json({ todo: rows[0] });
+    return res.status(201).json({ todo });
   } catch (err) {
     next(err);
   }
@@ -127,32 +101,11 @@ export async function updateTodo(req, res, next) {
     const { todoId } = req.params;
     const { title, description, dueDate, status } = req.body;
 
-    const sets = [];
-    const values = [];
-
-    if (title !== undefined) { sets.push("title = ?"); values.push(title.trim()); }
-    if (description !== undefined) { sets.push("description = ?"); values.push(description); }
-    if (dueDate !== undefined) { sets.push("dueDate = ?"); values.push(dueDate || null); }
-    if (status !== undefined) { sets.push("status = ?"); values.push(status); }
-
-    if (sets.length === 0) {
-      return res.status(400).json({ message: "No fields to update." });
-    }
-
-    sets.push("updatedAt = NOW()");
-    values.push(todoId, contract.id);
-
-    const [result] = await db.execute(
-      `UPDATE WorkspaceTodos SET ${sets.join(", ")} WHERE id = ? AND contractID = ?`,
-      values
+    const todo = await commandBus.execute(
+      new UpdateTodoCommand(todoId, contract.id, title, description, dueDate, status)
     );
 
-    if (result.affectedRows === 0) {
-      throw notFoundError("Todo not found.");
-    }
-
-    const [rows] = await db.execute(`SELECT * FROM WorkspaceTodos WHERE id = ?`, [todoId]);
-    return res.json({ todo: rows[0] });
+    return res.json({ todo });
   } catch (err) {
     next(err);
   }
@@ -166,10 +119,9 @@ export async function deleteTodo(req, res, next) {
     }
 
     const { todoId } = req.params;
-    await db.execute(
-      `DELETE FROM WorkspaceTodos WHERE id = ? AND contractID = ?`,
-      [todoId, contract.id]
-    );
+
+    await commandBus.execute(new DeleteTodoCommand(todoId, contract.id));
+
     return res.json({ message: "Todo deleted." });
   } catch (err) {
     next(err);
@@ -177,6 +129,8 @@ export async function deleteTodo(req, res, next) {
 }
 
 // ========== CMS SECTIONS (Freelancer only - dynamic add/hide without code changes) ==========
+// NOTE: These are partially migrated to CQRS. See cqrs/workspace/commands for AddSectionCommand.
+// UpdateSection and DeleteSection still use direct DB for now - can be extracted similarly.
 export async function addSection(req, res, next) {
   try {
     const contract = await getContractForWorkspace(req);
@@ -185,33 +139,35 @@ export async function addSection(req, res, next) {
     }
 
     const { title, type, content, items, visible } = validatedBody(req);
-    if (!title?.trim()) {
-      return res.status(400).json({ message: "Section title is required." });
-    }
 
-    const sectionType = type || "note";
-    const sectionKey = `sec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-    const itemsJson = Array.isArray(items) ? JSON.stringify(items) : null;
-
-    await db.execute(
-      `INSERT INTO WorkspaceSections (contractID, freelancerID, sectionKey, title, type, content, items, visible)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
+    await commandBus.execute(
+      new AddSectionCommand(
         contract.id,
         contract.freelancerID,
-        sectionKey,
-        title.trim(),
-        sectionType,
-        content || null,
-        itemsJson,
-        visible !== false,
-      ]
+        title,
+        type,
+        content,
+        items,
+        visible
+      )
     );
 
-    // Return fresh list
-    const workspace = await getWorkspaceData(contract.id, false);
-    return res.status(201).json(workspace);
+    // Re-fetch using query bus for fresh data (CQRS separation)
+    const workspaceData = await queryBus.execute(
+      new GetWorkspaceQuery(contract.id, true, contract.freelancerID)
+    );
+
+    return res.status(201).json({
+      contract: {
+        id: contract.id,
+        projectTitle: contract.projectTitle,
+        cStatus: contract.cStatus,
+        totalAmount: contract.totalAmount,
+      },
+      isFreelancer: true,
+      todos: workspaceData.todos,
+      sections: workspaceData.sections,
+    });
   } catch (err) {
     next(err);
   }
@@ -255,8 +211,22 @@ export async function updateSection(req, res, next) {
       throw notFoundError("Section not found.");
     }
 
-    const workspace = await getWorkspaceData(contract.id, false);
-    return res.json(workspace);
+    // Re-fetch using query bus (CQRS)
+    const workspaceData = await queryBus.execute(
+      new GetWorkspaceQuery(contract.id, true, contract.freelancerID)
+    );
+
+    return res.json({
+      contract: {
+        id: contract.id,
+        projectTitle: contract.projectTitle,
+        cStatus: contract.cStatus,
+        totalAmount: contract.totalAmount,
+      },
+      isFreelancer: true,
+      todos: workspaceData.todos,
+      sections: workspaceData.sections,
+    });
   } catch (err) {
     next(err);
   }
@@ -275,39 +245,27 @@ export async function deleteSection(req, res, next) {
       [sectionId, contract.id, contract.freelancerID]
     );
 
-    const workspace = await getWorkspaceData(contract.id, false);
-    return res.json({ ...workspace, message: "Section deleted." });
+    // Re-fetch using query bus (CQRS)
+    const workspaceData = await queryBus.execute(
+      new GetWorkspaceQuery(contract.id, true, contract.freelancerID)
+    );
+
+    return res.json({
+      contract: {
+        id: contract.id,
+        projectTitle: contract.projectTitle,
+        cStatus: contract.cStatus,
+        totalAmount: contract.totalAmount,
+      },
+      isFreelancer: true,
+      todos: workspaceData.todos,
+      sections: workspaceData.sections,
+      message: "Section deleted.",
+    });
   } catch (err) {
     next(err);
   }
 }
 
-// Helper used internally
-async function getWorkspaceData(contractID, includeHidden = false) {
-  const contract = await projectRepository.getContractById(contractID);
-  if (!contract) {
-    throw notFoundError("Contract not found.");
-  }
-
-  const [todos] = await db.execute(
-    `SELECT * FROM WorkspaceTodos WHERE contractID = ? ORDER BY updatedAt DESC`,
-    [contractID]
-  );
-
-  let sectionsSql = `SELECT * FROM WorkspaceSections WHERE contractID = ? `;
-  if (!includeHidden) sectionsSql += `AND visible = TRUE `;
-  sectionsSql += `ORDER BY sortOrder ASC, createdAt ASC`;
-
-  const [sections] = await db.execute(sectionsSql, [contractID]);
-
-  const parsedSections = sections.map((s) => ({
-    ...s,
-    items: s.items ? (typeof s.items === "string" ? JSON.parse(s.items) : s.items) : [],
-  }));
-
-  return {
-    contract,
-    todos,
-    sections: parsedSections,
-  };
-}
+// Note: Workspace read/write operations have been migrated to CQRS (see cqrs/workspace/*)
+// The old getWorkspaceData helper has been removed in favor of QueryBus + CommandBus.

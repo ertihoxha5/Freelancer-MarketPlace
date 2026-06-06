@@ -213,3 +213,16 @@ export async function updateDisputeStatus(req, res, next) {
         next(err);
     }
 }
+
+export async function getAllContracts(req, res, next) {
+  try {
+    const { page = 1, limit = 20, status, search } = validatedQuery(req);
+    const result = await projectRepository.getAllContractsForAdmin({ page, limit, status, search });
+    return res.status(200).json(result);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}

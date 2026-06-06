@@ -3,11 +3,15 @@ import app from "./app.js";
 import { db } from "./config/db.js";
 import { connectMongoDB } from "./config/mongodb.js";
 import { initSocketServer } from "./socket/index.js";
+import { registerCqrsHandlers } from "./cqrs/registry.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
   const httpServer = http.createServer(app);
+
+  // Register CQRS handlers (commands vs queries separation)
+  registerCqrsHandlers();
 
   try {
     // Ensure MongoDB is connected before accepting traffic (reviews depend on it)

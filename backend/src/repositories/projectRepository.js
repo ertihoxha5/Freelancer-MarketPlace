@@ -509,6 +509,50 @@ export async function getContractById(contractID) {
   return rows[0] ?? null;
 }
 
+export async function getAllContractsForAdmin(params = {}) {
+  const { page = 1, limit = 20, status, search } = params;
+
+  let where = '1=1';
+  const queryParams = [];
+
+  if (status) {
+    where += ' AND c.cStatus = ?';
+    queryParams.push(status);
+  }
+
+  if (search) {
+    where += ' AND (p.title LIKE ? OR uc.fullName LIKE ? OR uf.fullName LIKE ?)';
+    const like = `%${search}%`;
+    queryParams.push(like, like, like);
+  }
+
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+  const safePage = Math.max(parseInt(page, 10) || 1, 1);
+  const safeOffset = (safePage - 1) * safeLimit;
+
+  // Use template literals for LIMIT/OFFSET to avoid mysql2 ER_WRONG_ARGUMENTS
+  const sql = `${contractSelectSql(`WHERE ${where}`)} ORDER BY c.id DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
+  const [rows] = await db.execute(sql, queryParams);
+
+  const countSql = `
+    SELECT COUNT(*) as total 
+    FROM Contracts c 
+    INNER JOIN Proposal pr ON pr.id = c.proposalID
+    INNER JOIN Project p ON p.id = pr.projectID
+    INNER JOIN Users uc ON uc.id = c.clientID
+    INNER JOIN Users uf ON uf.id = c.freelancerID
+    WHERE ${where}
+  `;
+  const [countRows] = await db.execute(countSql, queryParams);
+
+  return {
+    contracts: rows,
+    total: countRows[0]?.total || 0,
+    page: safePage,
+    limit: safeLimit,
+  };
+}
+
 export async function getContractByProjectId(projectID) {
   const [rows] = await db.execute(
     `${contractSelectSql("WHERE p.id = ?")} ORDER BY c.id DESC LIMIT 1`,

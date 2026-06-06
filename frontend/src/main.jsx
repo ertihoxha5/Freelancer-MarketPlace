@@ -46,6 +46,8 @@ const AdminApplications = lazy(() => import("./pages/adminDashboard/Applications
 const ExportImport = lazy(
   () => import("./pages/adminDashboard/ExportImport.jsx"),
 );
+const AdminAnalytics = lazy(() => import("./pages/adminDashboard/AdminAnalytics.jsx"));
+const AdminContracts = lazy(() => import("./pages/adminDashboard/AdminContracts.jsx"));
 const FreelancerPayments = lazy(
   () => import("./pages/FreelancerPayments.jsx"),
 );
@@ -345,6 +347,26 @@ const router = createBrowserRouter([
           <AdminRoute>
             <Suspense fallback={<Loading />}>
               <AdminReports />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/analytics",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminAnalytics />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/contracts",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminContracts />
             </Suspense>
           </AdminRoute>
         ),

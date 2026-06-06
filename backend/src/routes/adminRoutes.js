@@ -182,4 +182,10 @@ router.get(
   adminController.getAllApplications,
 );
 
+router.get(
+  "/contracts",
+  validateRequest({ query: querySchemas.pagination }),
+  adminController.getAllContracts,
+);
+
 export default router;

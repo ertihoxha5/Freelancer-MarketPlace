@@ -26,8 +26,10 @@ import {
 const sidebarConfigs = {
   admin: [
     { label: "Dashboard", href: "/adminDashboard", icon: FiHome },
+    { label: "Analytics", href: "/adminDashboard/analytics", icon: FiBarChart2 },
     { label: "Search", href: "/search", icon: FiSearch },
     { label: "Users", href: "/adminDashboard/users", icon: FiUsers },
+    { label: "Contracts", href: "/adminDashboard/contracts", icon: FiFileText },
     { label: "Skills/Categories", href: "/adminDashboard/catalog", icon: FiTag },
     {
       label: "Jobs with Freelancer",
