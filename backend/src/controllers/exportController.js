@@ -97,6 +97,81 @@ export async function sendRows(res, rows, format, filename) {
     return res.end();
   }
 
+  if (format === "pdf") {
+    // Generate a simple but valid PDF with the table as text content (no external deps)
+    const lines = [];
+    lines.push(filename + " - " + rows.length + " records");
+    lines.push("");
+
+    if (columns.length > 0) {
+      lines.push(columns.join(" | "));
+      lines.push("-".repeat(Math.min(120, columns.join(" | ").length + 10)));
+    }
+
+    rows.forEach(row => {
+      const line = columns.map(key => {
+        let val = row[key];
+        if (val == null) val = "";
+        else val = String(val).replace(/[\r\n]/g, " ").trim();
+        if (val.length > 40) val = val.substring(0, 37) + "...";
+        return val;
+      }).join(" | ");
+      lines.push(line);
+    });
+
+    const content = lines.join("\n");
+
+    // Escape PDF special chars
+    const escapedContent = content
+      .replace(/\\/g, "\\\\")
+      .replace(/\(/g, "\\(")
+      .replace(/\)/g, "\\)")
+      .replace(/\n/g, ") Tj\n0 -14 Td (");
+
+    const pdf = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length ${escapedContent.length + 80} >>
+stream
+BT
+/F1 9 Tf
+40 760 Td
+(${filename} Export) Tj
+0 -18 Td
+(${escapedContent}) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000266 00000 n 
+0000000${(280 + escapedContent.length).toString().padStart(6, "0")} 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+${320 + escapedContent.length}
+%%EOF`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}.pdf"`);
+    return res.status(200).send(pdf);
+  }
+
   const csv = [
     columns.map(escapeCsv).join(","),
     ...rows.map((row) => columns.map((key) => escapeCsv(row[key])).join(",")),
@@ -180,6 +255,41 @@ async function queryRows(kind, req) {
     return rows;
   }
 
+  if (kind === "payments") {
+    const [rows] = await db.execute(
+      `SELECT p.id, p.contractID, p.amount, p.currency, p.pStatus, p.createdAt,
+              c.clientID, uc.fullName AS clientName,
+              c.freelancerID, uf.fullName AS freelancerName,
+              pr.title AS projectTitle
+       FROM Payment p
+       INNER JOIN Contracts c ON c.id = p.contractID
+       INNER JOIN Proposal prop ON prop.id = c.proposalID
+       INNER JOIN Project pr ON pr.id = prop.projectID
+       INNER JOIN Users uc ON uc.id = c.clientID
+       INNER JOIN Users uf ON uf.id = c.freelancerID
+       ORDER BY p.createdAt DESC`,
+    );
+    return rows;
+  }
+
+  if (kind === "disputes") {
+    const [rows] = await db.execute(
+      `SELECT d.id, d.contractID, d.reason, d.dStatus, d.createdAt,
+              p.title AS projectTitle,
+              uc.fullName AS clientName,
+              uf.fullName AS freelancerName
+       FROM Disputes d
+       INNER JOIN Contracts c ON c.id = d.contractID
+       INNER JOIN Proposal prop ON prop.id = c.proposalID
+       INNER JOIN Project p ON p.id = prop.projectID
+       INNER JOIN Users uc ON uc.id = c.clientID
+       INNER JOIN Users uf ON uf.id = c.freelancerID
+       ORDER BY d.createdAt DESC`,
+    );
+    return rows;
+  }
+
+  // default to freelancers if unknown
   const [rows] = await db.execute(
     `SELECT u.id, u.fullName, u.email, p.hourlyRate, p.bio,
             ROUND(AVG(CAST(r.stars AS DECIMAL(10,2))), 1) AS averageRating,
@@ -332,6 +442,178 @@ export async function importUsers(req, res, next) {
     }
 
     return res.status(201).json({ message: "Users imported.", created, skipped });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function importApplications(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Upload file is required." });
+    }
+    const rows = parseImportRows(req.file);
+    const body = req.validated?.body ?? {};
+    const projectID = Number(body.projectID || rows[0]?.projectID);
+    if (!Number.isInteger(projectID) || projectID <= 0) {
+      return res.status(400).json({ message: "Valid projectID is required for applications import." });
+    }
+
+    const skipped = [];
+    const applications = [];
+    rows.forEach((row, index) => {
+      try {
+        // Basic validation for proposal fields
+        const app = {
+          projectID: Number(row.projectID || projectID),
+          userID: Number(row.userID || row.freelancerID),
+          bidAmount: Number(row.bidAmount || 0),
+          estimatedDays: Number(row.estimatedDays || 7),
+          coverLetter: row.coverLetter || row.cover_letter || "Imported application",
+          propStatus: row.propStatus || "pending",
+        };
+        if (!app.userID) throw new Error("userID/freelancerID required");
+        applications.push(app);
+      } catch (err) {
+        skipped.push({ row: index + 1, reason: err.message });
+      }
+    });
+
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const app of applications) {
+        await conn.execute(
+          `INSERT INTO Proposal (projectID, userID, coverLetter, bidAmount, estimatedDays, propStatus, createdAt)
+           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+          [app.projectID, app.userID, app.coverLetter, app.bidAmount, app.estimatedDays, app.propStatus],
+        );
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+    return res.status(201).json({ message: "Applications imported.", created: applications.length, skipped });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function importContracts(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Upload file is required." });
+    }
+    const rows = parseImportRows(req.file);
+
+    const skipped = [];
+    const contracts = [];
+    rows.forEach((row, index) => {
+      try {
+        const c = {
+          proposalID: Number(row.proposalID),
+          clientID: Number(row.clientID),
+          freelancerID: Number(row.freelancerID),
+          totalAmount: Number(row.totalAmount || 0),
+          cStatus: row.cStatus || "active",
+          startDate: row.startDate || null,
+          endDate: row.endDate || null,
+        };
+        if (!c.proposalID || !c.clientID || !c.freelancerID) {
+          throw new Error("proposalID, clientID, freelancerID required");
+        }
+        contracts.push(c);
+      } catch (err) {
+        skipped.push({ row: index + 1, reason: err.message });
+      }
+    });
+
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const c of contracts) {
+        await conn.execute(
+          `INSERT INTO Contracts (proposalID, clientID, freelancerID, totalAmount, cStatus, startDate, endDate)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [c.proposalID, c.clientID, c.freelancerID, c.totalAmount, c.cStatus, c.startDate, c.endDate],
+        );
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+    return res.status(201).json({ message: "Contracts imported.", created: contracts.length, skipped });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function importFreelancers(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Upload file is required." });
+    }
+    const rows = parseImportRows(req.file);
+
+    let created = 0;
+    const skipped = [];
+    const freelancers = [];
+    rows.forEach((row, index) => {
+      try {
+        freelancers.push({
+          fullName: row.fullName || row.name,
+          email: row.email,
+          password: row.password || "ImportTemp123!@",
+          hourlyRate: Number(row.hourlyRate || 0),
+          bio: row.bio || "",
+        });
+      } catch (err) {
+        skipped.push({ row: index + 1, email: row.email || null, reason: err.message });
+      }
+    });
+
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const f of freelancers) {
+        if (!f.email || !f.fullName) {
+          skipped.push({ email: f.email, reason: "Missing email or fullName" });
+          continue;
+        }
+        const [existing] = await conn.execute("SELECT id FROM Users WHERE email = ? LIMIT 1", [f.email]);
+        if (existing.length > 0) {
+          skipped.push({ email: f.email, reason: "Email already exists" });
+          continue;
+        }
+
+        const passwordHash = await bcrypt.hash(f.password, 10);
+        const [userRes] = await conn.execute(
+          "INSERT INTO Users (email, passwordHash, fullName) VALUES (?, ?, ?)",
+          [f.email, passwordHash, f.fullName],
+        );
+        const userID = userRes.insertId;
+        await conn.execute("INSERT INTO UserRole (userID, roleID) VALUES (?, 3)", [userID]);
+        await conn.execute(
+          `INSERT INTO Profiles (userID, hourlyRate, bio) VALUES (?, ?, ?)`,
+          [userID, f.hourlyRate, f.bio],
+        );
+        created += 1;
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+
+    return res.status(201).json({ message: "Freelancers imported.", created, skipped });
   } catch (err) {
     next(err);
   }

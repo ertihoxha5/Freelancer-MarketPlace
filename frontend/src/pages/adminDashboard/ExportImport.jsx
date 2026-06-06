@@ -64,6 +64,7 @@ export default function ExportImport() {
                 <option value="csv">CSV</option>
                 <option value="xlsx">Excel</option>
                 <option value="json">JSON</option>
+                <option value="pdf">PDF</option>
               </select>
             </div>
 
@@ -91,6 +92,9 @@ export default function ExportImport() {
                 <select value={importKind} onChange={(e) => setImportKind(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                   <option value="users">Users</option>
                   <option value="projects">Projects</option>
+                  <option value="applications">Applications</option>
+                  <option value="contracts">Contracts</option>
+                  <option value="freelancers">Freelancers</option>
                 </select>
                 <input type="file" accept=".csv,.json" onChange={(e) => setFile(e.target.files?.[0] || null)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 <button disabled={!file || Boolean(busy)} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">

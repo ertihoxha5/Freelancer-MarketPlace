@@ -5,6 +5,9 @@ import { importSchemas } from "../validation/schemas.js";
 import {
   importProjects,
   importUsers,
+  importApplications,
+  importContracts,
+  importFreelancers,
   uploadImportFile,
 } from "../controllers/exportController.js";
 
@@ -24,6 +27,30 @@ router.post(
   authMiddleware.requireRole(1),
   uploadImportFile.single("file"),
   importUsers,
+);
+
+router.post(
+  "/applications",
+  authMiddleware.requireRole(1, 2),
+  uploadImportFile.single("file"),
+  validateRequest({ body: importSchemas.applications }),
+  importApplications,
+);
+
+router.post(
+  "/contracts",
+  authMiddleware.requireRole(1),
+  uploadImportFile.single("file"),
+  validateRequest({ body: importSchemas.contracts }),
+  importContracts,
+);
+
+router.post(
+  "/freelancers",
+  authMiddleware.requireRole(1),
+  uploadImportFile.single("file"),
+  validateRequest({ body: importSchemas.freelancers }),
+  importFreelancers,
 );
 
 export default router;

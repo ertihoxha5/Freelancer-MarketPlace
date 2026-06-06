@@ -266,6 +266,7 @@ export default function User() {
                                 <button type="button" onClick={() => downloadExport('users', 'csv').catch((err) => setError(err.message))} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">CSV</button>
                                 <button type="button" onClick={() => downloadExport('users', 'xlsx').catch((err) => setError(err.message))} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">Excel</button>
                                 <button type="button" onClick={() => downloadExport('users', 'json').catch((err) => setError(err.message))} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">JSON</button>
+                                <button type="button" onClick={() => downloadExport('users', 'pdf').catch((err) => setError(err.message))} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">PDF</button>
                                 <button type="button" onClick={() => setImportOpen(true)} className="inline-flex w-auto rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">Import</button>
                                 <button
                                     type="button"

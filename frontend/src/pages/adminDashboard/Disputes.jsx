@@ -6,6 +6,7 @@ import {
     fetchAdminDisputes,
     fetchAdminDispute,
     updateAdminDispute,
+    downloadExport,
 } from '../../apiServices.js';
 
 export default function Disputes() {
@@ -52,6 +53,14 @@ export default function Disputes() {
             mounted = false;
         };
     }, [filterStatus]);
+
+  async function handleExport(kind, fmt) {
+    try {
+      await downloadExport(kind, fmt);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed.');
+    }
+  }
 
     function formatDate(value) {
         if (!value) return '-';
@@ -155,6 +164,12 @@ export default function Disputes() {
                                     <option value="resolved">Resolved</option>
                                     <option value="rejected">Rejected</option>
                                 </select>
+
+                                <div className="ml-4 flex gap-1">
+                                  <button onClick={() => handleExport('disputes', 'csv')} className="text-xs border px-2 py-1 rounded">CSV</button>
+                                  <button onClick={() => handleExport('disputes', 'xlsx')} className="text-xs border px-2 py-1 rounded">Excel</button>
+                                  <button onClick={() => handleExport('disputes', 'pdf')} className="text-xs border px-2 py-1 rounded">PDF</button>
+                                </div>
                             </div>
                         </div>
 

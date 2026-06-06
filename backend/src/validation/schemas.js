@@ -539,6 +539,15 @@ export const importSchemas = {
   projects: z.object({
     clientID: positiveIntSchema("clientID").optional(),
   }),
+  applications: z.object({
+    projectID: positiveIntSchema("projectID").optional(),
+  }),
+  contracts: z.object({
+    // optional filters or defaults
+  }),
+  freelancers: z.object({
+    // for bulk creating freelancer users
+  }),
 };
 
 export const paymentSchemas = {

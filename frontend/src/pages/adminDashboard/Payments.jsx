@@ -2,7 +2,7 @@ import Header from '../../components/Header.jsx';
 import Sidebar from '../../components/Sidebar.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useEffect, useState } from 'react';
-import { fetchAdminPayments } from '../../apiServices.js';
+import { fetchAdminPayments, downloadExport } from '../../apiServices.js';
 
 export default function AdminPayments() {
   const { user } = useAuth();
@@ -42,6 +42,14 @@ export default function AdminPayments() {
     loadPayments();
     return () => { mounted = false; };
   }, [filterStatus]);
+
+  async function handleExport(kind, fmt) {
+    try {
+      await downloadExport(kind, fmt);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed.');
+    }
+  }
 
   function formatDate(value) {
     if (!value) return '-';
@@ -153,6 +161,13 @@ export default function AdminPayments() {
               >
                 Clear
               </button>
+
+              <div className="ml-auto flex gap-2">
+                <button onClick={() => handleExport('payments', 'csv')} className="rounded-lg border px-3 py-1 text-sm">Export CSV</button>
+                <button onClick={() => handleExport('payments', 'xlsx')} className="rounded-lg border px-3 py-1 text-sm">Export Excel</button>
+                <button onClick={() => handleExport('payments', 'json')} className="rounded-lg border px-3 py-1 text-sm">Export JSON</button>
+                <button onClick={() => handleExport('payments', 'pdf')} className="rounded-lg border px-3 py-1 text-sm">Export PDF</button>
+              </div>
             </div>
 
             {/* Payments Table - ID focused */}
