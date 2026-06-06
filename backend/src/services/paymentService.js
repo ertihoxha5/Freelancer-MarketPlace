@@ -22,7 +22,6 @@ function logTransaction(action, details) {
   );
 }
 
-// ==================== FUNKSIONET E REJA (PA STRIPE) ====================
 
 /**
  * POST /api/payment/intent  → Krijo intent (SIMULIM)
@@ -135,7 +134,6 @@ export async function refundPayment(userID, body) {
   };
 }
 
-// ==================== FUNKSIONET EKZISTUESE ====================
 
 async function assertClientOwnsContract(contractID, clientID) {
   const contract = await projectRepository.getContractById(contractID);
@@ -301,8 +299,7 @@ export async function getFreelancerPaymentHistory(freelancerID, pagination = {})
     offset = (page - 1) * limit;
   }
 
-  // Use template literals for LIMIT/OFFSET to avoid mysql2 prepared statement binding issues
-  // (ER_WRONG_ARGUMENTS / "Incorrect arguments to mysqld_stmt_execute" is common with ? for pagination)
+
   const safeLimit = limit;
   const safeOffset = offset;
 
