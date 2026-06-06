@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
@@ -12,7 +12,8 @@ import {
   updateWorkspaceSection,
   deleteWorkspaceSection,
 } from "../apiServices.js";
-import { FiEdit2, FiTrash2, FiEye, FiEyeOff, FiChevronUp, FiChevronDown, FiPlus } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiEye, FiEyeOff, FiChevronUp, FiChevronDown, FiPlus, FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhoneOff } from "react-icons/fi";
+import { getSocket } from "../socket/socketClient";
 
 export default function ContractWorkspace() {
   const { id: contractID } = useParams();
@@ -32,6 +33,29 @@ export default function ContractWorkspace() {
 
   // Moodle-style editing mode for the CMS
   const [isEditingMode, setIsEditingMode] = useState(false);
+
+  // WebRTC Meeting state (Google Meet-like)
+  const [isInMeeting, setIsInMeeting] = useState(false);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [isJoiningMeeting, setIsJoiningMeeting] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [remoteUserName, setRemoteUserName] = useState("");
+  const [meetingError, setMeetingError] = useState("");
+  const [meetingParticipants, setMeetingParticipants] = useState([]);
+  const [meetingChat, setMeetingChat] = useState([]);
+  const [showMeetingUI, setShowMeetingUI] = useState(false);
+  const [isFloating, setIsFloating] = useState(false);
+  const [meetingModalOpen, setMeetingModalOpen] = useState(false);
+
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
+  const socketRef = useRef(null);
+  const meetingChatRef = useRef(null);
 
   const isFreelancer = data?.isFreelancer;
 
@@ -224,6 +248,366 @@ export default function ContractWorkspace() {
     }
   }
 
+  // ==================== WebRTC Meeting Functions (Google Meet style) ====================
+  async function startLocalStream(videoConstraints = true) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints,
+        audio: true,
+      });
+      localStreamRef.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      return stream;
+    } catch (err) {
+      setMeetingError("Could not access camera/microphone. Please allow permissions.");
+      throw err;
+    }
+  }
+
+  function createPeerConnection() {
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+      ],
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socketRef.current) {
+        socketRef.current.emit("meeting:ice-candidate", {
+          contractID,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      if (remoteVideoRef.current && event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+    };
+
+    return pc;
+  }
+
+  function joinMeeting() {
+    setMeetingError('');
+    setMeetingModalOpen(true);  // Open the meeting like a Google Meet window
+    setShowMeetingUI(true);
+    setIsCallActive(true);   // This will trigger the useEffect that starts media + signaling
+    setMeetingChat([]);
+  }
+
+  function setupSignalingListeners(pc, socket) {
+    const onOffer = async ({ offer, fromUserID, fromFullName }) => {
+      if (!pc) return;
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socket.emit("meeting:answer", {
+          contractID,
+          answer,
+          toUserID: fromUserID,
+        });
+
+        setRemoteUserName(fromFullName || "Participant");
+      } catch (e) {
+        console.error("Error handling offer", e);
+      }
+    };
+
+    const onAnswer = async ({ answer }) => {
+      if (!pc) return;
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      } catch (e) {
+        console.error("Error handling answer", e);
+      }
+    };
+
+    const onIce = ({ candidate }) => {
+      if (pc && candidate) {
+        pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+      }
+    };
+
+    const onPeerJoined = ({ userID, fullName }) => {
+      setRemoteUserName(fullName || "Participant");
+      const myID = Number(user?.id);
+      const theirID = Number(userID);
+      if (pc && !pc.remoteDescription && myID < theirID) {
+        createAndSendOffer(pc, socket, userID);
+      }
+    };
+
+    const onPeerLeft = () => {
+      setRemoteUserName("");
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    };
+
+    const onParticipantsUpdated = ({ participants }) => {
+      setMeetingParticipants(participants || []);
+    };
+
+    const onChatMessage = (msg) => {
+      setMeetingChat((prev) => [...prev.slice(-50), msg]);
+      setTimeout(() => {
+        if (meetingChatRef.current) {
+          meetingChatRef.current.scrollTop = meetingChatRef.current.scrollHeight;
+        }
+      }, 50);
+    };
+
+    const onInvited = ({ fromFullName, message }) => {
+      setMeetingError(`📨 ${fromFullName}: ${message || "Invited you to the meeting"}`);
+      setTimeout(() => setMeetingError(""), 6000);
+    };
+
+    socket.on("meeting:offer", onOffer);
+    socket.on("meeting:answer", onAnswer);
+    socket.on("meeting:ice-candidate", onIce);
+    socket.on("meeting:peer-joined", onPeerJoined);
+    socket.on("meeting:peer-left", onPeerLeft);
+    socket.on("meeting:participants-updated", onParticipantsUpdated);
+    socket.on("meeting:chat-message", onChatMessage);
+    socket.on("meeting:invited", onInvited);
+
+    socketRef.current._meetingCleanup = () => {
+      socket.off("meeting:offer", onOffer);
+      socket.off("meeting:answer", onAnswer);
+      socket.off("meeting:ice-candidate", onIce);
+      socket.off("meeting:peer-joined", onPeerJoined);
+      socket.off("meeting:peer-left", onPeerLeft);
+      socket.off("meeting:participants-updated", onParticipantsUpdated);
+      socket.off("meeting:chat-message", onChatMessage);
+      socket.off("meeting:invited", onInvited);
+    };
+  }
+
+  async function createAndSendOffer(pc, socket, toUserID) {
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit("meeting:offer", {
+        contractID,
+        offer,
+        toUserID,
+      });
+    } catch (e) {
+      console.error("Failed to create offer", e);
+    }
+  }
+
+  // Screen sharing
+  async function toggleScreenShare() {
+    try {
+      if (!isScreenSharing) {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        screenStreamRef.current = screenStream;
+        const videoTrack = screenStream.getVideoTracks()[0];
+
+        const pc = peerConnectionRef.current;
+        if (pc && localStreamRef.current) {
+          const sender = pc.getSenders().find((s) => s.track.kind === "video");
+          if (sender) await sender.replaceTrack(videoTrack);
+        }
+
+        videoTrack.onended = () => stopScreenShare();
+        setIsScreenSharing(true);
+      } else {
+        await stopScreenShare();
+      }
+    } catch (err) {
+      setMeetingError("Screen sharing failed or was cancelled.");
+    }
+  }
+
+  async function stopScreenShare() {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current = null;
+    }
+    const pc = peerConnectionRef.current;
+    if (pc && localStreamRef.current) {
+      const originalVideoTrack = localStreamRef.current.getVideoTracks()[0];
+      const sender = pc.getSenders().find((s) => s.track.kind === "video");
+      if (sender && originalVideoTrack) await sender.replaceTrack(originalVideoTrack);
+    }
+    setIsScreenSharing(false);
+  }
+
+  function sendMeetingChatMessage() {
+    const input = document.getElementById("meeting-chat-input");
+    if (!input || !input.value.trim() || !socketRef.current) return;
+
+    const message = input.value.trim();
+    socketRef.current.emit("meeting:chat-message", { contractID, message });
+
+    const myMsg = {
+      userID: user?.id,
+      fullName: user?.fullName || "You",
+      message,
+      timestamp: new Date().toISOString(),
+      isMe: true,
+    };
+    setMeetingChat((prev) => [...prev.slice(-50), myMsg]);
+    input.value = "";
+
+    setTimeout(() => {
+      if (meetingChatRef.current) meetingChatRef.current.scrollTop = meetingChatRef.current.scrollHeight;
+    }, 10);
+  }
+
+  // Invitation - copy link + notify
+  function inviteToMeeting() {
+    const link = `${window.location.origin}/contracts/${contractID}/workspace`;
+    navigator.clipboard.writeText(link).then(() => {
+      setMeetingError("Meeting link copied! Share it with the other party.");
+      setTimeout(() => setMeetingError(""), 4000);
+    }).catch(() => {
+      prompt("Copy this meeting link to invite:", link);
+    });
+
+    const socket = getSocket();
+    if (socket) {
+      socket.emit("meeting:invite", { contractID });
+    }
+  }
+
+  function toggleMute() {
+    if (!localStreamRef.current) return;
+    const audioTrack = localStreamRef.current.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      setIsMuted(!audioTrack.enabled);
+    }
+  }
+
+  function toggleVideo() {
+    if (!localStreamRef.current) return;
+    const videoTrack = localStreamRef.current.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      setIsVideoOff(!videoTrack.enabled);
+    }
+  }
+
+  function leaveMeeting() {
+    const socket = socketRef.current;
+
+    if (socket) {
+      socket.emit("meeting:leave", { contractID });
+      if (socket._meetingCleanup) {
+        socket._meetingCleanup();
+        delete socket._meetingCleanup;
+      }
+    }
+
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+    }
+
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current = null;
+    }
+
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
+    setIsInMeeting(false);
+    setIsCallActive(false);
+    setIsMuted(false);
+    setIsVideoOff(false);
+    setIsScreenSharing(false);
+    setRemoteUserName("");
+    setMeetingError("");
+    setMeetingChat([]);
+    setMeetingParticipants([]);
+    setShowMeetingUI(false);
+    setIsFloating(false);
+  }
+
+  // Start media + signaling only after the meeting UI is rendered (fixes ref not ready)
+  useEffect(() => {
+    if (isCallActive && !localStreamRef.current) {
+      startMeetingProcess();
+    }
+  }, [isCallActive]);
+
+  async function startMeetingProcess() {
+    setIsJoiningMeeting(true);
+    setMeetingError('');
+
+    const socket = getSocket();
+    if (!socket) {
+      setMeetingError('Realtime connection not available. Please refresh the page.');
+      setIsCallActive(false);
+      setShowMeetingUI(false);
+      setIsJoiningMeeting(false);
+      return;
+    }
+    socketRef.current = socket;
+
+    try {
+      // Give React a moment to render the <video> elements
+      await new Promise(resolve => setTimeout(resolve, 80));
+
+      await startLocalStream();
+
+      await new Promise((resolve, reject) => {
+        socket.emit('meeting:join', { contractID }, (response) => {
+          if (response?.ok) {
+            if (response.participants) setMeetingParticipants(response.participants);
+            resolve();
+          } else {
+            reject(new Error(response?.error || 'Failed to join meeting room'));
+          }
+        });
+      });
+
+      const pc = createPeerConnection();
+      peerConnectionRef.current = pc;
+
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => {
+          pc.addTrack(track, localStreamRef.current);
+        });
+      }
+
+      setIsInMeeting(true);
+      setupSignalingListeners(pc, socket);
+
+    } catch (err) {
+      console.error('Start meeting process error:', err);
+      setMeetingError(err.message || 'Failed to start the meeting. Check camera permissions.');
+      leaveMeeting();
+    } finally {
+      setIsJoiningMeeting(false);
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (isInMeeting || isCallActive) {
+        leaveMeeting();
+      }
+    };
+  }, [isInMeeting, isCallActive]);
+
+  const isMeetingInProgress = meetingParticipants.length > 0 || isCallActive;
+
   function addChecklistItem() {
     setNewSection((prev) => ({
       ...prev,
@@ -381,6 +765,221 @@ export default function ContractWorkspace() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </section>
+
+          {/* Video Meeting Section - Google Meet style in Workspace */}
+          <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                  <FiVideo className="h-5 w-5" /> Video Meeting
+                </h2>
+                {isMeetingInProgress && !isCallActive && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-0.5 text-xs font-semibold text-emerald-700">
+                    ● Meeting in progress ({meetingParticipants.length} here)
+                  </span>
+                )}
+
+          {/* Google Meet-style Modal - this is what "opens" when you click Start/Join Meeting */}
+          {meetingModalOpen && (
+            <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4">
+              <div className="bg-slate-950 text-white w-full max-w-5xl h-[88vh] rounded-2xl flex flex-col border border-white/10 overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-slate-900">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">Video Meeting</span>
+                    <span className="text-sm text-emerald-400">Contract #{contractID}</span>
+                    {isJoiningMeeting && <span className="text-yellow-400 text-sm">Joining...</span>}
+                  </div>
+                  <button onClick={() => { leaveMeeting(); setMeetingModalOpen(false); }} className="px-4 py-1 bg-red-600 rounded text-sm">End Meeting</button>
+                </div>
+
+                <div className="flex-1 p-4 overflow-auto">
+                  {isJoiningMeeting ? (
+                    <div className="h-full flex flex-col items-center justify-center">
+                      <div className="animate-spin h-10 w-10 border-4 border-white border-t-transparent rounded-full mb-4"></div>
+                      <p>Starting video meeting...</p>
+                      <p className="text-xs text-white/60 mt-1">Allow camera and microphone access</p>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col">
+                      {/* Videos */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                        <div className="bg-black rounded-xl overflow-hidden relative">
+                          <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                          <div className="absolute bottom-2 left-2 text-xs bg-black/70 px-2 py-0.5 rounded">You</div>
+                        </div>
+                        <div className="bg-black rounded-xl overflow-hidden relative">
+                          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                          <div className="absolute bottom-2 left-2 text-xs bg-black/70 px-2 py-0.5 rounded">{remoteUserName || "Other Party"}</div>
+                        </div>
+                      </div>
+
+                      {/* Controls */}
+                      <div className="flex justify-center gap-4 mt-4">
+                        <button onClick={toggleMute} className={`px-4 py-2 rounded-full text-sm ${isMuted ? 'bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}>{isMuted ? 'Unmute' : 'Mute'}</button>
+                        <button onClick={toggleVideo} className={`px-4 py-2 rounded-full text-sm ${isVideoOff ? 'bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}>{isVideoOff ? 'Show Video' : 'Hide Video'}</button>
+                        <button onClick={toggleScreenShare} className={`px-4 py-2 rounded-full text-sm ${isScreenSharing ? 'bg-blue-600' : 'bg-white/10 hover:bg-white/20'}`}>Share Screen</button>
+                        <button onClick={() => { leaveMeeting(); setMeetingModalOpen(false); }} className="px-4 py-2 bg-red-600 rounded-full text-sm">Leave</button>
+                      </div>
+
+                      {/* Participants + Chat */}
+                      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm flex-1 min-h-0">
+                        <div className="border border-white/10 rounded p-3">
+                          <div className="font-medium mb-2">Participants ({meetingParticipants.length})</div>
+                          {meetingParticipants.map((p, i) => <div key={i} className="text-xs">• {p.fullName}</div>)}
+                        </div>
+                        <div className="border border-white/10 rounded p-3 flex flex-col">
+                          <div className="font-medium mb-2">Chat</div>
+                          <div ref={meetingChatRef} className="flex-1 overflow-auto text-xs bg-black/30 p-2 rounded mb-2">
+                            {meetingChat.map((m, i) => <div key={i}><span className="text-emerald-300">{m.fullName}:</span> {m.message}</div>)}
+                          </div>
+                          <div className="flex gap-2">
+                            <input id="meeting-chat-input" className="flex-1 bg-white/10 text-sm px-2 rounded" placeholder="Message" onKeyDown={e => e.key === 'Enter' && sendMeetingChatMessage()} />
+                            <button onClick={sendMeetingChatMessage} className="bg-emerald-600 px-3 text-sm rounded">Send</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {!isCallActive && (
+                  <>
+                    <button
+                      onClick={inviteToMeeting}
+                      className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50"
+                    >
+                      📤 Invite / Copy Link
+                    </button>
+                    <button
+                      onClick={joinMeeting}
+                      disabled={isJoiningMeeting}
+                      className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      <FiVideo className="h-4 w-4" /> {isJoiningMeeting ? "Joining..." : (isMeetingInProgress ? "Join Meeting" : "Start Meeting")}
+                    </button>
+                  </>
+                )}
+                {isCallActive && (
+                  <button
+                    onClick={leaveMeeting}
+                    className="flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                  >
+                    <FiPhoneOff className="h-4 w-4" /> End Call
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {meetingError && (
+              <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{meetingError}</div>
+            )}
+
+            {/* Google Meet style meeting UI */}
+            {showMeetingUI && (
+              <div className={`mt-4 rounded-2xl border bg-slate-950 p-4 text-white ${isFloating ? 'fixed bottom-4 right-4 w-96 z-[200] shadow-2xl' : ''}`}>
+                <div className="flex items-center justify-between mb-3 px-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-medium">Contract Meeting</span>
+                    {isJoiningMeeting ? (
+                      <span className="text-yellow-400">Joining...</span>
+                    ) : (
+                      <span className="text-emerald-400">● Live</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setIsFloating(!isFloating)} className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20">
+                      {isFloating ? "Dock" : "Float"}
+                    </button>
+                    <button onClick={leaveMeeting} className="text-xs px-3 py-1 rounded bg-red-600 hover:bg-red-700 flex items-center gap-1">
+                      <FiPhoneOff className="h-3 w-3" /> Leave
+                    </button>
+                  </div>
+                </div>
+
+                {isJoiningMeeting ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-4"></div>
+                    <p>Starting video meeting...</p>
+                    <p className="text-xs text-white/60 mt-1">Please allow camera and microphone access</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Video Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                      <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
+                        <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                        <div className="absolute bottom-2 left-2 bg-black/60 text-xs px-2 py-0.5 rounded">You {isMuted && "(muted)"}</div>
+                      </div>
+                      <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
+                        <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                        <div className="absolute bottom-2 left-2 bg-black/60 text-xs px-2 py-0.5 rounded">
+                          {remoteUserName || "Other Party"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="flex items-center justify-center gap-3 py-2 border-t border-white/10">
+                      <button onClick={toggleMute} className={`p-3 rounded-full ${isMuted ? "bg-red-600" : "bg-white/10 hover:bg-white/20"}`}>
+                        {isMuted ? <FiMicOff className="h-5 w-5" /> : <FiMic className="h-5 w-5" />}
+                      </button>
+                      <button onClick={toggleVideo} className={`p-3 rounded-full ${isVideoOff ? "bg-red-600" : "bg-white/10 hover:bg-white/20"}`}>
+                        {isVideoOff ? <FiVideoOff className="h-5 w-5" /> : <FiVideo className="h-5 w-5" />}
+                      </button>
+                      <button onClick={toggleScreenShare} className={`p-3 rounded-full ${isScreenSharing ? "bg-blue-600" : "bg-white/10 hover:bg-white/20"}`}>
+                        Screen
+                      </button>
+                      <button onClick={leaveMeeting} className="px-6 py-2 bg-red-600 rounded-full font-medium flex items-center gap-2 hover:bg-red-700">
+                        <FiPhoneOff /> Leave
+                      </button>
+                    </div>
+
+                    {/* Participants + Chat */}
+                    <div className="mt-4 grid grid-cols-1 lg:grid-cols-5 gap-4 text-sm">
+                      <div className="lg:col-span-2 border border-white/10 rounded-xl p-3">
+                        <div className="font-medium mb-2">Participants ({meetingParticipants.length})</div>
+                        <div className="max-h-28 overflow-auto space-y-1 text-xs">
+                          {meetingParticipants.length === 0 && <div className="text-white/60">Waiting for others...</div>}
+                          {meetingParticipants.map((p, idx) => (
+                            <div key={idx} className="flex items-center gap-2 bg-white/5 px-2 py-1 rounded">
+                              <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                              {p.fullName} {p.userID === user?.id && "(You)"}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-3 border border-white/10 rounded-xl p-3 flex flex-col">
+                        <div className="font-medium mb-2">Meeting Chat</div>
+                        <div ref={meetingChatRef} className="flex-1 max-h-28 overflow-auto space-y-1 text-xs pr-1">
+                          {meetingChat.length === 0 && <div className="text-white/50 italic">No messages yet</div>}
+                          {meetingChat.map((msg, idx) => (
+                            <div key={idx} className={msg.isMe ? "text-right" : ""}>
+                              <span className="text-emerald-400 text-[10px]">{msg.fullName}:</span> {msg.message}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <input
+                            id="meeting-chat-input"
+                            className="flex-1 bg-white/10 text-white text-xs rounded px-2 py-1 placeholder:text-white/40"
+                            placeholder="Type a message..."
+                            onKeyDown={(e) => { if (e.key === "Enter") sendMeetingChatMessage(); }}
+                          />
+                          <button onClick={sendMeetingChatMessage} className="text-xs px-3 py-1 bg-white/20 rounded hover:bg-white/30">Send</button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </section>

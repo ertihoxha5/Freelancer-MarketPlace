@@ -56,6 +56,7 @@ const sidebarConfigs = {
     { label: "Favorite Projects", href: "/freelancer/favorites", icon: FiHeart },
     { label: "My Projects", href: "/freelancer/my-projects", badge: "projects", icon: FiFolder },
     { label: "Contracts", href: "/freelancer/contracts", badge: "contracts", icon: FiFileText },
+    { label: "Messages", href: "/freelancer/messages", icon: FiMessageCircle },
     { label: "My Applications", href: "/freelancer/applications", badge: "applications", icon: FiClipboard },
     { label: "My Reports", href: "/freelancer/reports", icon: FiBarChart2 },
     { label: "My Reviews", href: "/freelancer/reviews", badge: "reviews", icon: FiStar },

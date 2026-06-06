@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 import { authenticateSocket } from "./middleware/authSocket.js";
 import { registerChatHandlers } from "./handlers/chatHandlers.js";
 import { registerBusinessHandlers } from "./handlers/businessHandlers.js";
+import { registerMeetingHandlers } from "./handlers/meetingHandlers.js";
 
 const SOCKET_CORS_ORIGINS = (
   process.env.ALLOWED_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173"
@@ -55,6 +56,7 @@ export function initSocketServer(httpServer) {
 
     registerChatHandlers({ io: _io, socket, presenceState });
     registerBusinessHandlers({ io: _io, socket, presenceState });
+    registerMeetingHandlers({ io: _io, socket });
 
     socket.on("disconnect", () => {
       markOffline(_io, userID, socket.id);

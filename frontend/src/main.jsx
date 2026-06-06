@@ -90,6 +90,7 @@ const FreelancerReports = lazy(() => import("./pages/FreelancerReports.jsx"));
 const FreelancerContracts = lazy(() => import("./pages/FreelancerContracts.jsx"));
 const FreelancerReviews = lazy(() => import("./pages/FreelancerReviews.jsx"));
 const ContractWorkspace = lazy(() => import("./pages/ContractWorkspace.jsx"));
+const FreelancerMessages = lazy(() => import("./pages/FreelancerMessages.jsx"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage.jsx"));
 
 // Add new pages as children of the layout below.
@@ -475,6 +476,16 @@ const router = createBrowserRouter([
           <FreelancerRoute>
             <Suspense fallback={<Loading />}>
               <FreelancerContracts />
+            </Suspense>
+          </FreelancerRoute>
+        ),
+      },
+      {
+        path: "/freelancer/messages",
+        element: (
+          <FreelancerRoute>
+            <Suspense fallback={<Loading />}>
+              <FreelancerMessages />
             </Suspense>
           </FreelancerRoute>
         ),

@@ -4,6 +4,18 @@ import Header from '../components/Header.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { createClientTestimonial, fetchClientProjects } from '../apiServices.js';
+import {
+  FiPlusCircle,
+  FiFolder,
+  FiUsers,
+  FiUserCheck,
+  FiSettings,
+  FiArrowRight,
+  FiCheckCircle,
+  FiTrendingUp,
+  FiDollarSign,
+  FiFileText,
+} from 'react-icons/fi';
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -53,50 +65,7 @@ export default function ClientDashboard() {
     return { total, active, pending, completed, totalBudget, recentProjects };
   }, [projects]);
 
-  const quickActions = [
-    {
-      title: 'Post a New Project',
-      description: 'Create a project brief and attract freelancers.',
-      href: '/client/post-project',
-      icon: '📝',
-      color: 'bg-blue-50 hover:bg-blue-100 border-blue-200',
-    },
-    {
-      title: 'View All Projects',
-      description: 'Manage your existing projects and proposals.',
-      href: '/client/projects',
-      icon: '📋',
-      color: 'bg-green-50 hover:bg-green-100 border-green-200',
-    },
-    {
-      title: 'Browse Freelancers',
-      description: 'Find and connect with skilled professionals.',
-      href: '/search?tab=freelancers', 
-      icon: '👥',
-      color: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
-    },
-    {
-      title: 'My Hired Freelancers',
-      description: 'View unique freelancers from your contracts and leave reviews.',
-      href: '/client/hired-freelancers', 
-      icon: '👥⭐',
-      color: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
-    },
-    {
-      title: 'Account Settings',
-      description: 'Update your profile and preferences.',
-      href: '/settings', 
-      icon: '⚙️',
-      color: 'bg-orange-50 hover:bg-orange-100 border-orange-200',
-    },
-  ];
-
-  const tips = [
-    'Write clear project descriptions to attract better proposals.',
-    'Set realistic budgets and deadlines for quality work.',
-    'Review freelancer profiles and portfolios before hiring.',
-    'Communicate regularly with your chosen freelancer.',
-  ];
+  // (quickActions and tips arrays removed – replaced with icon-based QuickAction components and recommended steps)
 
   async function submitTestimonial(event) {
     event.preventDefault();
@@ -123,14 +92,30 @@ export default function ClientDashboard() {
         <div className="flex h-full min-h-0 flex-col overflow-hidden border-t border-slate-200 bg-white lg:flex-row">
           <Sidebar roleID={user?.roleID} />
           <section className="min-h-full min-w-0 flex-1 overflow-auto p-6 sm:p-8">
-            <div className="mb-8">
-              <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Client dashboard</p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900">
-                Welcome back, {user?.fullName?.split(' ')[0] || 'Client'}!
-              </h1>
-              <p className="mt-2 text-slate-600 max-w-2xl">
-                Here's an overview of your projects and quick actions to get started.
-              </p>
+            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Welcome back</p>
+                <h1 className="mt-1 text-3xl font-semibold text-slate-900">
+                  {user?.fullName?.split(' ')[0] || 'Client'}!
+                </h1>
+                <p className="mt-1 text-slate-600">
+                  Manage your projects, hire talent, and grow your business.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Link
+                  to="/client/post-project"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white hover:bg-[#214b38]"
+                >
+                  Post New Project <FiArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  to="/client/contracts"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-white"
+                >
+                  My Contracts &amp; Workspaces
+                </Link>
+              </div>
             </div>
 
             {error && (
@@ -140,30 +125,42 @@ export default function ClientDashboard() {
             )}
 
             {loading ? (
-              <div className="grid gap-4 xl:grid-cols-4 mb-8">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-32 bg-slate-200 rounded-3xl animate-pulse" />
+                  <div key={i} className="h-28 bg-slate-200 rounded-3xl animate-pulse" />
                 ))}
               </div>
             ) : (
-              <div className="grid gap-4 xl:grid-cols-4 mb-8">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-sm font-medium text-slate-500">Total Projects</p>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <FiFolder className="h-4 w-4" />
+                    <p className="text-sm font-medium">Total Projects</p>
+                  </div>
                   <p className="mt-3 text-3xl font-semibold text-slate-900">{stats.total}</p>
                   <p className="mt-1 text-sm text-slate-500">Projects posted</p>
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-sm font-medium text-slate-500">Active Projects</p>
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <FiTrendingUp className="h-4 w-4" />
+                    <p className="text-sm font-medium">Active Projects</p>
+                  </div>
                   <p className="mt-3 text-3xl font-semibold text-slate-900">{stats.active}</p>
                   <p className="mt-1 text-sm text-slate-500">Currently in progress</p>
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-sm font-medium text-slate-500">Pending Projects</p>
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <FiUsers className="h-4 w-4" />
+                    <p className="text-sm font-medium">Pending Projects</p>
+                  </div>
                   <p className="mt-3 text-3xl font-semibold text-slate-900">{stats.pending}</p>
                   <p className="mt-1 text-sm text-slate-500">Awaiting freelancers</p>
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-sm font-medium text-slate-500">Total Budget</p>
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <FiDollarSign className="h-4 w-4" />
+                    <p className="text-sm font-medium">Total Budget</p>
+                  </div>
                   <p className="mt-3 text-3xl font-semibold text-slate-900">${stats.totalBudget.toLocaleString()}</p>
                   <p className="mt-1 text-sm text-slate-500">Across all projects</p>
                 </div>
@@ -171,31 +168,21 @@ export default function ClientDashboard() {
             )}
 
             <div className="mb-8">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">Quick Actions</h2>
-              <div className="grid gap-4 xl:grid-cols-2">
-                {quickActions.map((action, index) => (
-                  <Link
-                    key={index}
-                    to={action.href}
-                    className={`rounded-3xl border p-6 transition hover:-translate-y-0.5 ${action.color}`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <span className="text-2xl">{action.icon}</span>
-                      <div>
-                        <p className="font-semibold text-slate-900">{action.title}</p>
-                        <p className="mt-1 text-sm text-slate-600">{action.description}</p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500 mb-3">Quick Actions</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                <QuickAction to="/client/post-project" icon={FiPlusCircle} label="Post New Project" description="Create a brief and attract talent" />
+                <QuickAction to="/client/projects" icon={FiFolder} label="My Projects" description={`${stats.total} total • ${stats.active} active`} />
+                <QuickAction to="/search?tab=freelancers" icon={FiUsers} label="Browse Freelancers" description="Find skilled professionals" />
+                <QuickAction to="/client/hired-freelancers" icon={FiUserCheck} label="Hired Freelancers" description="Review and manage your team" />
+                <QuickAction to="/client/contracts" icon={FiFileText} label="Contracts &amp; Workspaces" description="Open active work" />
               </div>
             </div>
 
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-slate-900">Recent Projects</h2>
-                <Link to="/client/projects" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
-                  View all →
+                <Link to="/client/projects" className="inline-flex items-center gap-1 text-sm font-semibold text-[#1a3c2e] hover:underline">
+                  View all <FiArrowRight className="h-4 w-4" />
                 </Link>
               </div>
               {loading ? (
@@ -205,45 +192,51 @@ export default function ClientDashboard() {
                   ))}
                 </div>
               ) : stats.recentProjects.length === 0 ? (
-                <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
+                <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center">
                   <p className="text-slate-500">No projects yet. Start by posting your first project!</p>
+                  <Link to="/client/post-project" className="mt-3 inline-block text-sm font-semibold text-[#1a3c2e]">
+                    Post your first project →
+                  </Link>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {stats.recentProjects.map((project) => (
-                    <div key={project.id} className="rounded-3xl border border-slate-200 bg-white p-6 hover:shadow-sm transition">
+                    <Link
+                      key={project.id}
+                      to={`/client/projects/${project.id}`}
+                      className="group block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-[#1a3c2e] hover:shadow-sm"
+                    >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-slate-900">{project.title}</h3>
-                          <p className="mt-1 text-sm text-slate-600 line-clamp-2">{project.pDesc}</p>
-                          <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-                            <span>Budget: {project.budget ? `$${project.budget}` : 'Not set'}</span>
-                            <span>Status: <span className={`font-semibold ${
-                              project.pStatus === 'active' ? 'text-green-600' :
-                              project.pStatus === 'pending' ? 'text-yellow-600' :
-                              project.pStatus === 'completed' ? 'text-blue-600' : 'text-red-600'
-                            }`}>{project.pStatus}</span></span>
-                          </div>
-                        </div>
-                        <Link to={`/client/projects/${project.id}`} className="text-sm font-semibold text-slate-600 hover:text-slate-900">
-                          View →
-                        </Link>
+                        <h3 className="font-semibold text-slate-900 group-hover:text-[#1a3c2e] line-clamp-2">{project.title}</h3>
+                        <span className={`ml-2 shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium capitalize border ${
+                          project.pStatus === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
+                          project.pStatus === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                          project.pStatus === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-red-50 text-red-700 border-red-200'
+                        }`}>
+                          {project.pStatus}
+                        </span>
                       </div>
-                    </div>
+                      <p className="mt-2 text-sm text-slate-600 line-clamp-2">{project.pDesc}</p>
+                      <div className="mt-3 text-sm font-semibold text-emerald-700">
+                        {project.budget ? `$${Number(project.budget).toLocaleString()}` : 'Budget not set'}
+                      </div>
+                    </Link>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">💡 Tips for Success</h2>
-              <ul className="space-y-2">
-                {tips.map((tip, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="text-slate-400 mt-0.5">•</span>
-                    <p className="text-sm text-slate-700">{tip}</p>
-                  </li>
-                ))}
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <FiCheckCircle className="text-emerald-600" /> Recommended next steps
+              </h3>
+              <ul className="space-y-2 text-sm">
+                {stats.pending > 0 && (
+                  <li className="flex gap-2">• Review <Link to="/client/projects" className="font-medium text-[#1a3c2e] underline">pending projects</Link> and proposals</li>
+                )}
+                <li className="flex gap-2">• <Link to="/search?tab=freelancers" className="font-medium text-[#1a3c2e] underline">Browse freelancers</Link> for your next project</li>
+                <li className="flex gap-2">• Visit <Link to="/client/hired-freelancers" className="font-medium text-[#1a3c2e] underline">Hired Freelancers</Link> to leave reviews</li>
+                <li className="flex gap-2">• <Link to="/client/contracts" className="font-medium text-[#1a3c2e] underline">Open workspaces</Link> for active contracts</li>
               </ul>
             </div>
 
@@ -269,5 +262,22 @@ export default function ClientDashboard() {
         </div>
       </main>
     </div>
+  );
+}
+
+function QuickAction({ to, icon: Icon, label, description }) {
+  return (
+    <Link
+      to={to}
+      className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-[#1a3c2e] hover:shadow-sm"
+    >
+      <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 group-hover:bg-[#1a3c2e] group-hover:text-white transition">
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+      <div>
+        <div className="font-semibold text-slate-900">{label}</div>
+        <div className="text-xs text-slate-500 mt-0.5 line-clamp-1">{description}</div>
+      </div>
+    </Link>
   );
 }
