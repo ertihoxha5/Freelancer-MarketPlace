@@ -9,6 +9,7 @@ import {
   createAdminProject,
   updateAdminProject,
   deleteAdminProject,
+  downloadExport,
 } from "../../apiServices.js";
 
 const emptyForm = {
@@ -61,6 +62,14 @@ export default function JobsWithFreelancer() {
       alive = false;
     };
   }, []);
+
+  async function handleExport(fmt) {
+    try {
+      await downloadExport("projects", fmt);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Export failed.", "error");
+    }
+  }
 
   function formatDate(v) {
     if (!v) return "-";
@@ -180,17 +189,43 @@ export default function JobsWithFreelancer() {
                   Projects that have an accepted freelancer proposal.
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  setCreateForm(emptyForm);
-                  setFormError("");
-                  setCreateOpen(true);
-                }}
-                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
-              >
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleExport("csv")}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => handleExport("xlsx")}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Export Excel
+                </button>
+                <button
+                  onClick={() => handleExport("json")}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Export JSON
+                </button>
+                <button
+                  onClick={() => handleExport("pdf")}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Export PDF
+                </button>
+                <button
+                  onClick={() => {
+                    setCreateForm(emptyForm);
+                    setFormError("");
+                    setCreateOpen(true);
+                  }}
+                  className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                >
                 + New Project
               </button>
             </div>
+          </div>
 
             {loading && <p className="text-slate-500">Loading…</p>}
             {error && <p className="text-red-600 mb-4">{error}</p>}

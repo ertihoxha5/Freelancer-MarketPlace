@@ -145,6 +145,7 @@ export default function AdminApplications() {
               <div className="ml-auto flex gap-2">
                 <button onClick={() => handleExport('applications', 'csv')} className="rounded-lg border px-3 py-1 text-sm">Export CSV</button>
                 <button onClick={() => handleExport('applications', 'xlsx')} className="rounded-lg border px-3 py-1 text-sm">Export Excel</button>
+                <button onClick={() => handleExport('applications', 'json')} className="rounded-lg border px-3 py-1 text-sm">Export JSON</button>
                 <button onClick={() => handleExport('applications', 'pdf')} className="rounded-lg border px-3 py-1 text-sm">Export PDF</button>
               </div>
             </div>
