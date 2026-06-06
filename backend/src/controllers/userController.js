@@ -39,6 +39,7 @@ export async function login(req, res, next) {
         setRefreshCookie(res, result.refreshToken);
         return res.status(200).json({
             token: result.token,
+            refreshToken: result.refreshToken,
             user: result.user,
         });
     } catch (err) {
@@ -72,6 +73,7 @@ export async function refresh(req, res, next) {
         setRefreshCookie(res, result.refreshToken);
         return res.status(200).json({
             token: result.token,
+            refreshToken: result.refreshToken,
             user: result.user,
         });
     } catch (err) {

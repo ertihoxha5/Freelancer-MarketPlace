@@ -1,5 +1,6 @@
 export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 const TOKEN_KEY = "accessToken";
+const REFRESH_TOKEN_KEY = "refreshToken";
 
 let cachedCsrfToken = null;
 
@@ -88,15 +89,15 @@ export function clearAccessToken() {
 }
 
 export function setRefreshToken(token) {
-  void token;
+  localStorage.setItem(REFRESH_TOKEN_KEY, token);
 }
 
 export function getRefreshToken() {
-  return null;
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 export function clearRefreshToken() {
-  return undefined;
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 export function clearAuthTokens() {
@@ -219,6 +220,9 @@ export async function login(payload) {
   if (data.token) {
     setAccessToken(data.token);
   }
+  if (data.refreshToken) {
+    setRefreshToken(data.refreshToken);
+  }
   return data;
 }
 
@@ -227,12 +231,16 @@ export async function login(payload) {
  */
 export async function refreshSession() {
   try {
+    const refreshToken = getRefreshToken();
     const data = await authPost(`${API_BASE}/api/auth/refresh`, {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     });
     if (data.token) {
       setAccessToken(data.token);
+    }
+    if (data.refreshToken) {
+      setRefreshToken(data.refreshToken);
     }
     return data;
   } catch (err) {
@@ -246,9 +254,10 @@ export async function refreshSession() {
  */
 export async function logout() {
   try {
+    const refreshToken = getRefreshToken();
     await authPost(`${API_BASE}/api/auth/logout`, {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     });
   } catch {
     /* ignore logout errors */

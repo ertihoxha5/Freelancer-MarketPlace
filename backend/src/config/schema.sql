@@ -1,3 +1,4 @@
+-- Active: 1774977057822@@localhost@3306@freelancermarketplace
 CREATE DATABASE IF NOT EXISTS freelancerMarketplace;
 USE freelancerMarketplace;
 
