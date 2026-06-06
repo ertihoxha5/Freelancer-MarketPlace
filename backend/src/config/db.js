@@ -365,6 +365,53 @@ async function ensureContractSchema(pool) {
   // in fresh schemas. Existing databases may already have those constraints.
 }
 
+async function ensureDisputeSchema(pool) {
+  if (!(await tableExists(pool, "Disputes"))) {
+    await pool.query(`
+      CREATE TABLE Disputes(
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        contractID INT NOT NULL,
+        reason VARCHAR(255) NOT NULL,
+        dStatus ENUM('open', 'under_review', 'resolved', 'rejected', 'escalated') NOT NULL DEFAULT 'open',
+        resolution VARCHAR(255),
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        resolvedBy INT,
+        raisedBy INT NOT NULL,
+        raisedAgainst INT NOT NULL,
+        FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
+        FOREIGN KEY (resolvedBy) REFERENCES Users(id),
+        FOREIGN KEY (raisedBy) REFERENCES Users(id),
+        FOREIGN KEY (raisedAgainst) REFERENCES Users(id),
+        INDEX idx_disputes_contract (contractID)
+      )
+    `);
+    return;
+  }
+
+  if (!(await columnExists(pool, "Disputes", "contractID"))) {
+    await pool.query(`
+      ALTER TABLE Disputes
+      ADD COLUMN contractID INT NULL AFTER id
+    `);
+  }
+
+  if (!(await indexExists(pool, "Disputes", "idx_disputes_contract"))) {
+    await pool.query(`
+      ALTER TABLE Disputes
+      ADD INDEX idx_disputes_contract (contractID)
+    `);
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE Disputes
+      ADD CONSTRAINT fk_disputes_contract
+      FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE
+    `);
+  } catch {}
+}
+
 async function ensureProjectCapacitySchema(pool) {
   if (!(await columnExists(pool, "Project", "maxFreelancers"))) {
     await pool.query(`
@@ -761,6 +808,7 @@ try {
   await ensureCategorySchema(db);
   await ensureChatSchema(db);
   await ensureContractSchema(db);
+  await ensureDisputeSchema(db);
   await ensureProjectCapacitySchema(db);
   await ensureFilesSchema(db);
   await ensureSettingsSchema(db);

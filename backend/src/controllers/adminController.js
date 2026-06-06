@@ -1,10 +1,12 @@
 import * as adminService from '../services/adminService.js';
 import * as userService from '../services/userService.js';
+import * as disputeRepository from '../repositories/disputeRepository.js';
 import {
     validatedBody,
     validatedParams,
     validatedQuery,
 } from '../middleware/validateRequest.js';
+import { validationError } from '../utils/errors.js';
 
 export async function getUsers(req, res, next) {
     try {
@@ -70,3 +72,72 @@ export async function registerUser(req, res, next) {
             next(err);
         }
 };
+
+export async function getDisputes(req, res, next) {
+    try {
+        const { status } = validatedQuery(req);
+        const disputes = await disputeRepository.getAllDisputes({ status: status || undefined });
+        return res.status(200).json({
+            total: disputes.length,
+            disputes,
+        });
+    } catch (err) {
+        if (err.statusCode) {
+            return res.status(err.statusCode).json({ message: err.message });
+        }
+        next(err);
+    }
+}
+
+export async function getDisputeById(req, res, next) {
+    try {
+        const { id } = validatedParams(req);
+        const dispute = await disputeRepository.getDisputeById(id);
+        if (!dispute) {
+            return res.status(404).json({ message: 'Dispute not found.' });
+        }
+        return res.status(200).json(dispute);
+    } catch (err) {
+        if (err.statusCode) {
+            return res.status(err.statusCode).json({ message: err.message });
+        }
+        next(err);
+    }
+}
+
+export async function updateDisputeStatus(req, res, next) {
+    try {
+        const { id } = validatedParams(req);
+        const { status, resolution } = validatedBody(req);
+        
+        if (!status) {
+            throw validationError('Status is required.');
+        }
+        
+        const validStatuses = ['open', 'in_review', 'resolved', 'rejected'];
+        if (!validStatuses.includes(status)) {
+            throw validationError(`Status must be one of: ${validStatuses.join(', ')}`);
+        }
+
+        const updatedDispute = await disputeRepository.updateDisputeStatus({
+            id,
+            status,
+            resolution: resolution || null,
+            resolvedBy: req.user?.id,
+        });
+
+        if (!updatedDispute) {
+            return res.status(404).json({ message: 'Dispute not found.' });
+        }
+
+        return res.status(200).json({
+            message: 'Dispute updated successfully.',
+            dispute: updatedDispute,
+        });
+    } catch (err) {
+        if (err.statusCode) {
+            return res.status(err.statusCode).json({ message: err.message });
+        }
+        next(err);
+    }
+}

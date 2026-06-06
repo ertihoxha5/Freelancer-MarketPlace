@@ -1,4 +1,5 @@
 export {
+  createContractDispute,
   createMilestone,
   createReview,
   fetchFreelancerContract,

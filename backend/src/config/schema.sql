@@ -368,6 +368,7 @@ CREATE TABLE IF NOT EXISTS MilestonePayment(
 
 CREATE TABLE IF NOT EXISTS Disputes(
     id INT PRIMARY KEY AUTO_INCREMENT,
+    contractID INT NOT NULL,
     reason VARCHAR(255) NOT NULL,
     dStatus ENUM('open', 'under_review', 'resolved', 'rejected', 'escalated') NOT NULL DEFAULT 'open',
     resolution VARCHAR(255),
@@ -377,9 +378,11 @@ CREATE TABLE IF NOT EXISTS Disputes(
     raisedBy INT NOT NULL,
     raisedAgainst INT NOT NULL,
 
+    FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
     FOREIGN KEY (resolvedBy) REFERENCES Users(id),
     FOREIGN KEY (raisedBy) REFERENCES Users(id),
-    FOREIGN KEY (raisedAgainst) REFERENCES Users(id)
+    FOREIGN KEY (raisedAgainst) REFERENCES Users(id),
+    INDEX idx_disputes_contract (contractID)
 );
 
 CREATE TABLE IF NOT EXISTS SavedProjects (

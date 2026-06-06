@@ -154,4 +154,20 @@ router.put(
   settingsController.updateSettings,
 );
 
+router.get(
+  "/disputes",
+  validateRequest({ query: querySchemas.search }),
+  adminController.getDisputes,
+);
+router.get(
+  "/disputes/:id",
+  validateRequest({ params: paramSchemas.id }),
+  adminController.getDisputeById,
+);
+router.patch(
+  "/disputes/:id",
+  validateRequest({ params: paramSchemas.id, body: adminSchemas.updateDispute }),
+  adminController.updateDisputeStatus,
+);
+
 export default router;

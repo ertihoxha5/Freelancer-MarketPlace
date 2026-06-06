@@ -16,6 +16,7 @@ import {
   querySchemas,
   testimonialSchemas,
   reviewSchemas,
+  contractSchemas,
 } from "../validation/schemas.js";
 
 const router = Router();
@@ -66,6 +67,14 @@ router.post(
   "/contracts/:id/sign",
   validateRequest({ params: paramSchemas.id }),
   contractController.signContract,
+);
+router.post(
+  "/contracts/:id/disputes",
+  validateRequest({
+    params: paramSchemas.id,
+    body: contractSchemas.dispute,
+  }),
+  contractController.createDispute,
 );
 router.post(
   "/contracts/:contractId/milestones",

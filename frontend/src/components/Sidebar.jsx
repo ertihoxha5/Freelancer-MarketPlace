@@ -15,6 +15,7 @@ const sidebarConfigs = {
       label: "Jobs without Freelancer",
       href: "/adminDashboard/jobs-without-freelancer",
     },
+    { label: "Disputes", href: "/adminDashboard/disputes" },
     { label: "Export/Import", href: "/adminDashboard/export" },
     { label: "Reports", href: "/adminDashboard/reports" },
     { label: "Settings", href: "/adminDashboard/settings" },

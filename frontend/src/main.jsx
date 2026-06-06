@@ -33,6 +33,9 @@ const JobsWithFreelancer = lazy(
 const JobsWithoutFreelancer = lazy(
   () => import("./pages/adminDashboard/jobsWithoutFreelancer.jsx"),
 );
+const Disputes = lazy(
+  () => import("./pages/adminDashboard/Disputes.jsx"),
+);
 const AdminNotifications = lazy(
   () => import("./pages/adminDashboard/AdminNotifications.jsx"),
 );
@@ -273,6 +276,16 @@ const router = createBrowserRouter([
           <AdminRoute>
             <Suspense fallback={<Loading />}>
               <JobsWithoutFreelancer />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/disputes",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <Disputes />
             </Suspense>
           </AdminRoute>
         ),

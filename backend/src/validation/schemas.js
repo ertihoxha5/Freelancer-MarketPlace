@@ -239,6 +239,10 @@ export const adminSchemas = {
         message: "roleID must be 2 (Client) or 3 (Freelancer).",
       }),
   }),
+  updateDispute: z.object({
+    status: z.enum(['open', 'in_review', 'resolved', 'rejected']),
+    resolution: z.string().optional(),
+  }),
 };
 
 export const catalogSchemas = {
@@ -523,6 +527,11 @@ export const reviewSchemas = {
 export const contractSchemas = {
   id: z.object({
     contractID: positiveIntSchema("contract ID"),
+  }),
+  dispute: z.object({
+    reason: trimmedString("Dispute reason", 255).min(10, {
+      message: "Dispute reason must be at least 10 characters.",
+    }),
   }),
 };
 

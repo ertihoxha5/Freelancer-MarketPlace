@@ -413,6 +413,25 @@ export function deleteAdminSkill(id) {
   });
 }
 
+/** GET /api/admin/disputes - fetch all disputes */
+export function fetchAdminDisputes(status = null) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return authedFetch(`${API_BASE}/api/admin/disputes${query}`);
+}
+
+/** GET /api/admin/disputes/:id - fetch single dispute */
+export function fetchAdminDispute(id) {
+  return authedFetch(`${API_BASE}/api/admin/disputes/${id}`);
+}
+
+/** PATCH /api/admin/disputes/:id - update dispute status */
+export function updateAdminDispute(id, payload) {
+  return authedFetch(`${API_BASE}/api/admin/disputes/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 // ─── CLIENT PROJECT APIs ───────────────────────────────────────────────────
 
 /**
@@ -903,6 +922,13 @@ export function fetchMyContract(id) {
 export function signContract(id, role = "client") {
   return authedFetch(`${API_BASE}/api/${role}/contracts/${id}/sign`, {
     method: "POST",
+  });
+}
+
+export function createContractDispute(id, payload, role = "client") {
+  return authedFetch(`${API_BASE}/api/${role}/contracts/${id}/disputes`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 

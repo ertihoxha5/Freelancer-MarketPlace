@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import PaymentForm from "../components/PaymentForm.jsx";
 import {
   confirmPayment,
+  createContractDispute,
   createMilestone,
   createPaymentIntent,
   downloadExport,
@@ -49,6 +50,8 @@ export default function ClientContracts() {
   const [reviewContract, setReviewContract] = useState(null);
   const [payMilestone, setPayMilestone] = useState(null);
   const [payContract, setPayContract] = useState(null);
+  const [disputeContract, setDisputeContract] = useState(null);
+  const [disputeReason, setDisputeReason] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [paymentIntentId, setPaymentIntentId] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -199,6 +202,24 @@ export default function ClientContracts() {
     }));
   }
 
+  async function handleDisputeSubmit(event) {
+    event.preventDefault();
+    if (!disputeContract) return;
+    try {
+      await createContractDispute(
+        disputeContract.id,
+        { reason: disputeReason },
+        "client",
+      );
+      const contractId = disputeContract.id;
+      setDisputeContract(null);
+      setDisputeReason("");
+      await reloadContract(contractId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to submit dispute.");
+    }
+  }
+
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-slate-50">
       <Header />
@@ -231,6 +252,7 @@ export default function ClientContracts() {
               {contracts.map((contract) => {
                 const detail = details[contract.id];
                 const milestones = detail?.milestones || [];
+                const disputes = detail?.disputes || [];
                 const hasReviewed = detail?.hasReviewed ?? contract.hasReviewed;
                 return (
                   <article key={contract.id} className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -308,7 +330,30 @@ export default function ClientContracts() {
                           {contract.cStatus === "completed" && !hasReviewed ? (
                             <button onClick={() => setReviewContract(contract)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Leave Review</button>
                           ) : null}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDisputeContract(contract);
+                              setDisputeReason("");
+                            }}
+                            className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+                          >
+                            Dispute Contract
+                          </button>
                         </div>
+                        {disputes.length > 0 ? (
+                          <div className="mb-4 rounded-lg border border-red-100 bg-red-50 p-4">
+                            <h3 className="text-sm font-semibold text-red-800">Disputes</h3>
+                            <div className="mt-3 space-y-2">
+                              {disputes.map((dispute) => (
+                                <div key={dispute.id} className="text-sm text-red-900">
+                                  <p className="font-medium capitalize">{String(dispute.dStatus).replace("_", " ")}</p>
+                                  <p className="mt-1">{dispute.reason}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
                         {milestones.length === 0 ? <p className="text-sm text-slate-500">No milestones created.</p> : null}
                         <div className="space-y-3">
                           {milestones.map((milestone) => (
@@ -403,6 +448,37 @@ export default function ClientContracts() {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {disputeContract ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-900">Dispute Contract</h2>
+            <p className="mt-1 text-sm text-slate-600">{disputeContract.projectTitle}</p>
+            <form onSubmit={handleDisputeSubmit} className="mt-4 space-y-4">
+              <textarea
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                placeholder="Explain the dispute"
+                rows={5}
+                required
+                minLength={10}
+                maxLength={255}
+                className="w-full rounded-lg border px-3 py-2"
+              />
+              <p className="text-xs text-slate-500">Use at least 10 characters.</p>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setDisputeContract(null)} className="rounded-lg border px-4 py-2 text-sm">Cancel</button>
+                <button
+                  disabled={disputeReason.trim().length < 10}
+                  className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Submit Dispute
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}

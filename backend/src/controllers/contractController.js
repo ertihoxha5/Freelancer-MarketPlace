@@ -1,11 +1,12 @@
 import * as projectRepository from "../repositories/projectRepository.js";
 import * as milestoneRepository from "../repositories/milestoneRepository.js";
 import * as reviewRepository from "../repositories/reviewRepository.js";
+import * as disputeRepository from "../repositories/disputeRepository.js";
 import {
   forbiddenError,
   notFoundError,
 } from "../utils/errors.js";
-import { validatedParams } from "../middleware/validateRequest.js";
+import { validatedBody, validatedParams } from "../middleware/validateRequest.js";
 
 function isClient(req) {
   return Number(req.user?.roleID) === 2;
@@ -86,6 +87,9 @@ export async function getMyContractById(req, res, next) {
     const milestones = await milestoneRepository.getMilestonesByContractId(
       contract.id
     );
+    const disputes = await disputeRepository.getDisputesByContractId(
+      contract.id
+    );
     
     let hasReviewed = false;
     try {
@@ -98,11 +102,40 @@ export async function getMyContractById(req, res, next) {
     }
 
     return res.status(200).json({
-      contract: decorateContract({ ...contract, hasReviewed, milestones }),
+      contract: decorateContract({ ...contract, hasReviewed, milestones, disputes }),
+      disputes,
     });
   } catch (err) {
     console.error("🔥 Error in getMyContractById:", err);
     
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    next(err);
+  }
+}
+
+export async function createDispute(req, res, next) {
+  try {
+    const contract = await getContractForRequest(req);
+    const { reason } = validatedBody(req);
+    const raisedBy = Number(req.user.id);
+    const raisedAgainst = isClient(req)
+      ? Number(contract.freelancerID)
+      : Number(contract.clientID);
+
+    const dispute = await disputeRepository.createDispute({
+      contractID: contract.id,
+      reason,
+      raisedBy,
+      raisedAgainst,
+    });
+
+    return res.status(201).json({
+      message: "Dispute submitted.",
+      dispute,
+    });
+  } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({ message: err.message });
     }
