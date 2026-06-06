@@ -365,7 +365,7 @@ CREATE TABLE IF NOT EXISTS MilestonePayment(
     FOREIGN KEY (releasedBy) REFERENCES Users(id) ON DELETE SET NULL,
     INDEX idx_milestone_payment_status (pStatus)
 );
-
+--
 CREATE TABLE IF NOT EXISTS Disputes(
     id INT PRIMARY KEY AUTO_INCREMENT,
     contractID INT NOT NULL,
