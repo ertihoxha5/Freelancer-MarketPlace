@@ -1036,6 +1036,42 @@ export function updateAdminSettings(payload) {
   });
 }
 
+// Saved Dynamic Reports (Task 7 - professional save/search/CRUD + advanced search)
+export async function saveAdminReport(payload) {
+  return authedFetch(`${API_BASE}/api/reports/saved`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchSavedReports(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  return authedFetch(`${API_BASE}/api/reports/saved${query ? `?${query}` : ""}`);
+}
+
+export async function getSavedReport(id) {
+  return authedFetch(`${API_BASE}/api/reports/saved/${id}`);
+}
+
+export async function updateSavedReport(id, payload) {
+  return authedFetch(`${API_BASE}/api/reports/saved/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteSavedReport(id) {
+  return authedFetch(`${API_BASE}/api/reports/saved/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function runSavedReport(id) {
+  return authedFetch(`${API_BASE}/api/reports/saved/${id}/run`, {
+    method: "POST",
+  });
+}
+
 // Export
 export function exportData(resource, format = "csv") {
   return downloadExport(resource, format);

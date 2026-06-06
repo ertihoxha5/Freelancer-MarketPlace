@@ -225,6 +225,26 @@ CREATE TABLE IF NOT EXISTS Review(
     FOREIGN KEY (receiverID) REFERENCES Users(id)
 );
 
+CREATE TABLE IF NOT EXISTS SavedReports (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    reportType VARCHAR(50) NOT NULL,
+    criteria JSON NULL,
+    formatting JSON NULL,
+    personalization JSON NULL,
+    dataSnapshot JSON NULL,
+    createdBy INT NOT NULL,
+    lastRunAt DATETIME NULL,
+    runCount INT DEFAULT 0,
+    isArchived BOOLEAN DEFAULT FALSE,
+    tags JSON NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (createdBy) REFERENCES Users(id)
+);
+
 CREATE TABLE IF NOT EXISTS Conversations(
     id INT PRIMARY KEY AUTO_INCREMENT,
     cStatus ENUM('active', 'archived', 'closed') NOT NULL DEFAULT 'active',
