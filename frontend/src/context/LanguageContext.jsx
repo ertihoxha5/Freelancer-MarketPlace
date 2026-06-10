@@ -12,56 +12,40 @@ const translations = {
     logout: 'Logout',
     hi: 'Hi',
     admin: 'Admin',
-
-    hireTopTalent: 'Hire Top Talent',
-    hireSubtitle: 'Connect with expert freelancers ready for your next project',
-    postProject: 'Post Your Project',
-    postSubtitle: 'Get proposals from global talent within hours',
-    collaborateSeamlessly: 'Collaborate Seamlessly',
-    collaborateSubtitle: 'Secure payments, milestones, and real-time communication',
-    getStartedFree: 'Get Started Free',
-    howItWorks: 'How It Works',
-    freelancers: 'Freelancers',
-    onlineNow: 'online right now',
-    avgRating: 'Avg rating',
-    countries: 'Countries',
-    securePayments: 'Secure payments',
-    simpleSteps: '4 SIMPLE STEPS',
-    howWorks: 'How Freelancer Marketplace Works',
-    howDesc: 'From idea to finished project — fast, safe, and stress-free.',
-    signUpFree: 'Sign Up for Free',
-    signUpDesc: 'Create your account in 30 seconds and start immediately.',
-    postProjectStep: 'Post Your Project',
-    postDesc: 'Describe your needs, budget, and deadline. It\'s 100% free.',
-    receiveProposals: 'Receive Proposals',
-    receiveDesc: 'Qualified freelancers send you offers with their portfolios.',
-    hireSecurely: 'Hire & Pay Securely',
-    hireDesc: 'Choose the best match, pay through milestones, and get the job done.',
-    popularCategories: 'Popular Categories',
-    browseAll: 'Browse all',
-    projects: 'projects',
-    featuredFreelancers: 'Featured Freelancers This Week',
-    whatClientsSay: 'What Our Clients Say',
-    readyHire: 'Ready to hire or get hired?',
-    joinUs: 'Join thousands of businesses and freelancers already growing with us.',
-
-    loginToAccount: 'Login to your account',
-    email: 'Email',
-    password: 'Password',
-    rememberMe: 'Remember Me',
-    forgotPassword: 'Forgot Password?',
-    loggingIn: 'Logging In…',
-    login: 'Login',
-
-    createAccount: 'Create Account',
-    fullName: 'Full Name',
-    confirmPassword: 'Confirm Password',
-    selectRole: 'Select Role:',
+    search: 'Search',
+    yourRole: 'Your Role',
+    dashboard: 'Dashboard',
+    analytics: 'Analytics',
+    users: 'Users',
+    skillsCategories: 'Skills/Categories',
+    jobsWithFreelancer: 'Jobs with Freelancer',
+    jobsWithoutFreelancer: 'Jobs without Freelancer',
+    disputes: 'Disputes',
+    payments: 'Payments',
+    applications: 'Applications',
+    exportImport: 'Export/Import',
+    reports: 'Reports',
+    settings: 'Settings',
+    auditLogs: 'Audit Logs',
+    testimonials: 'Testimonials',
+    reviews: 'Reviews',
+    milestones: 'Milestones',
+    browseProjects: 'Browse Projects',
+    favoriteProjects: 'Favorite Projects',
+    myProjects: 'My Projects',
+    myApplications: 'My Applications',
+    myReports: 'My Reports',
+    myReviews: 'My Reviews',
+    hiredFreelancers: 'Hired Freelancers',
+    myProfile: 'My Profile',
+    postProject: 'Post Project',
+    profile: 'Profile',
+    messages: 'Messages',
+    contracts: 'Contracts',
+    notifications: 'Notifications',
     client: 'Client',
     freelancer: 'Freelancer',
-    creating: 'Creating…',
-    createAccountBtn: 'Create Account',
-    alreadyAccount: 'Already have an account?',
+    login: 'Login',
   },
   al: {
     home: 'Kryefaqja',
@@ -123,6 +107,64 @@ const translations = {
     creating: 'Duke krijuar…',
     createAccountBtn: 'Krijoni Llogari',
     alreadyAccount: 'Keni tashmë një llogari?',
+    search: 'Kërko',
+    yourRole: 'Roli Juaj',
+    dashboard: 'Paneli',
+    analytics: 'Analitika',
+    users: 'Përdorues',
+    skillsCategories: 'Aftësi/Kategori',
+    jobsWithFreelancer: 'Puna me Freelancer',
+    jobsWithoutFreelancer: 'Puna pa Freelancer',
+    disputes: 'Mosmarrëveshje',
+    payments: 'Pagesa',
+    applications: 'Aplikime',
+    exportImport: 'Eksport/Import',
+    reports: 'Raporte',
+    settings: 'Cilësimet',
+    auditLogs: 'Regjistrat e Auditimit',
+    testimonials: 'Dëshmi',
+    reviews: 'Vlerësime',
+    milestones: 'Piketa',
+    browseProjects: 'Shfletoni Projektet',
+    favoriteProjects: 'Projektet e Preferuara',
+    myProjects: 'Projektet e Mia',
+    myApplications: 'Aplikimet e Mia',
+    myReports: 'Raportet e Mia',
+    myReviews: 'Vlerësimet e Mia',
+    hiredFreelancers: 'Freelancer të Punësuar',
+    myProfile: 'Profili Im',
+    postProject: 'Posto Projekt',
+    profile: 'Profil',
+    messages: 'Mesazhe',
+    contracts: 'Kontrata',
+    notifications: 'Njoftime',
+    loading: 'Duke ngarkuar...',
+    error: 'Gabim',
+    save: 'Ruaj',
+    cancel: 'Anulo',
+    delete: 'Fshij',
+    edit: 'Ndrysho',
+    view: 'Shiko',
+    status: 'Statusi',
+    actions: 'Veprimet',
+    filter: 'Filtro',
+    export: 'Eksporto',
+    create: 'Krijo',
+    update: 'Përditëso',
+    noData: 'Asnjë të dhënë',
+    confirmDelete: 'Jeni të sigurt që dëshironi të fshini?',
+    viewDetails: 'Shiko Detajet',
+    entity: 'Entiteti',
+    action: 'Veprimi',
+    timestamp: 'Koha',
+    oldValue: 'Vlera e Vjetër',
+    newValue: 'Vlera e Re',
+    deleteOld: 'Fshij regjistrat e vjetër',
+    raiseDispute: 'Ngrit Mosmarrëveshje',
+    myTestimonials: 'Dëshmitë e Mia',
+    writeTestimonial: 'Shkruaj Dëshmi',
+    sharedWorkspace: 'Hapësira e Përbashkët e Projektit',
+    hireLimit: 'Kufiri i Punësimit',
   },
   de: {
     home: 'Startseite',
@@ -373,10 +415,23 @@ const translations = {
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguageState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('language') || 'en';
+    }
+    return 'en';
+  });
+
+  const setLanguage = (lang) => {
+    setLanguageState(lang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('language', lang);
+    }
+  };
 
   const t = (key) => {
-    return translations[language][key] || key;
+    const langTranslations = translations[language] || translations.en;
+    return langTranslations[key] || translations.en[key] || key;
   };
 
   return (
@@ -392,4 +447,24 @@ export const useLanguage = () => {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
+};
+
+// Helper for common status values (used in many tables)
+export const getStatusLabel = (status, t) => {
+  const key = String(status || '').toLowerCase().replace(/ /g, '');
+  const map = {
+    pending: 'pending',
+    active: 'active',
+    completed: 'completed',
+    cancelled: 'cancelled',
+    accepted: 'accepted',
+    rejected: 'rejected',
+    withdrawn: 'withdrawn',
+    inprogress: 'inProgress',
+    submitted: 'submitted',
+    approved: 'approved',
+    overdue: 'overdue',
+  };
+  const k = map[key] || key;
+  return t(k) || status;
 };

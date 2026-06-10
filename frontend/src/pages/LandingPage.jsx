@@ -4,27 +4,6 @@ import Footer from "../components/Footer.jsx";
 import { FiArrowRight, FiStar } from "react-icons/fi";
 import { fetchPublicHomeData } from "../apiServices.js";
 
-const slides = [
-  {
-    title: "Hire Exceptional Talent",
-    subtitle: "Connect with top verified freelancers and bring your ideas to life",
-    image:
-      "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-  },
-  {
-    title: "Launch Projects Faster",
-    subtitle: "Post once and receive high-quality proposals from skilled professionals",
-    image:
-      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-  },
-  {
-    title: "Work with Confidence",
-    subtitle: "Secure payments, clear milestones, and transparent collaboration",
-    image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-  },
-];
-
 export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [homeData, setHomeData] = useState({
@@ -32,6 +11,27 @@ export default function LandingPage() {
     topFreelancers: [],
     testimonials: [],
   });
+
+  const slides = [
+    {
+      title: "Hire Exceptional Talent",
+      subtitle: "Connect with top verified freelancers and bring your ideas to life",
+      image:
+        "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
+    },
+    {
+      title: "Launch Projects Faster",
+      subtitle: "Post once and receive high-quality proposals from skilled professionals",
+      image:
+        "https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
+    },
+    {
+      title: "Work with Confidence",
+      subtitle: "Secure payments, clear milestones, and transparent collaboration",
+      image:
+        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
+    },
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {

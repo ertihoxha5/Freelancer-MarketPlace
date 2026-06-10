@@ -13,6 +13,7 @@ import {
   projectSchemas,
   querySchemas,
   settingsSchemas,
+  testimonialSchemas,
   userSchemas,
 } from "../validation/schemas.js";
 
@@ -186,6 +187,43 @@ router.get(
   "/contracts",
   validateRequest({ query: querySchemas.pagination }),
   adminController.getAllContracts,
+);
+
+// Audit Logs
+router.get(
+  "/audit-logs",
+  validateRequest({ query: querySchemas.pagination }),
+  adminController.getAuditLogs,
+);
+router.delete(
+  "/audit-logs/:id",
+  validateRequest({ params: paramSchemas.id }),
+  adminController.deleteAuditLog,
+);
+router.delete(
+  "/audit-logs",
+  validateRequest({ query: querySchemas.pagination }),
+  adminController.deleteOldAuditLogs,
+);
+
+// 3 more admin CRUDS
+router.get("/testimonials", adminController.getAllTestimonials);
+router.patch(
+  "/testimonials/:id",
+  validateRequest({ params: paramSchemas.id, body: testimonialSchemas ? testimonialSchemas.create : {} }),
+  adminController.updateTestimonial,
+);
+router.delete("/testimonials/:id", validateRequest({ params: paramSchemas.id }), adminController.deleteTestimonial);
+
+router.get("/reviews", adminController.getAllReviews);
+router.patch("/reviews/:id", validateRequest({ params: paramSchemas.id }), adminController.updateReview);
+router.delete("/reviews/:id", validateRequest({ params: paramSchemas.id }), adminController.deleteReview);
+
+router.get("/milestones", adminController.getAllMilestones);
+router.patch(
+  "/milestones/:id/status",
+  validateRequest({ params: paramSchemas.id }),
+  adminController.updateMilestoneStatusAdmin,
 );
 
 export default router;

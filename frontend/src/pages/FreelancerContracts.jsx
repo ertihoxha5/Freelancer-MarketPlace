@@ -161,7 +161,7 @@ export default function FreelancerContracts() {
             {loading ? <div className="rounded-lg border p-6 text-slate-500">Loading contracts...</div> : null}
             {!loading && contracts.length === 0 ? (
               <EmptyState
-                title="No contracts yet"
+                title=No contracts yet
                 description="Contracts will appear here after a client accepts one of your proposals."
               />
             ) : null}

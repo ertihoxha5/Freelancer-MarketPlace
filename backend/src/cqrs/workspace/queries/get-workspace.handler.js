@@ -2,24 +2,29 @@ import { db } from "../../../config/db.js";
 
 export class GetWorkspaceHandler {
   async handle(query) {
-    const { contractID, isFreelancer, freelancerID } = query;
+    const { contractID, isFreelancer, freelancerID, projectID } = query;
+    const scopeID = projectID || contractID; // prefer project for shared multi-freelancer workspace
+    const useProjectScope = !!projectID;
 
-    // Todos (always shared view)
+    // Todos (shared view for project or contract)
+    let todosWhere = useProjectScope 
+      ? `projectID = ?` 
+      : `contractID = ?`;
     const [todos] = await db.execute(
       `SELECT id, freelancerID, title, description, status, dueDate, createdAt, updatedAt
        FROM WorkspaceTodos
-       WHERE contractID = ?
+       WHERE ${todosWhere}
        ORDER BY updatedAt DESC, createdAt DESC`,
-      [contractID]
+      [scopeID]
     );
 
-    // Sections
+    // Sections - for multi/project scope, show all (shared), filter visible only for client
     let sectionsQuery = `
-      SELECT id, sectionKey, title, type, content, items, visible, sortOrder, updatedAt
+      SELECT id, sectionKey, title, type, content, items, visible, sortOrder, updatedAt, freelancerID
       FROM WorkspaceSections
-      WHERE contractID = ? AND freelancerID = ?
+      WHERE ${useProjectScope ? 'projectID = ?' : 'contractID = ? AND freelancerID = ?'}
     `;
-    const params = [contractID, freelancerID];
+    const params = useProjectScope ? [scopeID] : [scopeID, freelancerID];
 
     if (!isFreelancer) {
       sectionsQuery += ` AND visible = TRUE `;

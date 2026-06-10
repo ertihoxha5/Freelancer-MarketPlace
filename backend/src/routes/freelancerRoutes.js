@@ -7,7 +7,7 @@ import * as contractController from "../controllers/contractController.js";
 import * as milestoneController from "../controllers/milestoneController.js";
 import * as reviewController from "../controllers/reviewController.js";
 import * as paymentController from "../controllers/paymentController.js";
-import * as freelancerNotifController from "../controllers/freelancerNotificationController.js";
+import * as notificationController from "../controllers/notificationController.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
   milestoneSchemas,
@@ -181,28 +181,29 @@ router.delete(
   reviewController.deleteReview,
 );
 
+// Use the exact same notification logic/controller as clients (MySQL-backed, unified Notifications table).
 router.get(
   "/notifications/unread-count",
-  freelancerNotifController.getUnreadCount,
+  notificationController.getUnreadCount,
 );
 router.patch(
   "/notifications/read-all",
-  freelancerNotifController.markAllAsRead,
+  notificationController.markAllAsRead,
 );
 router.delete(
   "/notifications/delete-all",
-  freelancerNotifController.deleteAllNotifications,
+  notificationController.deleteAllNotifications,
 );
-router.get("/notifications", freelancerNotifController.getNotifications);
+router.get("/notifications", notificationController.getNotifications);
 router.patch(
   "/notifications/:id/read",
-  validateRequest({ params: paramSchemas.mongoId }),
-  freelancerNotifController.markAsRead,
+  validateRequest({ params: paramSchemas.id }),
+  notificationController.markAsRead,
 );
 router.delete(
   "/notifications/:id",
-  validateRequest({ params: paramSchemas.mongoId }),
-  freelancerNotifController.deleteNotification,
+  validateRequest({ params: paramSchemas.id }),
+  notificationController.deleteNotification,
 );
 
 router.get("/activities/unread-count", activityController.getUnreadCount);

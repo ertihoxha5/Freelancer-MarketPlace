@@ -168,6 +168,17 @@ export async function getClientList() {
 }
 
 
+function safeParsePhases(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  try {
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function getClientProjects(clientID) {
   const [rows] = await db.execute(`
         SELECT
@@ -177,15 +188,22 @@ export async function getClientProjects(clientID) {
             p.budget,
             p.pStatus,
             p.deadline,
+            p.phases,
+            p.experienceLevel,
+            p.skills,
+            p.projectType,
             COUNT(pr.id) AS proposalCount,
             COUNT(CASE WHEN pr.propStatus = 'accepted' THEN 1 END) AS acceptedProposalCount
         FROM Project p
         LEFT JOIN Proposal pr ON pr.projectID = p.id
         WHERE p.clientID = ?
-        GROUP BY p.id, p.title, p.pDesc, p.budget, p.pStatus, p.deadline
+        GROUP BY p.id, p.title, p.pDesc, p.budget, p.pStatus, p.deadline, p.phases, p.experienceLevel, p.skills, p.projectType
         ORDER BY p.id DESC
     `, [clientID]);
-  return rows;
+  return rows.map((r) => ({
+    ...r,
+    phases: safeParsePhases(r.phases),
+  }));
 }
 
 
@@ -199,14 +217,23 @@ export async function getClientProjectById(projectID, clientID) {
             p.pStatus,
             p.deadline,
             p.clientID,
+            p.phases,
+            p.experienceLevel,
+            p.skills,
+            p.projectType,
             COUNT(pr.id) AS proposalCount
         FROM Project p
         LEFT JOIN Proposal pr ON pr.projectID = p.id
         WHERE p.id = ? AND p.clientID = ?
-        GROUP BY p.id, p.title, p.pDesc, p.budget, p.pStatus, p.deadline, p.clientID
+        GROUP BY p.id, p.title, p.pDesc, p.budget, p.pStatus, p.deadline, p.clientID, p.phases, p.experienceLevel, p.skills, p.projectType
         LIMIT 1
     `, [projectID, clientID]);
-  return rows[0] ?? null;
+  const row = rows[0] ?? null;
+  if (!row) return null;
+  return {
+    ...row,
+    phases: safeParsePhases(row.phases),
+  };
 }
 
 export async function getClientApplications(clientID) {
@@ -225,6 +252,8 @@ export async function getClientApplications(clientID) {
             p.budget AS projectBudget,
             p.pStatus AS projectStatus,
             p.deadline AS projectDeadline,
+            p.maxFreelancers,
+            (SELECT COUNT(*) FROM Proposal pr2 WHERE pr2.projectID = p.id AND pr2.propStatus = 'accepted' AND pr2.isDeleted = FALSE) AS acceptedCount,
             u.fullName AS freelancerName,
             u.email AS freelancerEmail
          FROM Proposal pr
@@ -250,7 +279,8 @@ export async function getClientApplicationById(applicationID, clientID) {
             pr.isDeleted,
             p.clientID,
             p.title AS projectTitle,
-            p.pStatus AS projectStatus
+            p.pStatus AS projectStatus,
+            p.maxFreelancers
          FROM Proposal pr
          INNER JOIN Project p ON p.id = pr.projectID
          WHERE pr.id = ? AND p.clientID = ? AND pr.isDeleted = FALSE
@@ -258,6 +288,16 @@ export async function getClientApplicationById(applicationID, clientID) {
     [applicationID, clientID],
   );
   return rows[0] ?? null;
+}
+
+export async function getAcceptedProposalCount(projectID) {
+  const [rows] = await db.execute(
+    `SELECT COUNT(*) AS acceptedCount
+     FROM Proposal
+     WHERE projectID = ? AND propStatus = 'accepted' AND isDeleted = FALSE`,
+    [projectID],
+  );
+  return rows[0]?.acceptedCount || 0;
 }
 
 export async function updateClientApplicationStatus(
@@ -326,42 +366,61 @@ export async function acceptProposalAndCreateContract({
          AND p.clientID = ?
          AND p.id = ?
          AND pr.isDeleted = FALSE
-         AND pr.propStatus = 'pending'
-         AND p.pStatus = 'pending'`,
+         AND pr.propStatus <> 'accepted'
+         AND p.pStatus IN ('pending', 'active')`,
       [clientID, applicationID, clientID, projectID],
     );
 
     if (acceptedResult.affectedRows === 0) {
-      const err = new Error("Unable to accept proposal.");
+      const err = new Error("Unable to accept proposal. It may no longer be pending or the project limits have been reached.");
       err.statusCode = 409;
       throw err;
     }
 
-    const [rejectedApplications] = await conn.execute(
-      `SELECT
-          id AS applicationID,
-          userID AS freelancerID,
-          bidAmount,
-          estimatedDays
-       FROM Proposal
-       WHERE projectID = ?
-         AND id != ?
-         AND propStatus = 'pending'
-         AND isDeleted = FALSE`,
-      [projectID, applicationID],
+    // Fetch maxFreelancers for this project
+    const [projRows] = await conn.execute(
+      `SELECT maxFreelancers FROM Project WHERE id = ?`,
+      [projectID]
     );
+    const maxFreelancers = projRows[0]?.maxFreelancers || 1;
 
-    await conn.execute(
-      `UPDATE Proposal
-       SET propStatus = 'rejected',
-           reviewedAt = NOW(),
-           reviewedBy = ?
-       WHERE projectID = ?
-         AND id != ?
-         AND propStatus = 'pending'
-         AND isDeleted = FALSE`,
-      [clientID, projectID, applicationID],
+    // Count how many are accepted now (after this one)
+    const [countRows] = await conn.execute(
+      `SELECT COUNT(*) AS cnt FROM Proposal WHERE projectID = ? AND propStatus = 'accepted' AND isDeleted = FALSE`,
+      [projectID]
     );
+    const acceptedNow = countRows[0].cnt;
+
+    let rejectedApplications = [];
+    if (acceptedNow >= maxFreelancers) {
+      // Only reject remaining pending when the limit is reached
+      const [rejRows] = await conn.execute(
+        `SELECT
+            id AS applicationID,
+            userID AS freelancerID,
+            bidAmount,
+            estimatedDays
+         FROM Proposal
+         WHERE projectID = ?
+           AND id != ?
+           AND propStatus = 'pending'
+           AND isDeleted = FALSE`,
+        [projectID, applicationID],
+      );
+      rejectedApplications = rejRows;
+
+      await conn.execute(
+        `UPDATE Proposal
+         SET propStatus = 'rejected',
+             reviewedAt = NOW(),
+             reviewedBy = ?
+         WHERE projectID = ?
+           AND id != ?
+           AND propStatus = 'pending'
+           AND isDeleted = FALSE`,
+        [clientID, projectID, applicationID],
+      );
+    }
 
     const [contractResult] = await conn.execute(
       `INSERT INTO Contracts
@@ -369,19 +428,6 @@ export async function acceptProposalAndCreateContract({
        VALUES (?, ?, ?, ?, 'active', CURDATE())`,
       [applicationID, clientID, freelancerID, totalAmount ?? 0],
     );
-
-    const [projectResult] = await conn.execute(
-      `UPDATE Project
-       SET pStatus = 'active'
-       WHERE id = ? AND clientID = ? AND pStatus = 'pending'`,
-      [projectID, clientID],
-    );
-
-    if (projectResult.affectedRows === 0) {
-      const err = new Error("Unable to activate project.");
-      err.statusCode = 409;
-      throw err;
-    }
 
     const [contractRows] = await conn.execute(
       `${contractSelectSql("WHERE c.id = ?")} LIMIT 1`,
@@ -604,10 +650,15 @@ export async function createClientProject({
   categoryID,
   clientID,
   maxFreelancers,
+  phases = [],
+  experienceLevel = null,
+  skills = null,
+  projectType = null,
 }) {
+  const phasesJson = Array.isArray(phases) && phases.length > 0 ? JSON.stringify(phases) : null;
   const [result] = await db.execute(
-    `INSERT INTO Project (title, pDesc, budget, deadline, categoryID, clientID, maxFreelancers, pStatus)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    `INSERT INTO Project (title, pDesc, budget, deadline, categoryID, clientID, maxFreelancers, pStatus, phases, experienceLevel, skills, projectType)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
     [
       title,
       pDesc || null,
@@ -616,6 +667,10 @@ export async function createClientProject({
       categoryID ?? null,
       clientID,
       maxFreelancers ?? 1,
+      phasesJson,
+      experienceLevel || null,
+      skills || null,
+      projectType || null,
     ],
   );
   return {
@@ -628,6 +683,10 @@ export async function createClientProject({
     clientID,
     maxFreelancers: maxFreelancers ?? 1,
     pStatus: 'pending',
+    phases: Array.isArray(phases) ? phases : [],
+    experienceLevel,
+    skills,
+    projectType,
   };
 }
 
@@ -635,23 +694,52 @@ export async function createClientProject({
 export async function updateClientProject(
   projectID,
   clientID,
-  { title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus },
+  { title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus, phases, experienceLevel, skills, projectType },
 ) {
+  const phasesJson = Array.isArray(phases) && phases.length > 0 ? JSON.stringify(phases) : null;
+
+  // Build dynamic SET for optional phase fields
+  const sets = [
+    "title = ?",
+    "pDesc = ?",
+    "budget = ?",
+    "deadline = ?",
+    "categoryID = ?",
+    "maxFreelancers = ?",
+    "pStatus = ?",
+  ];
+  const values = [
+    title,
+    pDesc || null,
+    budget ?? null,
+    deadline || null,
+    categoryID ?? null,
+    maxFreelancers ?? 1,
+    pStatus,
+  ];
+
+  if (phasesJson !== undefined) {
+    sets.push("phases = ?");
+    values.push(phasesJson);
+  }
+  if (experienceLevel !== undefined) {
+    sets.push("experienceLevel = ?");
+    values.push(experienceLevel || null);
+  }
+  if (skills !== undefined) {
+    sets.push("skills = ?");
+    values.push(skills || null);
+  }
+  if (projectType !== undefined) {
+    sets.push("projectType = ?");
+    values.push(projectType || null);
+  }
+
+  values.push(projectID, clientID);
+
   const [result] = await db.execute(
-      `UPDATE Project
-           SET title = ?, pDesc = ?, budget = ?, deadline = ?, categoryID = ?, maxFreelancers = ?, pStatus = ?
-           WHERE id = ? AND clientID = ?`,
-      [
-        title,
-        pDesc || null,
-        budget ?? null,
-        deadline || null,
-        categoryID ?? null,
-        maxFreelancers ?? 1,
-        pStatus,
-        projectID,
-      clientID,
-    ],
+    `UPDATE Project SET ${sets.join(", ")} WHERE id = ? AND clientID = ?`,
+    values,
   );
 
   if (result.affectedRows === 0) {
@@ -660,8 +748,8 @@ export async function updateClientProject(
     throw err;
   }
 
-    return { id: projectID, title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus };
-  }
+  return { id: projectID, title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus, phases: Array.isArray(phases) ? phases : [], experienceLevel, skills, projectType };
+}
 
 
 export async function deleteClientProject(projectID, clientID) {

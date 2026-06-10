@@ -30,6 +30,10 @@ export default function ClientProjects() {
     budget: "",
     deadline: "",
     pStatus: "pending",
+    phases: "[]",
+    experienceLevel: "",
+    skills: "",
+    projectType: "",
   });
 
   useEffect(() => {
@@ -90,6 +94,10 @@ export default function ClientProjects() {
       budget: project.budget ?? "",
       deadline: project.deadline ? project.deadline.slice(0, 10) : "",
       pStatus: project.pStatus || "pending",
+      phases: Array.isArray(project.phases) ? JSON.stringify(project.phases, null, 2) : "[]",
+      experienceLevel: project.experienceLevel || "",
+      skills: project.skills || "",
+      projectType: project.projectType || "",
     });
     setError("");
     setEditOpen(true);
@@ -103,17 +111,25 @@ export default function ClientProjects() {
     }
     setSaving(true);
     try {
+      let parsedPhases = [];
+      try { parsedPhases = JSON.parse(editForm.phases || "[]"); } catch { parsedPhases = []; }
+      if (!Array.isArray(parsedPhases)) parsedPhases = [];
+
       const result = await updateClientProject(editForm.id, {
         title: editForm.title.trim(),
         pDesc: editForm.pDesc.trim(),
         budget: editForm.budget !== "" ? Number(editForm.budget) : null,
         deadline: editForm.deadline || null,
         pStatus: editForm.pStatus,
+        phases: parsedPhases,
+        experienceLevel: editForm.experienceLevel || null,
+        skills: editForm.skills || null,
+        projectType: editForm.projectType || null,
       });
       setProjects((current) =>
         current.map((project) =>
           project.id === editForm.id
-            ? { ...project, ...result.project }
+            ? { ...project, ... (result.project || {}) }
             : project,
         ),
       );
@@ -314,7 +330,7 @@ export default function ClientProjects() {
                             >
                               {deletingId === project.id
                                 ? "Deleting..."
-                                : "Delete"}
+                                : Delete}
                             </button>
                           </div>
                         </td>
@@ -368,6 +384,7 @@ export default function ClientProjects() {
                   className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
               <div className="grid gap-4 lg:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -396,6 +413,36 @@ export default function ClientProjects() {
                   />
                 </div>
               </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Experience Level</label>
+                  <input value={editForm.experienceLevel} onChange={(e) => setEditForm({ ...editForm, experienceLevel: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Project Type</label>
+                  <input value={editForm.projectType} onChange={(e) => setEditForm({ ...editForm, projectType: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Skills</label>
+                  <input value={editForm.skills} onChange={(e) => setEditForm({ ...editForm, skills: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Phases (JSON array — edit carefully)
+                </label>
+                <textarea
+                  value={editForm.phases}
+                  onChange={(e) => setEditForm({ ...editForm, phases: e.target.value })}
+                  rows={4}
+                  className="w-full font-mono rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder='[{"title":"Design","deadline":"2025-10-01","budget":500,"description":"..."}]'
+                />
+                <p className="mt-1 text-[11px] text-slate-500">You can paste the phases array exported from the Post Project page.</p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Status

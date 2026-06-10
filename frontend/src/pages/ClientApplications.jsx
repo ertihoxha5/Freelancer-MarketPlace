@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+
 import { fetchClientApplications, updateClientApplicationStatus } from "../apiServices.js";
 import { exportApplicationPdf } from "../utils/pdf.js";
 
@@ -101,21 +102,58 @@ export default function ClientApplications() {
 
   async function handleSaveStatus() {
     if (!selectedApplication || !draftStatus) return;
+
+    const max = selectedApplication.maxFreelancers || 1;
+    const currentAccepted = selectedApplication.acceptedCount || 0;
+    const tryingToAcceptBeyond = draftStatus === "accepted" &&
+      selectedApplication.propStatus !== "accepted" &&
+      currentAccepted >= max;
+
+    if (tryingToAcceptBeyond) {
+      setStatusError(`Hire limit reached (${currentAccepted}/${max}). You cannot accept more freelancers for this project.`);
+      return;
+    }
+
     setSavingStatus(true);
     setStatusError("");
     try {
       const result = await updateClientApplicationStatus(selectedApplication.applicationId, {
         propStatus: draftStatus,
       });
-      setApplications((current) =>
-        current.map((item) =>
-          item.applicationId === selectedApplication.applicationId
-            ? { ...item, propStatus: result?.application?.propStatus ?? draftStatus }
-            : item,
-        ),
-      );
+      const newStatus = result?.application?.propStatus ?? draftStatus;
+      setApplications((current) => {
+        let incremented = false;
+        return current.map((item) => {
+          if (item.applicationId === selectedApplication.applicationId) {
+            return { ...item, propStatus: newStatus };
+          }
+          if (
+            newStatus === "accepted" &&
+            draftStatus === "accepted" && // was the change to accepted
+            item.projectId === selectedApplication.projectId &&
+            !incremented
+          ) {
+            // bump the cached accepted count for other rows of same project
+            incremented = true;
+            return {
+              ...item,
+              acceptedCount: (item.acceptedCount || 0) + 1,
+            };
+          }
+          return item;
+        });
+      });
       setSelectedApplication((current) =>
-        current ? { ...current, propStatus: result?.application?.propStatus ?? draftStatus } : current,
+        current
+          ? {
+              ...current,
+              propStatus: newStatus,
+              acceptedCount:
+                newStatus === "accepted" && draftStatus === "accepted"
+                  ? (current.acceptedCount || 0) + 1
+                  : current.acceptedCount,
+            }
+          : current,
       );
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : "Failed to update status.");
@@ -266,7 +304,13 @@ export default function ClientApplications() {
                 <button
                   type="button"
                   onClick={handleSaveStatus}
-                  disabled={savingStatus || draftStatus === selectedApplication.propStatus}
+                  disabled={
+                    savingStatus ||
+                    draftStatus === selectedApplication.propStatus ||
+                    (draftStatus === "accepted" &&
+                      selectedApplication.propStatus !== "accepted" &&
+                      (selectedApplication.acceptedCount || 0) >= (selectedApplication.maxFreelancers || 1))
+                  }
                   className="rounded-xl bg-[#1a3c2e] px-4 py-2 text-sm font-semibold text-white hover:bg-[#214b38] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {savingStatus ? "Saving..." : "Save status"}
@@ -290,30 +334,36 @@ export default function ClientApplications() {
 
             <div className="grid gap-6 p-6 lg:grid-cols-2">
               <div className="space-y-4">
-                <Section title="Freelancer">
+                <Section title=Freelancer>
                   <p className="font-medium text-slate-900">{selectedApplication.freelancerName || "-"}</p>
                   <p className="text-sm text-slate-600">{selectedApplication.freelancerEmail || "-"}</p>
                 </Section>
 
-                <Section title="Application info">
-                  <DetailRow label="Status" value={selectedApplication.propStatus || "pending"} />
-                  <DetailRow label="Bid amount" value={selectedApplication.bidAmount != null ? `$${Number(selectedApplication.bidAmount).toLocaleString()}` : "-"} />
-                  <DetailRow label="Estimated days" value={selectedApplication.estimatedDays ?? "-"} />
-                  <DetailRow label="Applied on" value={formatDate(selectedApplication.createdAt)} />
+                <Section title=Application info>
+                  <DetailRow label=Status value={selectedApplication.propStatus || "pending"} />
+                  <DetailRow label=Bid amount value={selectedApplication.bidAmount != null ? `$${Number(selectedApplication.bidAmount).toLocaleString()}` : "-"} />
+                  <DetailRow label=Est. days value={selectedApplication.estimatedDays ?? "-"} />
+                  <DetailRow label=Applied on value={formatDate(selectedApplication.createdAt)} />
                 </Section>
               </div>
 
               <div className="space-y-4">
-                <Section title="Project info">
+                <Section title=Project info>
                   <DetailRow
-                    label="Budget"
+                    label=Budget
                     value={selectedApplication.projectBudget != null ? `$${Number(selectedApplication.projectBudget).toLocaleString()}` : "-"}
                   />
-                  <DetailRow label="Project status" value={selectedApplication.projectStatus || "-"} />
-                  <DetailRow label="Deadline" value={formatDate(selectedApplication.projectDeadline)} />
+                  <DetailRow label=Project status value={selectedApplication.projectStatus || "-"} />
+                  <DetailRow label=Deadline value={formatDate(selectedApplication.projectDeadline)} />
+                  {selectedApplication.maxFreelancers != null && (
+                    <DetailRow
+                      label=Hire limit
+                      value={`${selectedApplication.acceptedCount || 0} / ${selectedApplication.maxFreelancers}`}
+                    />
+                  )}
                 </Section>
 
-                <Section title="Preview">
+                <Section title=Preview>
                   <p className="text-sm leading-6 text-slate-700">
                     {getExcerpt(selectedApplication.coverLetter)}
                   </p>

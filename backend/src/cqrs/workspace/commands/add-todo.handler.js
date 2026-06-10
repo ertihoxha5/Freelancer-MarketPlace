@@ -3,17 +3,18 @@ import { notFoundError } from "../../../utils/errors.js";
 
 export class AddTodoHandler {
   async handle(command) {
-    const { contractID, freelancerID, title, description, dueDate, status } = command;
+    const { contractID, freelancerID, title, description, dueDate, status, projectID } = command;
 
     if (!title?.trim()) {
       throw new Error("Title is required.");
     }
 
     const [result] = await db.execute(
-      `INSERT INTO WorkspaceTodos (contractID, freelancerID, title, description, status, dueDate)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO WorkspaceTodos (contractID, projectID, freelancerID, title, description, status, dueDate)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         contractID,
+        projectID || null,
         freelancerID,
         title.trim(),
         description || null,

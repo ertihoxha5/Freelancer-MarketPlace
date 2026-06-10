@@ -6,7 +6,6 @@ import {
   fetchUnreadCount,
   fetchAdminUnreadCount,
   fetchFreelancerUnreadCount,
-  fetchActivityUnreadCount,
 } from "../apiServices.js";
 import { getSocket } from "../socket/socketClient.js";
 
@@ -17,12 +16,21 @@ const roleLabel = (roleID) => {
   return "Member";
 };
 
+const getRoleLabelKey = (roleID) => {
+  const numeric = Number(roleID);
+  if (numeric === 1) return "admin";
+  if (numeric === 3) return "freelancer";
+  if (numeric === 2) return "client";
+  return "client";
+};
+
 function NotificationBell({ user }) {
   const [unread, setUnread] = useState(0);
   const roleID = Number(user?.roleID);
   const isClient = roleID === 2;
   const isAdmin = roleID === 1;
   const isFreelancer = roleID === 3;
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!user || (!isClient && !isAdmin && !isFreelancer)) return;
@@ -34,17 +42,8 @@ function NotificationBell({ user }) {
         let data;
         if (isAdmin) data = await fetchAdminUnreadCount();
         else if (isFreelancer) {
-          const [notifData, activityData] = await Promise.all([
-            fetchFreelancerUnreadCount(),
-            fetchActivityUnreadCount(),
-          ]);
-          if (!cancelled) {
-            setUnread(
-              (Number(notifData.count) || 0) +
-                (Number(activityData.count) || 0),
-            );
-          }
-          return;
+          // Use the same single source of truth for notifications as clients.
+          data = await fetchFreelancerUnreadCount();
         } else data = await fetchUnreadCount();
         if (!cancelled && data) setUnread(Number(data.count) || 0);
       } catch {
@@ -101,7 +100,7 @@ function NotificationBell({ user }) {
   return (
     <Link
       to={href}
-      title="Notifications"
+      title={t('notifications')}
       className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
     >
       {/* Bell SVG */}
@@ -132,7 +131,7 @@ function NotificationBell({ user }) {
 const Header = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   const handleLogout = async () => {
     try {
@@ -157,20 +156,20 @@ const Header = () => {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/90">
             <Link to="/" className="hover:text-white transition-colors">
-              Home
+              {t('home')}
             </Link>
             <Link to="/features" className="hover:text-white transition-colors">
-              Features
+              {t('features')}
             </Link>
             <Link to="/about" className="hover:text-white transition-colors">
-              About
+              {t('about')}
             </Link>
             <Link to="/contact" className="hover:text-white transition-colors">
-              Contact
+              {t('contact')}
             </Link>
             {user ? (
               <Link to="/search" className="hover:text-white transition-colors">
-                Search
+                {t('search')}
               </Link>
             ) : null}
           </div>
@@ -195,21 +194,21 @@ const Header = () => {
           </div>
 
           {loading ? (
-            <span className="text-sm text-white/70">Loading...</span>
+            <span className="text-sm text-white/70">{t('loading')}</span>
           ) : user ? (
             <div className="flex items-center gap-3">
               <NotificationBell user={user} />
               <div className="hidden sm:flex items-center gap-3 rounded-full bg-white/10 px-5 py-2 text-sm text-white">
-                Hi, {user.fullName?.split(" ")[0]}
+                {t('hi')}, {user.fullName?.split(" ")[0]}
                 <span className="bg-white/20 px-3 py-1 rounded-full text-xs uppercase tracking-widest">
-                  {roleLabel(user.roleID)}
+                  {t(getRoleLabelKey(user.roleID)) || roleLabel(user.roleID)}
                 </span>
               </div>
               <button
                 onClick={handleLogout}
                 className="rounded-full bg-white/10 hover:bg-white/20 px-6 py-2 text-sm font-medium text-white transition"
               >
-                Logout
+                {t('logout')}
               </button>
             </div>
           ) : (
@@ -218,13 +217,13 @@ const Header = () => {
                 to="/login"
                 className="rounded-full border border-white/30 hover:border-white/60 px-6 py-2 text-sm font-medium text-white transition"
               >
-                Login
+                {t('login')}
               </Link>
               <Link
                 to="/register"
                 className="rounded-full bg-[#4a7043] hover:bg-[#5a8a52] px-6 py-2 text-sm font-semibold text-white transition shadow-sm"
               >
-                Get Started
+                {t('getStarted')}
               </Link>
             </div>
           )}

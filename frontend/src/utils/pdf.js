@@ -180,87 +180,120 @@ function renderChip(page, x, y, label, value, width) {
 }
 
 export function exportApplicationPdf(application) {
-  const pages = [];
-  let page = createPage();
-  pages.push(page);
-
   const title = "Application Review";
   const projectTitle = application?.projectTitle || "Untitled project";
   const subtitle = `Client review export for "${projectTitle}"`;
   const footerText = `Generated on ${new Date().toLocaleString()}`;
 
+  // Collect body content commands per logical page first.
+  // Then, when building final PDF pages, we ALWAYS draw header + footer FIRST (white bg + header bar at top of stream),
+  // followed by the body commands. This prevents the full-page white rect from overpainting the content.
+  const pageBodies = []; // each entry is an array of PDF drawing commands for the body of that page
+
+  let bodyCmds = [];
   let y = 672;
 
-  renderChip(page, 44, 680, "STATUS", String(application?.propStatus || "pending").toUpperCase(), 114);
-  renderChip(
-    page,
-    168,
-    680,
-    "BID",
-    application?.bidAmount != null ? `$${Number(application.bidAmount).toLocaleString()}` : "-",
-    126,
-  );
-  renderChip(
-    page,
-    304,
-    680,
-    "EST. DAYS",
-    application?.estimatedDays != null ? String(application.estimatedDays) : "-",
-    126,
-  );
-  renderChip(page, 440, 680, "APPLIED", application?.createdAt ? new Date(application.createdAt).toLocaleDateString() : "-", 126);
+  // Proxy object so we can reuse the existing renderSection / renderLabelValue / renderParagraph helpers.
+  // They expect an object with .commands array and will push drawing commands into it.
+  const bodyProxy = { commands: bodyCmds };
 
-  y = renderSection(page, y, "Application Summary");
-  y = renderLabelValue(page, y, "Application ID", application?.applicationId ?? "-");
-  y = renderLabelValue(page, y, "Status", application?.propStatus ?? "pending");
-  y = renderLabelValue(page, y, "Applied on", application?.createdAt ? new Date(application.createdAt).toLocaleString() : "-");
-  y = renderLabelValue(page, y, "Updated on", application?.updatedAt ? new Date(application.updatedAt).toLocaleString() : "-");
+  function startBodyPage() {
+    if (bodyCmds.length > 0) {
+      pageBodies.push(bodyCmds);
+    }
+    bodyCmds = [];
+    bodyProxy.commands = bodyCmds;
+    y = 672;
+  }
 
-  y = renderSection(page, y, "Freelancer");
-  y = renderLabelValue(page, y, "Name", application?.freelancerName || "-");
-  y = renderLabelValue(page, y, "Email", application?.freelancerEmail || "-");
+  // Draw top status chips (absolute positioning, below where header bar will be)
+  function drawChip(x, yPos, label, value, width) {
+    // These go into the current bodyCmds via the proxy? For chips we push directly to current bodyCmds.
+    const safeLabel = escapePdfText(label);
+    const safeValue = escapePdfText(value);
+    bodyCmds.push(`0.79 0.85 0.82 rg ${x} ${yPos} ${width} 32 re f`);
+    bodyCmds.push(`0.96 0.98 0.97 rg ${x} ${yPos} ${width} 32 re S`); // light border-ish
+    bodyCmds.push(`BT /F2 8 Tf ${x + 10} ${yPos + 18} Td (${safeLabel}) Tj ET`);
+    bodyCmds.push(`BT /F1 11 Tf ${x + 10} ${yPos + 8} Td (${safeValue}) Tj ET`);
+  }
 
-  y = renderSection(page, y, "Project");
-  y = renderLabelValue(page, y, "Project title", projectTitle);
-  y = renderLabelValue(page, y, "Project status", application?.projectStatus || "-");
-  y = renderLabelValue(
-    page,
-    y,
-    "Project budget",
-    application?.projectBudget != null ? `$${Number(application.projectBudget).toLocaleString()}` : "-",
-  );
-  y = renderLabelValue(page, y, "Deadline", application?.projectDeadline ? new Date(application.projectDeadline).toLocaleDateString() : "-");
+  // First page body
+  startBodyPage();
 
-  y = renderSection(page, y, "Cover Letter");
+  drawChip(44, 680, "STATUS", String(application?.propStatus || "pending").toUpperCase(), 114);
+  drawChip(168, 680, "BID", application?.bidAmount != null ? `$${Number(application.bidAmount).toLocaleString()}` : "-", 126);
+  drawChip(304, 680, "EST. DAYS", application?.estimatedDays != null ? String(application.estimatedDays) : "-", 126);
+  drawChip(440, 680, "APPLIED", application?.createdAt ? new Date(application.createdAt).toLocaleDateString() : "-", 126);
+
+  y = renderSection(bodyProxy, y, "Application Summary");
+  y = renderLabelValue(bodyProxy, y, "Application ID", application?.applicationId ?? "-");
+  y = renderLabelValue(bodyProxy, y, "Status", application?.propStatus ?? "pending");
+  y = renderLabelValue(bodyProxy, y, "Applied on", application?.createdAt ? new Date(application.createdAt).toLocaleString() : "-");
+  y = renderLabelValue(bodyProxy, y, "Updated on", application?.updatedAt ? new Date(application.updatedAt).toLocaleString() : "-");
+
+  y = renderSection(bodyProxy, y, "Freelancer");
+  y = renderLabelValue(bodyProxy, y, "Name", application?.freelancerName || "-");
+  y = renderLabelValue(bodyProxy, y, "Email", application?.freelancerEmail || "-");
+
+  y = renderSection(bodyProxy, y, "Project");
+  y = renderLabelValue(bodyProxy, y, "Project title", projectTitle);
+  y = renderLabelValue(bodyProxy, y, "Project status", application?.projectStatus || "-");
+  y = renderLabelValue(bodyProxy, y, "Project budget", application?.projectBudget != null ? `$${Number(application.projectBudget).toLocaleString()}` : "-");
+  y = renderLabelValue(bodyProxy, y, "Deadline", application?.projectDeadline ? new Date(application.projectDeadline).toLocaleDateString() : "-");
+
+  y = renderSection(bodyProxy, y, "Cover Letter");
   const coverLetter = application?.coverLetter?.trim() || "No cover letter was provided.";
-  y = renderParagraph(page, y, coverLetter, 72);
+  y = renderParagraph(bodyProxy, y, coverLetter, 72);
 
   const attachmentName = application?.attachmentName || application?.fileName || null;
   if (attachmentName) {
-    y = renderSection(page, y, "Attachment");
-    y = renderLabelValue(page, y, "File", attachmentName);
+    y = renderSection(bodyProxy, y, "Attachment");
+    y = renderLabelValue(bodyProxy, y, "File", attachmentName);
+  }
+
+  // Save first page's body
+  if (bodyCmds.length > 0) {
+    pageBodies.push(bodyCmds);
   }
 
   if (y < 100) {
-    // Add a second page for long cover letters or extra metadata.
-    page = createPage();
-    pages.push(page);
-    y = 672;
-    y = renderSection(page, y, "Additional Notes");
-    y = renderParagraph(
-      page,
-      y,
-      "This application was exported with the full project and freelancer metadata for offline review.",
-      72,
-    );
+    // Second page body
+    startBodyPage();
+    y = renderSection(bodyProxy, y, "Additional Notes");
+    y = renderParagraph(bodyProxy, y, "This application was exported with the full project and freelancer metadata for offline review.", 72);
+    if (bodyCmds.length > 0) {
+      pageBodies.push(bodyCmds);
+    }
   }
 
-  pages.forEach((current, index) => {
-    renderHeader(current, title, subtitle, index + 1, pages.length);
-    renderFooter(current, footerText);
+  // Assemble final pages: HEADER + FOOTER commands FIRST, then body commands.
+  // This guarantees the full-page white background + green header bar are painted before any body text.
+  const finalPages = [];
+  const total = Math.max(1, pageBodies.length);
+
+  pageBodies.forEach((bodyCommandsForPage, index) => {
+    const pg = createPage();
+    const pageNum = index + 1;
+
+    // These must be the very first commands for the page
+    renderHeader(pg, title, subtitle, pageNum, total);
+    renderFooter(pg, footerText);
+
+    // Body content drawn on top of the header/footer
+    pg.commands.push(...bodyCommandsForPage);
+
+    finalPages.push(pg);
   });
 
-  const blob = buildPdfFromPages(pages);
+  // Edge case: nothing to export
+  if (finalPages.length === 0) {
+    const pg = createPage();
+    renderHeader(pg, title, subtitle, 1, 1);
+    renderFooter(pg, footerText);
+    finalPages.push(pg);
+  }
+
+  const blob = buildPdfFromPages(finalPages);
   downloadBlob(blob, `application-${application?.applicationId ?? "export"}.pdf`);
 }
 

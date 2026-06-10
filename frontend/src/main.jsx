@@ -48,6 +48,10 @@ const ExportImport = lazy(
 );
 const AdminAnalytics = lazy(() => import("./pages/adminDashboard/AdminAnalytics.jsx"));
 const AdminContracts = lazy(() => import("./pages/adminDashboard/AdminContracts.jsx"));
+const AdminAuditLogs = lazy(() => import("./pages/adminDashboard/AdminAuditLogs.jsx"));
+const AdminTestimonials = lazy(() => import("./pages/adminDashboard/AdminTestimonials.jsx"));
+const AdminReviews = lazy(() => import("./pages/adminDashboard/AdminReviews.jsx"));
+const AdminMilestones = lazy(() => import("./pages/adminDashboard/AdminMilestones.jsx"));
 const FreelancerPayments = lazy(
   () => import("./pages/FreelancerPayments.jsx"),
 );
@@ -66,6 +70,8 @@ const ClientContracts = lazy(() => import("./pages/ClientContracts.jsx"));
 const ProjectMilestones = lazy(() => import("./pages/ProjectMilestones.jsx"));
 const ClientPayment = lazy(() => import("./pages/ClientPayment.jsx"));
 const ClientHiredFreelancers = lazy(() => import("./pages/ClientHiredFreelancers.jsx"));
+const ClientDisputes = lazy(() => import("./pages/ClientDisputes.jsx"));
+const ClientTestimonials = lazy(() => import("./pages/ClientTestimonials.jsx"));
 const FreelancerDashboard = lazy(
   () => import("./pages/FreelancerDashboard.jsx"),
 );
@@ -231,6 +237,26 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/client/disputes",
+        element: (
+          <ClientRoute>
+            <Suspense fallback={<Loading />}>
+              <ClientDisputes />
+            </Suspense>
+          </ClientRoute>
+        ),
+      },
+      {
+        path: "/client/testimonials",
+        element: (
+          <ClientRoute>
+            <Suspense fallback={<Loading />}>
+              <ClientTestimonials />
+            </Suspense>
+          </ClientRoute>
+        ),
+      },
+      {
         path: "/project-milestones/:contractId",
         element: (
           <ProtectedRoute>
@@ -367,6 +393,46 @@ const router = createBrowserRouter([
           <AdminRoute>
             <Suspense fallback={<Loading />}>
               <AdminContracts />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/audit-logs",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminAuditLogs />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/testimonials",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminTestimonials />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/reviews",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminReviews />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/adminDashboard/milestones",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<Loading />}>
+              <AdminMilestones />
             </Suspense>
           </AdminRoute>
         ),

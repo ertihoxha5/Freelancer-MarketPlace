@@ -5,6 +5,7 @@ import EmptyState from "../components/EmptyState.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import ReviewModal from "../components/ReviewModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+
 import PaymentForm from "../components/PaymentForm.jsx";
 import {
   confirmPayment,
@@ -251,7 +252,7 @@ export default function ClientContracts() {
             {loading ? <div className="rounded-lg border p-6 text-slate-500">Loading contracts...</div> : null}
             {!loading && contracts.length === 0 ? (
               <EmptyState
-                title="No contracts yet"
+                title=No contracts yet
                 description="Accepted proposals will appear here as active contracts."
               />
             ) : null}

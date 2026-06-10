@@ -57,7 +57,18 @@ export default function ContractWorkspace() {
   const socketRef = useRef(null);
   const meetingChatRef = useRef(null);
 
+  // language context removed - navbar only
   const isFreelancer = data?.isFreelancer;
+  const isMulti = data?.isMultiFreelancerProject;
+  const projectID = data?.projectID;
+
+  // Banner to indicate shared project workspace for 2+ freelancers
+  const SharedBanner = isMulti ? (
+    <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+      This is the <strong>shared project workspace</strong> for all hired freelancers and the client on this project. Changes are visible to everyone.
+      {projectID && <span className="ml-2 text-xs opacity-70">(Project #{projectID})</span>}
+    </div>
+  ) : null;
 
   async function loadWorkspace() {
     setLoading(true);
@@ -645,10 +656,11 @@ export default function ContractWorkspace() {
         <main className="flex-1 overflow-auto p-6 sm:p-8">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-slate-900">Contract Workspace</h1>
+              <h1 className="text-3xl font-semibold text-slate-900">{isMulti ? 'Shared Project Workspace' : 'Contract Workspace'}</h1>
               <p className="mt-1 text-slate-600">
-                Private collaboration space for{" "}
-                <span className="font-medium">{isFreelancer ? "you and the client" : "you and the freelancer"}</span>
+                {isMulti 
+                  ? (t('sharedWorkspaceDesc') || "Shared project workspace for the client and all hired freelancers on this project.") 
+                  : `Private collaboration space for ${isFreelancer ? "you and the client" : "you and the freelancer"}`}
               </p>
             </div>
             <Link
@@ -662,6 +674,8 @@ export default function ContractWorkspace() {
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
           )}
+
+          {SharedBanner}
 
           {contract && (
             <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
@@ -1168,7 +1182,7 @@ export default function ContractWorkspace() {
                               <button
                                 onClick={() => startEditSection(section)}
                                 className="p-1 hover:text-slate-900 rounded hover:bg-white"
-                                title="Edit"
+                                title=Edit
                               >
                                 <FiEdit2 className="h-4 w-4" />
                               </button>
@@ -1184,7 +1198,7 @@ export default function ContractWorkspace() {
                               <button
                                 onClick={() => handleDeleteSection(section.id)}
                                 className="p-1 hover:text-red-600 rounded hover:bg-red-50"
-                                title="Delete"
+                                title=Delete
                               >
                                 <FiTrash2 className="h-4 w-4" />
                               </button>

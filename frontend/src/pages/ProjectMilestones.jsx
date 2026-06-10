@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+
 import { fetchMyContract, fetchFreelancerContract } from "../apiServices.js";
 
 function statusLabel(value) {

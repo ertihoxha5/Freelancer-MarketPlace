@@ -1,4 +1,6 @@
-import * as freelancerNotifService from "../services/freelancerNotificationService.js";
+// Legacy controller kept for compatibility. It now delegates to the exact same
+// notification logic used by clients (MySQL Notifications table via shared service).
+import * as notificationService from "../services/notificationService.js";
 import { validatedParams } from "../middleware/validateRequest.js";
 
 function handleError(err, res, next) {
@@ -10,22 +12,9 @@ function handleError(err, res, next) {
 
 export async function getNotifications(req, res, next) {
   try {
-    const rawNotifications = await freelancerNotifService.getMyNotifications(
+    const notifications = await notificationService.getMyNotifications(
       req.user.id,
     );
-
-    const notifications = rawNotifications.map((n) => ({
-      id: n._id,
-      types: n.types,
-      title: n.title,
-      msg: n.msg,
-      isRead: n.isRead,
-      priority: n.priority,
-      icon: n.icon,
-      metadata: n.metadata,
-      createdAt: n.createdAt,
-    }));
-
     return res.status(200).json({ notifications });
   } catch (err) {
     return handleError(err, res, next);
@@ -34,8 +23,8 @@ export async function getNotifications(req, res, next) {
 
 export async function getUnreadCount(req, res, next) {
   try {
-    const result = await freelancerNotifService.getMyUnreadCount(req.user.id);
-    return res.status(200).json(result);
+    const count = await notificationService.getMyUnreadCount(req.user.id);
+    return res.status(200).json({ count });
   } catch (err) {
     return handleError(err, res, next);
   }
@@ -44,7 +33,7 @@ export async function getUnreadCount(req, res, next) {
 export async function markAsRead(req, res, next) {
   try {
     const { id } = validatedParams(req);
-    const result = await freelancerNotifService.markNotificationRead(id, req.user.id);
+    const result = await notificationService.markNotificationRead(id, req.user.id);
     return res
       .status(200)
       .json({ message: "Notification marked as read.", ...result });
@@ -55,7 +44,7 @@ export async function markAsRead(req, res, next) {
 
 export async function markAllAsRead(req, res, next) {
   try {
-    const result = await freelancerNotifService.markAllNotificationsRead(
+    const result = await notificationService.markAllNotificationsRead(
       req.user.id,
     );
     return res
@@ -69,7 +58,7 @@ export async function markAllAsRead(req, res, next) {
 export async function deleteNotification(req, res, next) {
   try {
     const { id } = validatedParams(req);
-    const result = await freelancerNotifService.deleteMyNotification(id, req.user.id);
+    const result = await notificationService.deleteMyNotification(id, req.user.id);
     return res
       .status(200)
       .json({ message: "Notification deleted.", ...result });
@@ -80,7 +69,7 @@ export async function deleteNotification(req, res, next) {
 
 export async function deleteAllNotifications(req, res, next) {
   try {
-    const result = await freelancerNotifService.deleteAllMyNotifications(
+    const result = await notificationService.deleteAllMyNotifications(
       req.user.id,
     );
     return res

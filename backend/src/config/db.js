@@ -152,6 +152,29 @@ async function ensureUserAuthSchema(pool) {
     WHERE emailVerified = FALSE
   `);
 
+  // Extend lengths for user content
+  try { await pool.query(`ALTER TABLE Users MODIFY COLUMN fullName VARCHAR(255) NOT NULL`); } catch {}
+  try { await pool.query(`ALTER TABLE Users MODIFY COLUMN email VARCHAR(255) UNIQUE NOT NULL`); } catch {}
+
+  // Extend notification fields
+  try { await pool.query(`ALTER TABLE Notifications MODIFY COLUMN title VARCHAR(255) NOT NULL`); } catch {}
+  try { await pool.query(`ALTER TABLE Notifications MODIFY COLUMN msg TEXT`); } catch {}
+
+  // Profile fields
+  try { await pool.query(`ALTER TABLE Profiles MODIFY COLUMN bio TEXT`); } catch {}
+  try { await pool.query(`ALTER TABLE Profiles MODIFY COLUMN portofoliUrl VARCHAR(500)`); } catch {}
+
+  // Audit logs: add userID (the user who made the change)
+  if (!(await tableExists(pool, "AuditLogs"))) {
+    // created in schema.sql
+  } else {
+    if (!(await columnExists(pool, "AuditLogs", "userID"))) {
+      await pool.query(`ALTER TABLE AuditLogs ADD COLUMN userID INT NULL AFTER newValue`);
+    }
+    try { await pool.query(`ALTER TABLE AuditLogs MODIFY COLUMN oldValue TEXT NOT NULL`); } catch {}
+    try { await pool.query(`ALTER TABLE AuditLogs MODIFY COLUMN newValue TEXT NOT NULL`); } catch {}
+  }
+
   if (!(await tableExists(pool, "EmailTokens"))) {
     await pool.query(`
       CREATE TABLE EmailTokens(
@@ -237,6 +260,11 @@ async function ensureCategorySchema(pool) {
       FOREIGN KEY (parentCategoryID) REFERENCES Categories(id) ON DELETE SET NULL
     `);
   } catch {}
+
+  // Extend lengths
+  try { await pool.query(`ALTER TABLE Categories MODIFY COLUMN cName VARCHAR(255) NOT NULL`); } catch {}
+  try { await pool.query(`ALTER TABLE Categories MODIFY COLUMN cDesc TEXT NOT NULL`); } catch {}
+  try { await pool.query(`ALTER TABLE Categories MODIFY COLUMN slug VARCHAR(255) NOT NULL`); } catch {}
 }
 
 async function ensureChatSchema(pool) {
@@ -371,7 +399,8 @@ async function ensureWorkspaceSchema(pool) {
     await pool.query(`
       CREATE TABLE WorkspaceTodos (
         id INT PRIMARY KEY AUTO_INCREMENT,
-        contractID INT NOT NULL,
+        contractID INT NULL,
+        projectID INT NULL,
         freelancerID INT NOT NULL,
         title VARCHAR(255) NOT NULL,
         description TEXT NULL,
@@ -380,9 +409,23 @@ async function ensureWorkspaceSchema(pool) {
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
+        FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE CASCADE,
         FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE
       )
     `);
+  } else {
+    // Add projectID for shared project workspace when 2+ freelancers hired
+    if (!(await columnExists(pool, "WorkspaceTodos", "projectID"))) {
+      await pool.query(`ALTER TABLE WorkspaceTodos ADD COLUMN projectID INT NULL AFTER contractID`);
+      // Backfill from contract -> proposal -> project (best effort)
+      await pool.query(`
+        UPDATE WorkspaceTodos wt
+        JOIN Contracts c ON c.id = wt.contractID
+        JOIN Proposal pr ON pr.id = c.proposalID
+        SET wt.projectID = pr.projectID
+        WHERE wt.projectID IS NULL
+      `);
+    }
   }
 
   // Freelancer's customizable CMS / sections for the workspace (dynamic, hideable without code changes)
@@ -390,7 +433,8 @@ async function ensureWorkspaceSchema(pool) {
     await pool.query(`
       CREATE TABLE WorkspaceSections (
         id INT PRIMARY KEY AUTO_INCREMENT,
-        contractID INT NOT NULL,
+        contractID INT NULL,
+        projectID INT NULL,
         freelancerID INT NOT NULL,
         sectionKey VARCHAR(100) NOT NULL,
         title VARCHAR(255) NOT NULL,
@@ -402,10 +446,29 @@ async function ensureWorkspaceSchema(pool) {
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE,
+        FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE CASCADE,
         FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE,
-        UNIQUE KEY uq_section (contractID, freelancerID, sectionKey)
+        UNIQUE KEY uq_section (projectID, sectionKey)
       )
     `);
+  } else {
+    if (!(await columnExists(pool, "WorkspaceSections", "projectID"))) {
+      await pool.query(`ALTER TABLE WorkspaceSections ADD COLUMN projectID INT NULL AFTER contractID`);
+      await pool.query(`
+        UPDATE WorkspaceSections ws
+        JOIN Contracts c ON c.id = ws.contractID
+        JOIN Proposal pr ON pr.id = c.proposalID
+        SET ws.projectID = pr.projectID
+        WHERE ws.projectID IS NULL
+      `);
+    }
+    // Update unique to project level for shared multi
+    try {
+      await pool.query(`ALTER TABLE WorkspaceSections DROP KEY uq_section`);
+    } catch {}
+    try {
+      await pool.query(`ALTER TABLE WorkspaceSections ADD UNIQUE KEY uq_section (projectID, sectionKey)`);
+    } catch {}
   }
 }
 
@@ -454,6 +517,10 @@ async function ensureDisputeSchema(pool) {
       FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE
     `);
   } catch {}
+
+  // Extend lengths
+  try { await pool.query(`ALTER TABLE Disputes MODIFY COLUMN reason TEXT NOT NULL`); } catch {}
+  try { await pool.query(`ALTER TABLE Disputes MODIFY COLUMN resolution TEXT`); } catch {}
 }
 
 async function ensureProjectCapacitySchema(pool) {
@@ -493,6 +560,29 @@ async function ensureFilesSchema(pool) {
     try {
       await pool.query(`ALTER TABLE Files MODIFY COLUMN filePath VARCHAR(255) NOT NULL`);
     } catch {}
+  }
+}
+
+async function ensureProjectPhasesSchema(pool) {
+  // Structured phases for client project posting + extra brief metadata
+  if (!(await columnExists(pool, "Project", "phases"))) {
+    await pool.query(`ALTER TABLE Project ADD COLUMN phases JSON NULL AFTER pDesc`);
+  }
+  if (!(await columnExists(pool, "Project", "experienceLevel"))) {
+    await pool.query(`ALTER TABLE Project ADD COLUMN experienceLevel VARCHAR(20) NULL AFTER maxFreelancers`);
+  }
+  if (!(await columnExists(pool, "Project", "skills"))) {
+    await pool.query(`ALTER TABLE Project ADD COLUMN skills VARCHAR(300) NULL AFTER experienceLevel`);
+  }
+  if (!(await columnExists(pool, "Project", "projectType"))) {
+    await pool.query(`ALTER TABLE Project ADD COLUMN projectType VARCHAR(30) NULL AFTER skills`);
+  }
+
+  // Enlarge pDesc to support detailed descriptions + phases (was too small at 255 chars)
+  try {
+    await pool.query(`ALTER TABLE Project MODIFY COLUMN pDesc TEXT`);
+  } catch (e) {
+    // Column may already be TEXT or larger; ignore
   }
 }
 
@@ -557,6 +647,10 @@ async function ensureTestimonialsSchema(pool) {
       )
     `);
   }
+
+  // Extend lengths
+  try { await pool.query(`ALTER TABLE Testimonials MODIFY COLUMN fullName VARCHAR(255) NOT NULL`); } catch {}
+  try { await pool.query(`ALTER TABLE Testimonials MODIFY COLUMN roleTitle VARCHAR(255) NOT NULL`); } catch {}
 }
 
 async function ensureSavedProjectsSchema(pool) {
@@ -634,6 +728,10 @@ async function ensureSavedProjectsSchema(pool) {
       `);
     } catch {}
   }
+
+  // Extend lengths
+  try { await pool.query(`ALTER TABLE SavedProjects MODIFY COLUMN notes TEXT NULL`); } catch {}
+  try { await pool.query(`ALTER TABLE SavedProjects MODIFY COLUMN folder VARCHAR(255) NOT NULL DEFAULT 'default'`); } catch {}
 }
 
 async function ensureBusinessEntitySchema(pool) {
@@ -798,6 +896,10 @@ async function ensureMilestoneSchema(pool) {
       FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE SET NULL
     `);
   } catch {}
+
+  // Extend lengths for milestone content
+  try { await pool.query(`ALTER TABLE Milestones MODIFY COLUMN title VARCHAR(255) NOT NULL`); } catch {}
+  try { await pool.query(`ALTER TABLE Milestones MODIFY COLUMN mDesc TEXT NOT NULL`); } catch {}
 }
 
 async function ensurePaymentSchema(pool) {
@@ -1000,6 +1102,7 @@ try {
   await ensureBusinessEntitySchema(db);
   await ensureMilestoneSchema(db);
   await ensurePaymentSchema(db);
+  await ensureProjectPhasesSchema(db);
   await ensureFullTextIndexes(db);
 } catch (err) {
   console.error("❌ Failed to apply database migrations:", err.message);

@@ -1,5 +1,6 @@
 import * as projectRepository from "../repositories/projectRepository.js";
 import * as reviewRepository from "../repositories/reviewRepository.js";
+import * as auditRepository from "../repositories/auditRepository.js";
 import {
   pushNotification,
   pushFreelancerNotification,
@@ -15,6 +16,11 @@ import {
   notFoundError,
   validationError,
 } from "../utils/errors.js";
+
+function toShortString(value) {
+  const str = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
+  return str.length > 500 ? str.slice(0, 500) + "..." : str;
+}
 
 function coercePositiveInt(value, label) {
   const num = Number(value);
@@ -83,6 +89,15 @@ export async function createReview(contractID, reviewerID, role, payload) {
     reviewerID: reviewerId,
     receiverID: partyContext.receiverID,
   });
+
+  await auditRepository.insertAuditLog({
+    entity: "Review",
+    entityID: review.reviewID || review.id,
+    actionPerformed: "create",
+    oldValue: null,
+    newValue: toShortString({ rating, title, comment, contractID: contractId }),
+    userID: reviewerId,
+  }).catch(() => {});
 
   const ratingSummary = await reviewRepository.getAverageRatingByReceiverId(
     partyContext.receiverID,

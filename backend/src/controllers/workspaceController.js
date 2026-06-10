@@ -38,14 +38,30 @@ async function getContractForWorkspace(req) {
   return contract;
 }
 
+async function getProjectIDForWorkspace(contract) {
+  // Resolve projectID for shared workspace on multi-freelancer projects
+  if (contract.projectID) return contract.projectID;
+  // Fallback: contract has proposalID usually
+  if (contract.proposalID || contract.proposalId) {
+    const pid = contract.proposalID || contract.proposalId;
+    const [rows] = await db.execute(
+      `SELECT projectID FROM Proposal WHERE id = ?`,
+      [pid]
+    );
+    return rows[0]?.projectID || null;
+  }
+  return null;
+}
+
 export async function getWorkspace(req, res, next) {
   try {
     const contract = await getContractForWorkspace(req);
     const isFreelancer = !isClient(req);
     const freelancerID = contract.freelancerID;
+    const projectID = await getProjectIDForWorkspace(contract);
 
     const workspaceData = await queryBus.execute(
-      new GetWorkspaceQuery(contract.id, isFreelancer, freelancerID)
+      new GetWorkspaceQuery(contract.id, isFreelancer, freelancerID, projectID)
     );
 
     return res.json({
@@ -56,6 +72,8 @@ export async function getWorkspace(req, res, next) {
         totalAmount: contract.totalAmount,
       },
       isFreelancer,
+      projectID,
+      isMultiFreelancerProject: !!projectID, // frontend can use this to treat as shared project dashboard/workspace
       todos: workspaceData.todos,
       sections: workspaceData.sections,
     });
@@ -74,6 +92,7 @@ export async function addTodo(req, res, next) {
 
     const { title, description, dueDate, status } = validatedBody(req);
 
+    const projectID = await getProjectIDForWorkspace(contract);
     const todo = await commandBus.execute(
       new AddTodoCommand(
         contract.id,
@@ -81,7 +100,8 @@ export async function addTodo(req, res, next) {
         title,
         description,
         dueDate,
-        status
+        status,
+        projectID
       )
     );
 
@@ -101,8 +121,9 @@ export async function updateTodo(req, res, next) {
     const { todoId } = req.params;
     const { title, description, dueDate, status } = req.body;
 
+    const projectID = await getProjectIDForWorkspace(contract);
     const todo = await commandBus.execute(
-      new UpdateTodoCommand(todoId, contract.id, title, description, dueDate, status)
+      new UpdateTodoCommand(todoId, contract.id, title, description, dueDate, status, projectID)
     );
 
     return res.json({ todo });
@@ -120,7 +141,8 @@ export async function deleteTodo(req, res, next) {
 
     const { todoId } = req.params;
 
-    await commandBus.execute(new DeleteTodoCommand(todoId, contract.id));
+    const projectID = await getProjectIDForWorkspace(contract);
+    await commandBus.execute(new DeleteTodoCommand(todoId, contract.id, projectID));
 
     return res.json({ message: "Todo deleted." });
   } catch (err) {
@@ -140,6 +162,7 @@ export async function addSection(req, res, next) {
 
     const { title, type, content, items, visible } = validatedBody(req);
 
+    const projectID = await getProjectIDForWorkspace(contract);
     await commandBus.execute(
       new AddSectionCommand(
         contract.id,
@@ -148,13 +171,14 @@ export async function addSection(req, res, next) {
         type,
         content,
         items,
-        visible
+        visible,
+        projectID
       )
     );
 
     // Re-fetch using query bus for fresh data (CQRS separation)
     const workspaceData = await queryBus.execute(
-      new GetWorkspaceQuery(contract.id, true, contract.freelancerID)
+      new GetWorkspaceQuery(contract.id, true, contract.freelancerID, projectID)
     );
 
     return res.status(201).json({
@@ -165,6 +189,7 @@ export async function addSection(req, res, next) {
         totalAmount: contract.totalAmount,
       },
       isFreelancer: true,
+      projectID,
       todos: workspaceData.todos,
       sections: workspaceData.sections,
     });
@@ -200,12 +225,26 @@ export async function updateSection(req, res, next) {
     }
 
     sets.push("updatedAt = NOW()");
-    values.push(sectionId, contract.id, contract.freelancerID);
-
-    const [result] = await db.execute(
-      `UPDATE WorkspaceSections SET ${sets.join(", ")} WHERE id = ? AND contractID = ? AND freelancerID = ?`,
-      values
-    );
+    const projectID = await getProjectIDForWorkspace(contract);
+    if (projectID) {
+      values.push(sectionId, projectID);
+      const [result] = await db.execute(
+        `UPDATE WorkspaceSections SET ${sets.join(", ")} WHERE id = ? AND projectID = ?`,
+        values
+      );
+      if (result.affectedRows === 0) {
+        throw notFoundError("Section not found.");
+      }
+    } else {
+      values.push(sectionId, contract.id, contract.freelancerID);
+      const [result] = await db.execute(
+        `UPDATE WorkspaceSections SET ${sets.join(", ")} WHERE id = ? AND contractID = ? AND freelancerID = ?`,
+        values
+      );
+      if (result.affectedRows === 0) {
+        throw notFoundError("Section not found.");
+      }
+    }
 
     if (result.affectedRows === 0) {
       throw notFoundError("Section not found.");
@@ -213,7 +252,7 @@ export async function updateSection(req, res, next) {
 
     // Re-fetch using query bus (CQRS)
     const workspaceData = await queryBus.execute(
-      new GetWorkspaceQuery(contract.id, true, contract.freelancerID)
+      new GetWorkspaceQuery(contract.id, true, contract.freelancerID, projectID)
     );
 
     return res.json({
@@ -224,6 +263,7 @@ export async function updateSection(req, res, next) {
         totalAmount: contract.totalAmount,
       },
       isFreelancer: true,
+      projectID,
       todos: workspaceData.todos,
       sections: workspaceData.sections,
     });
@@ -240,14 +280,22 @@ export async function deleteSection(req, res, next) {
     }
 
     const { sectionId } = req.params;
-    await db.execute(
-      `DELETE FROM WorkspaceSections WHERE id = ? AND contractID = ? AND freelancerID = ?`,
-      [sectionId, contract.id, contract.freelancerID]
-    );
+    const projectID = await getProjectIDForWorkspace(contract);
+    if (projectID) {
+      await db.execute(
+        `DELETE FROM WorkspaceSections WHERE id = ? AND projectID = ?`,
+        [sectionId, projectID]
+      );
+    } else {
+      await db.execute(
+        `DELETE FROM WorkspaceSections WHERE id = ? AND contractID = ? AND freelancerID = ?`,
+        [sectionId, contract.id, contract.freelancerID]
+      );
+    }
 
     // Re-fetch using query bus (CQRS)
     const workspaceData = await queryBus.execute(
-      new GetWorkspaceQuery(contract.id, true, contract.freelancerID)
+      new GetWorkspaceQuery(contract.id, true, contract.freelancerID, projectID)
     );
 
     return res.json({
@@ -258,6 +306,7 @@ export async function deleteSection(req, res, next) {
         totalAmount: contract.totalAmount,
       },
       isFreelancer: true,
+      projectID,
       todos: workspaceData.todos,
       sections: workspaceData.sections,
       message: "Section deleted.",

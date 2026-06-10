@@ -2,7 +2,7 @@ import { db } from "../../../config/db.js";
 
 export class AddSectionHandler {
   async handle(command) {
-    const { contractID, freelancerID, title, type, content, items, visible } = command;
+    const { contractID, freelancerID, title, type, content, items, visible, projectID } = command;
 
     if (!title?.trim()) {
       throw new Error("Section title is required.");
@@ -13,11 +13,16 @@ export class AddSectionHandler {
 
     const itemsJson = Array.isArray(items) ? JSON.stringify(items) : null;
 
+    const useProject = !!projectID;
+    const targetContract = useProject ? null : contractID;
+    const targetProject = useProject ? projectID : null;
+
     await db.execute(
-      `INSERT INTO WorkspaceSections (contractID, freelancerID, sectionKey, title, type, content, items, visible)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO WorkspaceSections (contractID, projectID, freelancerID, sectionKey, title, type, content, items, visible)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        contractID,
+        targetContract,
+        targetProject,
         freelancerID,
         sectionKey,
         title.trim(),

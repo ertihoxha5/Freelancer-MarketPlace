@@ -96,7 +96,7 @@ export default function ClientDashboard() {
               <div>
                 <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Welcome back</p>
                 <h1 className="mt-1 text-3xl font-semibold text-slate-900">
-                  {user?.fullName?.split(' ')[0] || 'Client'}!
+                  Hi, {user?.fullName?.split(' ')[0] || 'Client'}!
                 </h1>
                 <p className="mt-1 text-slate-600">
                   Manage your projects, hire talent, and grow your business.
@@ -170,11 +170,11 @@ export default function ClientDashboard() {
             <div className="mb-8">
               <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500 mb-3">Quick Actions</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                <QuickAction to="/client/post-project" icon={FiPlusCircle} label="Post New Project" description="Create a brief and attract talent" />
-                <QuickAction to="/client/projects" icon={FiFolder} label="My Projects" description={`${stats.total} total • ${stats.active} active`} />
-                <QuickAction to="/search?tab=freelancers" icon={FiUsers} label="Browse Freelancers" description="Find skilled professionals" />
-                <QuickAction to="/client/hired-freelancers" icon={FiUserCheck} label="Hired Freelancers" description="Review and manage your team" />
-                <QuickAction to="/client/contracts" icon={FiFileText} label="Contracts &amp; Workspaces" description="Open active work" />
+                <QuickAction to="/client/post-project" icon={FiPlusCircle} label=Post New Project description=Create a brief and attract talent />
+                <QuickAction to="/client/projects" icon={FiFolder} label=My Projects description={`${stats.total} total • ${stats.active} active`} />
+                <QuickAction to="/search?tab=freelancers" icon={FiUsers} label=Browse Freelancers description=Find skilled professionals />
+                <QuickAction to="/client/hired-freelancers" icon={FiUserCheck} label=Hired Freelancers description=Review and manage your team />
+                <QuickAction to="/client/contracts" icon={FiFileText} label=Contracts & Workspaces description=Open active work />
               </div>
             </div>
 
@@ -246,13 +246,13 @@ export default function ClientDashboard() {
               {testimonialMessage ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{testimonialMessage}</div> : null}
               {testimonialError ? <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{testimonialError}</div> : null}
               <form onSubmit={submitTestimonial} className="mt-4 grid gap-4 md:grid-cols-2">
-                <input value={testimonial.fullName} onChange={(e) => setTestimonial((curr) => ({ ...curr, fullName: e.target.value }))} placeholder="Full name" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-                <input value={testimonial.roleTitle} onChange={(e) => setTestimonial((curr) => ({ ...curr, roleTitle: e.target.value }))} placeholder="Role / Company" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                <input value={testimonial.fullName} onChange={(e) => setTestimonial((curr) => ({ ...curr, fullName: e.target.value }))} placeholder=Full name className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                <input value={testimonial.roleTitle} onChange={(e) => setTestimonial((curr) => ({ ...curr, roleTitle: e.target.value }))} placeholder=Role / Company className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
                 <select value={testimonial.rating} onChange={(e) => setTestimonial((curr) => ({ ...curr, rating: e.target.value }))} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
                   {[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} Stars</option>)}
                 </select>
                 <div />
-                <textarea value={testimonial.comment} onChange={(e) => setTestimonial((curr) => ({ ...curr, comment: e.target.value }))} placeholder="What do you like most about the platform?" rows={4} className="md:col-span-2 rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+                <textarea value={testimonial.comment} onChange={(e) => setTestimonial((curr) => ({ ...curr, comment: e.target.value }))} placeholder=What do you like most about the platform? rows={4} className="md:col-span-2 rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
                 <div className="md:col-span-2 flex justify-end">
                   <button className="rounded-2xl bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white">Publish Testimonial</button>
                 </div>

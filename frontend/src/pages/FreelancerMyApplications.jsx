@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+
 import {
 	fetchMyApplications,
 	fetchFreelancerProjectDetails,

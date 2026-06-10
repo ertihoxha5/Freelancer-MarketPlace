@@ -4,12 +4,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Header from '../components/Header';
 
-const highlights = [
-  'Access to verified and skilled freelancers',
-  'Secure milestone payments with full protection',
-  'All your projects and communication in one place',
-];
-
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,6 +14,12 @@ function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ email: '', password: '' });
+
+  const highlights = [
+    'Access to verified and skilled freelancers',
+    'Secure milestone payments with full protection',
+    'All your projects and communication in one place',
+  ];
 
   const updateField = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));

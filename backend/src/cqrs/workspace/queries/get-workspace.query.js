@@ -1,7 +1,8 @@
 export class GetWorkspaceQuery {
-  constructor(contractID, isFreelancer, freelancerID) {
+  constructor(contractID, isFreelancer, freelancerID, projectID = null) {
     this.contractID = contractID;
     this.isFreelancer = isFreelancer;
     this.freelancerID = freelancerID;
+    this.projectID = projectID; // for shared workspace on multi-freelancer projects
   }
 }

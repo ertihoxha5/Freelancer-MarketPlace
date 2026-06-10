@@ -48,3 +48,30 @@ export async function setPublicationStatus(id, isPublished) {
   return result.affectedRows > 0;
 }
 
+export async function getTestimonialsByUser(userID) {
+  const [rows] = await db.execute(
+    `SELECT * FROM Testimonials WHERE userID = ? ORDER BY createdAt DESC`,
+    [userID],
+  );
+  return rows;
+}
+
+export async function updateTestimonial(id, userID, { fullName, roleTitle, rating, comment }) {
+  const [result] = await db.execute(
+    `UPDATE Testimonials 
+     SET fullName = ?, roleTitle = ?, rating = ?, comment = ?
+     WHERE id = ? AND userID = ?`,
+    [fullName, roleTitle, rating, comment, id, userID],
+  );
+  if (result.affectedRows === 0) return null;
+  return getTestimonialById(id);
+}
+
+export async function deleteTestimonial(id, userID) {
+  const [result] = await db.execute(
+    `DELETE FROM Testimonials WHERE id = ? AND userID = ?`,
+    [id, userID],
+  );
+  return result.affectedRows > 0;
+}
+

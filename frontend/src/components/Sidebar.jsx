@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useRealtime } from "../context/RealtimeContext.jsx";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import {
   FiHome,
   FiSearch,
@@ -25,56 +26,62 @@ import {
 
 const sidebarConfigs = {
   admin: [
-    { label: "Dashboard", href: "/adminDashboard", icon: FiHome },
-    { label: "Analytics", href: "/adminDashboard/analytics", icon: FiBarChart2 },
-    { label: "Search", href: "/search", icon: FiSearch },
-    { label: "Users", href: "/adminDashboard/users", icon: FiUsers },
-    { label: "Contracts", href: "/adminDashboard/contracts", icon: FiFileText },
-    { label: "Skills/Categories", href: "/adminDashboard/catalog", icon: FiTag },
+    { labelKey: "dashboard", href: "/adminDashboard", icon: FiHome },
+    { labelKey: "analytics", href: "/adminDashboard/analytics", icon: FiBarChart2 },
+    { labelKey: "search", href: "/search", icon: FiSearch },
+    { labelKey: "users", href: "/adminDashboard/users", icon: FiUsers },
+    { labelKey: "contracts", href: "/adminDashboard/contracts", icon: FiFileText },
+    { labelKey: "skillsCategories", href: "/adminDashboard/catalog", icon: FiTag },
     {
-      label: "Jobs with Freelancer",
+      labelKey: "jobsWithFreelancer",
       href: "/adminDashboard/jobs-with-freelancer",
       icon: FiBriefcase,
     },
     {
-      label: "Jobs without Freelancer",
+      labelKey: "jobsWithoutFreelancer",
       href: "/adminDashboard/jobs-without-freelancer",
       icon: FiBriefcase,
     },
-    { label: "Disputes", href: "/adminDashboard/disputes", icon: FiAlertTriangle },
-    { label: "Payments", href: "/adminDashboard/payments", icon: FiCreditCard },
-    { label: "Applications", href: "/adminDashboard/applications", icon: FiFileText },
-    { label: "Export/Import", href: "/adminDashboard/export", icon: FiDownload },
-    { label: "Reports", href: "/adminDashboard/reports", icon: FiBarChart2 },
-    { label: "Settings", href: "/adminDashboard/settings", icon: FiSettings },
-    { label: "Notifications", href: "/adminDashboard/notifications", icon: FiBell },
+    { labelKey: "disputes", href: "/adminDashboard/disputes", icon: FiAlertTriangle },
+    { labelKey: "payments", href: "/adminDashboard/payments", icon: FiCreditCard },
+    { labelKey: "applications", href: "/adminDashboard/applications", icon: FiFileText },
+    { labelKey: "exportImport", href: "/adminDashboard/export", icon: FiDownload },
+    { labelKey: "reports", href: "/adminDashboard/reports", icon: FiBarChart2 },
+    { labelKey: "settings", href: "/adminDashboard/settings", icon: FiSettings },
+    { labelKey: "notifications", href: "/adminDashboard/notifications", icon: FiBell },
+    { labelKey: "auditLogs", href: "/adminDashboard/audit-logs", icon: FiFileText },
+    { labelKey: "testimonials", href: "/adminDashboard/testimonials", icon: FiStar },
+    { labelKey: "reviews", href: "/adminDashboard/reviews", icon: FiStar },
+    { labelKey: "milestones", href: "/adminDashboard/milestones", icon: FiFileText },
   ],
   freelancer: [
-    { label: "Dashboard", href: "/freelancer/dashboard", icon: FiHome },
-    { label: "Search", href: "/search", icon: FiSearch },
-    { label: "Profile", href: "/freelancer/profile", icon: FiUser },
-    { label: "Notifications", href: "/freelancer/notifications", icon: FiBell },
-    { label: "Browse Projects", href: "/freelancer/browse-projects", icon: FiBriefcase },
-    { label: "Favorite Projects", href: "/freelancer/favorites", icon: FiHeart },
-    { label: "My Projects", href: "/freelancer/my-projects", badge: "projects", icon: FiFolder },
-    { label: "Contracts", href: "/freelancer/contracts", badge: "contracts", icon: FiFileText },
-    { label: "Messages", href: "/freelancer/messages", icon: FiMessageCircle },
-    { label: "My Applications", href: "/freelancer/applications", badge: "applications", icon: FiClipboard },
-    { label: "My Reports", href: "/freelancer/reports", icon: FiBarChart2 },
-    { label: "My Reviews", href: "/freelancer/reviews", badge: "reviews", icon: FiStar },
-    { label: "Payments", href: "/freelancer/payments", icon: FiDollarSign },
+    { labelKey: "dashboard", href: "/freelancer/dashboard", icon: FiHome },
+    { labelKey: "search", href: "/search", icon: FiSearch },
+    { labelKey: "profile", href: "/freelancer/profile", icon: FiUser },
+    { labelKey: "notifications", href: "/freelancer/notifications", icon: FiBell },
+    { labelKey: "browseProjects", href: "/freelancer/browse-projects", icon: FiBriefcase },
+    { labelKey: "favoriteProjects", href: "/freelancer/favorites", icon: FiHeart },
+    { labelKey: "myProjects", href: "/freelancer/my-projects", badge: "projects", icon: FiFolder },
+    { labelKey: "contracts", href: "/freelancer/contracts", badge: "contracts", icon: FiFileText },
+    { labelKey: "messages", href: "/freelancer/messages", icon: FiMessageCircle },
+    { labelKey: "myApplications", href: "/freelancer/applications", badge: "applications", icon: FiClipboard },
+    { labelKey: "myReports", href: "/freelancer/reports", icon: FiBarChart2 },
+    { labelKey: "myReviews", href: "/freelancer/reviews", badge: "reviews", icon: FiStar },
+    { labelKey: "payments", href: "/freelancer/payments", icon: FiDollarSign },
   ],
   client: [
-    { label: "Dashboard", href: "/client/dashboard", icon: FiHome },
-    { label: "Search", href: "/search", icon: FiSearch },
-    { label: "Post Project", href: "/client/post-project", icon: FiPlusCircle },
-    { label: "My Projects", href: "/client/projects", badge: "projects", icon: FiFolder },
-    { label: "Applications", href: "/client/applications", badge: "applications", icon: FiClipboard },
-    { label: "Contracts", href: "/client/contracts", badge: "contracts", icon: FiFileText },
-    { label: "Hired Freelancers", href: "/client/hired-freelancers", icon: FiUsers },
-    { label: "Notifications", href: "/client/notifications", icon: FiBell },
-    { label: "My Profile", href: "/client/profile", icon: FiUser },
-    { label: "Messages", href: "/client/messages", icon: FiMessageCircle },
+    { labelKey: "dashboard", href: "/client/dashboard", icon: FiHome },
+    { labelKey: "search", href: "/search", icon: FiSearch },
+    { labelKey: "postProject", href: "/client/post-project", icon: FiPlusCircle },
+    { labelKey: "myProjects", href: "/client/projects", badge: "projects", icon: FiFolder },
+    { labelKey: "applications", href: "/client/applications", badge: "applications", icon: FiClipboard },
+    { labelKey: "contracts", href: "/client/contracts", badge: "contracts", icon: FiFileText },
+    { labelKey: "disputes", href: "/client/disputes", icon: FiAlertTriangle },
+    { labelKey: "testimonials", href: "/client/testimonials", icon: FiStar },
+    { labelKey: "hiredFreelancers", href: "/client/hired-freelancers", icon: FiUsers },
+    { labelKey: "notifications", href: "/client/notifications", icon: FiBell },
+    { labelKey: "myProfile", href: "/client/profile", icon: FiUser },
+    { labelKey: "messages", href: "/client/messages", icon: FiMessageCircle },
   ],
 };
 
@@ -89,23 +96,24 @@ function getRoleConfig(roleID) {
 
 function getRoleLabel(roleID) {
   const numeric = Number(roleID);
-  if (numeric === 1) return "Administrator";
-  if (numeric === 3) return "Freelancer";
-  return "Client";
+  if (numeric === 1) return "admin";
+  if (numeric === 3) return "freelancer";
+  return "client";
 }
 
 export default function Sidebar({ roleID }) {
   const config = getRoleConfig(roleID);
   const { badges, clearBadge } = useRealtime();
+  const { t } = useLanguage();
 
   return (
     <aside className="h-full w-72 shrink-0 border-r border-slate-200 bg-white hidden lg:block overflow-y-auto">
       <div className="px-6 py-6 border-b border-slate-200 bg-slate-50">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          Your Role
+          {t('yourRole')}
         </p>
         <h2 className="mt-2 text-xl font-semibold text-slate-900">
-          {getRoleLabel(roleID)}
+          {t(getRoleLabel(roleID))}
         </h2>
       </div>
     
@@ -124,7 +132,7 @@ export default function Sidebar({ roleID }) {
             }
           >
             {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
-            <span className="min-w-0 flex-1">{item.label}</span>
+            <span className="min-w-0 flex-1">{t(item.labelKey || item.label)}</span>
             {item.badge && Number(badges[item.badge] || 0) > 0 ? (
               <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
                 {Number(badges[item.badge]) > 99

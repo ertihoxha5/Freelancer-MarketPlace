@@ -2,10 +2,16 @@ import * as projectRepository from "../repositories/projectRepository.js";
 import * as milestoneRepository from "../repositories/milestoneRepository.js";
 import * as reviewRepository from "../repositories/reviewRepository.js";
 import * as disputeRepository from "../repositories/disputeRepository.js";
+import * as auditRepository from "../repositories/auditRepository.js";
 import {
   forbiddenError,
   notFoundError,
 } from "../utils/errors.js";
+
+function toShortString(value) {
+  const str = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
+  return str.length > 500 ? str.slice(0, 500) + "..." : str;
+}
 import { validatedBody, validatedParams } from "../middleware/validateRequest.js";
 
 function isClient(req) {
@@ -131,6 +137,15 @@ export async function createDispute(req, res, next) {
       raisedAgainst,
     });
 
+    await auditRepository.insertAuditLog({
+      entity: "Dispute",
+      entityID: dispute.id,
+      actionPerformed: "create",
+      oldValue: null,
+      newValue: toShortString({ reason, contractID: contract.id }),
+      userID: raisedBy,
+    }).catch(() => {});
+
     return res.status(201).json({
       message: "Dispute submitted.",
       dispute,
@@ -165,6 +180,16 @@ export async function signContract(req, res, next) {
     }
 
     const updated = await projectRepository.getContractById(contract.id);
+
+    await auditRepository.insertAuditLog({
+      entity: "Contract",
+      entityID: contract.id,
+      actionPerformed: `sign_${role}`,
+      oldValue: currentField ? "signed" : "unsigned",
+      newValue: "signed",
+      userID: req.user.id,
+    }).catch(() => {});
+
     return res.status(200).json({
       message: "Contract signed.",
       contract: decorateContract(updated),

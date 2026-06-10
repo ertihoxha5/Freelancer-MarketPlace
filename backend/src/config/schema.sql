@@ -4,9 +4,9 @@ USE freelancerMarketplace;
 
 CREATE TABLE IF NOT EXISTS Users(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    email VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
     passwordHash VARCHAR(255) NOT NULL,
-    fullName VARCHAR(50) NOT NULL,
+    fullName VARCHAR(255) NOT NULL,
     isActive BOOLEAN NOT NULL DEFAULT TRUE,
     emailVerified BOOLEAN NOT NULL DEFAULT TRUE,
     emailVerifiedAt DATETIME NULL,
@@ -76,9 +76,10 @@ CREATE TABLE IF NOT EXISTS AuditLogs(
     id INT PRIMARY KEY AUTO_INCREMENT,
     entity VARCHAR(20) NOT NULL,
     entityID INT NOT NULL,
-    actionPerformed VARCHAR(20) NOT NULL,
-    oldValue VARCHAR(20) NOT NULL,
-    newValue VARCHAR(20) NOT NULL,
+    actionPerformed VARCHAR(100) NOT NULL,
+    oldValue TEXT NOT NULL,
+    newValue TEXT NOT NULL,
+    userID INT NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -119,8 +120,8 @@ CREATE TABLE IF NOT EXISTS Profiles(
     userID INT NOT NULL UNIQUE,
     pictureID INT,
     hourlyRate DECIMAL(10,2),
-    portofoliUrl VARCHAR(50),
-    bio VARCHAR(255),
+    portofoliUrl VARCHAR(500),
+    bio TEXT,
 
     FOREIGN KEY(userID) REFERENCES Users(id),
     FOREIGN KEY (pictureID) REFERENCES Files(id)
@@ -130,8 +131,8 @@ CREATE TABLE IF NOT EXISTS Notifications(
     id INT PRIMARY KEY AUTO_INCREMENT,
     types ENUM('message', 'system') NOT NULL,
     receiverID INT NOT NULL,
-    title VARCHAR(20) NOT NULL,
-    msg VARCHAR(255),
+    title VARCHAR(255) NOT NULL,
+    msg TEXT,
     isRead BOOLEAN DEFAULT FALSE,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
 
@@ -140,8 +141,8 @@ CREATE TABLE IF NOT EXISTS Notifications(
 
 CREATE TABLE IF NOT EXISTS Project(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    title VARCHAR(20) NOT NULL,
-    pDesc VARCHAR(255),
+    title VARCHAR(500) NOT NULL,
+    pDesc TEXT,
     budget INT,
     pStatus ENUM('pending', 'active', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
     deadline DATE,
@@ -152,8 +153,9 @@ CREATE TABLE IF NOT EXISTS Project(
 );
 
 ALTER TABLE Project
-    MODIFY title VARCHAR(150) NOT NULL,
+    MODIFY title VARCHAR(500) NOT NULL,
     MODIFY pDesc TEXT NOT NULL,
+    MODIFY experienceLevel VARCHAR(20) NULL,
     MODIFY budget DECIMAL(12,2) NOT NULL,
     ADD COLUMN createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -208,7 +210,7 @@ CREATE TABLE IF NOT EXISTS Contracts(
 CREATE TABLE IF NOT EXISTS Review(
     id INT PRIMARY KEY AUTO_INCREMENT,
     stars TINYINT NOT NULL CHECK (stars BETWEEN 1 AND 5),
-    title VARCHAR(100) NULL,
+    title VARCHAR(255) NULL,
     comment TEXT NOT NULL,
     tags JSON NULL,
     helpfulCount INT DEFAULT 0,
@@ -262,7 +264,7 @@ CREATE TABLE IF NOT EXISTS Messages(
     id INT PRIMARY KEY AUTO_INCREMENT,
     conversationID INT NOT NULL,
     senderID INT NOT NULL,
-    content VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
     msgType ENUM('text', 'image', 'file', 'system') NOT NULL DEFAULT 'text',
     field VARCHAR(20),
     isRead BOOLEAN DEFAULT FALSE,
@@ -275,9 +277,9 @@ CREATE TABLE IF NOT EXISTS Messages(
 
 CREATE TABLE IF NOT EXISTS Categories(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    cName VARCHAR(50) NOT NULL,
-    slug VARCHAR(50) NOT NULL,
-    cDesc VARCHAR(255) NOT NULL,
+    cName VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL,
+    cDesc TEXT NOT NULL,
     iconUrl VARCHAR(255) NULL,
     sortOrder INT NOT NULL DEFAULT 0,
     parentCategoryID INT NULL,
@@ -293,8 +295,8 @@ CREATE TABLE IF NOT EXISTS Categories(
 
 CREATE TABLE IF NOT EXISTS Skills(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    skillName VARCHAR(30) NOT NULL,
-    slug VARCHAR(20),
+    skillName VARCHAR(255) NOT NULL,
+    slug VARCHAR(255),
     isActive BOOLEAN DEFAULT TRUE,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     categoryID INT NOT NULL,
@@ -325,8 +327,8 @@ CREATE TABLE IF NOT EXISTS ProjectSkills(
 
 CREATE TABLE IF NOT EXISTS Milestones(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    title VARCHAR(20) NOT NULL,
-    mDesc VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    mDesc TEXT NOT NULL,
     amountPayable DECIMAL(10,2) NOT NULL,
     dueDate DATE,
     projectID INT NULL,
@@ -415,9 +417,9 @@ CREATE TABLE IF NOT EXISTS MilestonePayment(
 CREATE TABLE IF NOT EXISTS Disputes(
     id INT PRIMARY KEY AUTO_INCREMENT,
     contractID INT NOT NULL,
-    reason VARCHAR(255) NOT NULL,
+    reason TEXT NOT NULL,
     dStatus ENUM('open', 'under_review', 'resolved', 'rejected', 'escalated') NOT NULL DEFAULT 'open',
-    resolution VARCHAR(255),
+    resolution TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     resolvedBy INT,
@@ -436,8 +438,8 @@ CREATE TABLE IF NOT EXISTS SavedProjects (
     savedProjectID VARCHAR(36) NOT NULL UNIQUE,
     freelancerID INT NOT NULL,
     projectID INT NOT NULL,
-    notes VARCHAR(500) NULL,
-    folder VARCHAR(100) NOT NULL DEFAULT 'default',
+    notes TEXT NULL,
+    folder VARCHAR(255) NOT NULL DEFAULT 'default',
     priority ENUM('high','medium','low') NOT NULL DEFAULT 'medium',
     savedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
@@ -453,8 +455,8 @@ CREATE TABLE IF NOT EXISTS SavedProjects (
 CREATE TABLE IF NOT EXISTS Testimonials(
     id INT PRIMARY KEY AUTO_INCREMENT,
     userID INT NOT NULL,
-    fullName VARCHAR(80) NOT NULL,
-    roleTitle VARCHAR(80) NOT NULL,
+    fullName VARCHAR(255) NOT NULL,
+    roleTitle VARCHAR(255) NOT NULL,
     rating INT NOT NULL,
     comment TEXT NOT NULL,
     isPublished BOOLEAN NOT NULL DEFAULT FALSE,

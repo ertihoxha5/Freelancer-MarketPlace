@@ -4,12 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { registerUser } from '../apiServices';
 import Header from '../components/Header';
 
-const benefits = [
-  'Post projects with clear milestones and budgets',
-  'Choose your role and start collaborating immediately',
-  'Secure payments and full transparency on every step',
-];
-
 function Register() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -22,6 +16,12 @@ function Register() {
     confirmPassword: '',
     roleID: '',
   });
+
+  const benefits = [
+    'Post projects with clear milestones and budgets',
+    'Choose your role and start collaborating immediately',
+    'Secure payments and full transparency on every step',
+  ];
 
   const updateField = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }));

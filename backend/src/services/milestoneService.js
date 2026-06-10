@@ -1,5 +1,6 @@
 import * as milestoneRepository from "../repositories/milestoneRepository.js";
 import * as projectRepository from "../repositories/projectRepository.js";
+import * as auditRepository from "../repositories/auditRepository.js";
 import { releaseMilestoneFunds } from "./paymentService.js";
 import {
   pushNotification,
@@ -22,6 +23,11 @@ import {
   notFoundError,
   validationError,
 } from "../utils/errors.js";
+
+function toShortString(value) {
+  const str = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
+  return str.length > 500 ? str.slice(0, 500) + "..." : str;
+}
 
 function coercePositiveInt(value, label) {
   const num = Number(value);
@@ -161,6 +167,15 @@ export async function createMilestone(contractID, clientID, payload) {
     metadata: { contractID: contract.id, milestoneID: milestone.id },
   }).catch(() => {});
 
+  await auditRepository.insertAuditLog({
+    entity: "Milestone",
+    entityID: milestone.id,
+    actionPerformed: "create",
+    oldValue: null,
+    newValue: toShortString({ title, mDesc, amountPayable: amount, dueDate }),
+    userID: clientID,
+  }).catch(() => {});
+
   return milestone;
 }
 
@@ -214,6 +229,15 @@ export async function createProjectMilestone(projectID, freelancerID, payload) {
     comments,
     attachments,
   });
+
+  await auditRepository.insertAuditLog({
+    entity: "Milestone",
+    entityID: milestone.id,
+    actionPerformed: "create",
+    oldValue: null,
+    newValue: toShortString({ title, mDesc, budget: Number(budget), deadline }),
+    userID: freelancerID,
+  }).catch(() => {});
 
   return normalizeMilestoneRow(milestone);
 }
@@ -563,6 +587,16 @@ export async function updateMilestoneStatus(id, userID, role, payload) {
   }
 
   const refreshed = await milestoneRepository.getMilestoneById(milestoneId);
+
+  await auditRepository.insertAuditLog({
+    entity: "Milestone",
+    entityID: milestoneId,
+    actionPerformed: "update_status",
+    oldValue: toShortString(milestone.mStatus),
+    newValue: toShortString(refreshed?.mStatus || mStatus),
+    userID: userID,
+  }).catch(() => {});
+
   return normalizeMilestoneRow(refreshed ?? updated);
 }
 

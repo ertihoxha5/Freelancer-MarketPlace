@@ -327,7 +327,7 @@ function NotificationCard({ notif, processing, onMarkRead, onDelete }) {
           <button
             onClick={() => onMarkRead(notif.id)}
             disabled={processing}
-            title="Mark as read"
+            title=Mark as read
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 transition-colors"
           >
             ✓
@@ -336,7 +336,7 @@ function NotificationCard({ notif, processing, onMarkRead, onDelete }) {
         <button
           onClick={() => onDelete(notif.id)}
           disabled={processing}
-          title="Delete"
+          title=Delete
           className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-40 transition-colors"
         >
           ✕
@@ -356,7 +356,7 @@ function EmptyState({ filter }) {
   const messages = {
     all: {
       icon: "🔕",
-      title: "No notifications yet",
+      title: No notifications yet,
       desc: "You're all caught up! Notifications will appear here when there is project activity.",
     },
     unread: {

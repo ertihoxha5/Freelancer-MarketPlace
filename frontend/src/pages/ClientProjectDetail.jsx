@@ -3,7 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import { fetchClientApplications, fetchClientProject } from "../apiServices.js";
+import { exportCSV, exportJSON } from "../utils/export.js";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -21,6 +23,7 @@ function statusClass(status) {
 export default function ClientProjectDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [project, setProject] = useState(null);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,6 +160,80 @@ export default function ClientProjectDetail() {
                   {project.pDesc && (
                     <p className="mt-6 text-slate-600 whitespace-pre-wrap">{project.pDesc}</p>
                   )}
+
+                  {/* Phases (if the project was posted with structured phases) */}
+                  {Array.isArray(project.phases) && project.phases.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Project Phases</h4>
+                      <div className="space-y-2">
+                        {project.phases.map((ph, idx) => (
+                          <div key={idx} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                            <div className="font-medium text-slate-900">Phase {idx + 1}: {ph.title}</div>
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              {ph.deadline ? `Due: ${new Date(ph.deadline).toLocaleDateString()} ` : ""}
+                              {ph.budget ? `• Budget: $${ph.budget}` : ""}
+                            </div>
+                            {ph.description && <p className="mt-1 text-slate-600 text-sm">{ph.description}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* For multi-freelancer projects, link to the shared workspace (dashboard + workspace are the same) */}
+                  {project && project.maxFreelancers && project.maxFreelancers > 1 && project.acceptedCount >= 2 && (
+                    <div className="mt-4">
+                      <Link
+                        to={`/contracts/${project.contracts?.[0]?.id || ''}/workspace`} // one of the contracts; backend resolves to shared project workspace
+                        className="inline-flex items-center rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                      >
+                        Open Shared Project Workspace (for all {project.maxFreelancers} freelancers)
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Export the project + phases (csv, json, excel, pdf) */}
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rows = [project];
+                        exportCSV(rows, `project-${project.id}`);
+                      }}
+                      className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
+                    >
+                      Export CSV
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => exportJSON([project], `project-${project.id}`)}
+                      className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
+                    >
+                      Export JSON
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Simple xls via table for this project
+                        const html = `<table border="1"><tr><td>Title</td><td>${project.title}</td></tr><tr><td>Budget</td><td>${project.budget || ""}</td></tr><tr><td>Phases</td><td>${JSON.stringify(project.phases || [])}</td></tr></table>`;
+                        const blob = new Blob(["\ufeff", html], { type: "application/vnd.ms-excel" });
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `project-${project.id}.xls`;
+                        document.body.appendChild(a); a.click(); a.remove();
+                      }}
+                      className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
+                    >
+                      Export Excel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
+                    >
+                      Export PDF
+                    </button>
+                  </div>
                 </div>
 
                 {applications.length === 0 ? (

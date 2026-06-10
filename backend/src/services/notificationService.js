@@ -1,8 +1,5 @@
 import * as notificationRepository from "../repositories/notificationRepository.js";
-import { pushFreelancerNotification } from "./freelancerNotificationService.js";
 import { validationError } from "../utils/errors.js";
-
-export { pushFreelancerNotification };
 
 export async function getMyNotifications(userID) {
   return notificationRepository.getNotificationsByUserId(userID);
@@ -64,4 +61,14 @@ export async function pushToAllAdmins({ types, title, msg }) {
       ),
     );
   } catch {}
+}
+
+/**
+ * Compatibility wrapper so existing call sites that do
+ * `pushFreelancerNotification(...)` continue to work.
+ * Notifications for freelancers now use the exact same MySQL-backed
+ * logic/table as clients (no more separate Mongo collection for basic notifications).
+ */
+export async function pushFreelancerNotification({ types, receiverID, title, msg }) {
+  return pushNotification({ types, receiverID, title, msg });
 }

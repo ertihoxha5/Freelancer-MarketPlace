@@ -115,6 +115,18 @@ router.post(
   validateRequest({ body: testimonialSchemas.create }),
   testimonialController.createTestimonial,
 );
+router.get("/testimonials", testimonialController.getMyTestimonials);
+router.patch(
+  "/testimonials/:id",
+  validateRequest({ params: paramSchemas.id, body: testimonialSchemas.create }),
+  testimonialController.updateMyTestimonial,
+);
+router.delete(
+  "/testimonials/:id",
+  validateRequest({ params: paramSchemas.id }),
+  testimonialController.deleteMyTestimonial,
+);
+
 router.get(
   "/reviews",
   validateRequest({ query: querySchemas.reviewList }),

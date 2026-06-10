@@ -30,7 +30,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
 
 function toShortString(value) {
-  return String(value ?? "").slice(0, 20);
+  return String(value ?? "").slice(0, 255);
 }
 
 function coercePositiveInt(value, label) {
@@ -98,14 +98,18 @@ export async function updateMyApplicationStatus(
     };
   }
 
-  if (existing.propStatus !== "pending") {
-    throw conflictError("Only pending applications can change status.");
-  }
-
-  if (propStatus === "accepted") {
-    if (existing.projectStatus !== "pending") {
-      throw conflictError("Only pending projects can accept a proposal.");
+  if (propStatus === "accepted" && existing.propStatus !== "accepted") {
+    if (!["pending", "active"].includes(existing.projectStatus)) {
+      throw conflictError("Cannot accept proposals for projects in this status.");
     }
+
+    // Enforce maxFreelancers limit (only when newly accepting)
+    const acceptedCount = await projectRepository.getAcceptedProposalCount(existing.projectId);
+    const max = existing.maxFreelancers || 1; // from the application query (populated in getClientApplicationById)
+    if (acceptedCount >= max) {
+      throw conflictError(`You cannot hire more than ${max} freelancer(s) for this project (currently hired: ${acceptedCount}).`);
+    }
+
     validateStatusTransition(existing.projectStatus, "active");
   }
 
@@ -119,6 +123,15 @@ export async function updateMyApplicationStatus(
     if (!affected) {
       throw conflictError("Unable to update application status.");
     }
+
+    await auditRepository.insertAuditLog({
+      entity: "Application",
+      entityID: appId,
+      actionPerformed: propStatus,
+      oldValue: toShortString(existing.propStatus),
+      newValue: toShortString(propStatus),
+      userID: clientId,
+    });
   }
 
   // Notify the freelancer only when the application is accepted or rejected.
@@ -143,6 +156,15 @@ export async function updateMyApplicationStatus(
       });
       const rejectedApplications = workflow.rejectedApplications;
       contract = workflow.contract;
+
+      await auditRepository.insertAuditLog({
+        entity: "Application",
+        entityID: appId,
+        actionPerformed: "accepted",
+        oldValue: toShortString(existing.propStatus),
+        newValue: toShortString(propStatus),
+        userID: clientId,
+      });
 
       await Promise.allSettled(
         rejectedApplications.map((application) =>
@@ -419,6 +441,7 @@ export async function updateMyProfile(clientID, payload) {
         actionPerformed: "update",
         oldValue: toShortString(oldValue),
         newValue: toShortString(newValue),
+        userID: clientId,
       });
     }
   }
@@ -436,10 +459,8 @@ export async function updateMyProfile(clientID, payload) {
 }
 
 export async function createMyProject(payload) {
-  const { title, pDesc, budget, deadline, categoryID, maxFreelancers } = validate(
-    projectSchemas.clientCreateOrUpdate,
-    payload ?? {},
-  );
+  const validated = validate(projectSchemas.clientCreateOrUpdate, payload ?? {});
+  const { title, pDesc, budget, deadline, categoryID, maxFreelancers, phases, experienceLevel, skills, projectType } = validated;
   const { clientID } = payload ?? {};
 
   if (typeof clientID !== "number" || clientID <= 0) {
@@ -454,9 +475,22 @@ export async function createMyProject(payload) {
     categoryID: categoryID != null ? Number(categoryID) : null,
     clientID,
     maxFreelancers: Number(maxFreelancers) || 1,
+    phases: Array.isArray(phases) ? phases : [],
+    experienceLevel: experienceLevel || null,
+    skills: skills || null,
+    projectType: projectType || null,
   });
 
   const trimmedTitle = title.slice(0, 50);
+
+  await auditRepository.insertAuditLog({
+    entity: "Project",
+    entityID: project.id,
+    actionPerformed: "create",
+    oldValue: null,
+    newValue: toShortString({ title, pDesc, budget, deadline, maxFreelancers }),
+    userID: clientID,
+  });
 
   pushNotification({
     types: "system",
@@ -480,10 +514,8 @@ export async function updateMyProject(projectID, clientID, payload) {
     throw validationError("Valid client ID is required.");
   }
 
-  const { title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus } = validate(
-    projectSchemas.clientCreateOrUpdate,
-    payload ?? {},
-  );
+  const validated = validate(projectSchemas.clientCreateOrUpdate, payload ?? {});
+  const { title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus, phases, experienceLevel, skills, projectType } = validated;
 
   const existing = await projectRepository.getClientProjectById(
     projectId,
@@ -509,6 +541,10 @@ export async function updateMyProject(projectID, clientID, payload) {
     categoryID: categoryID != null ? Number(categoryID) : null,
     maxFreelancers: Number(maxFreelancers) || 1,
     pStatus: nextStatus,
+    phases: Array.isArray(phases) ? phases : undefined,
+    experienceLevel: experienceLevel !== undefined ? experienceLevel : undefined,
+    skills: skills !== undefined ? skills : undefined,
+    projectType: projectType !== undefined ? projectType : undefined,
   };
 
   const updated = await projectRepository.updateClientProject(
@@ -556,6 +592,7 @@ export async function updateMyProject(projectID, clientID, payload) {
       actionPerformed: "update",
       oldValue: toShortString(change.oldValue),
       newValue: toShortString(change.newValue),
+      userID: clientID,
     });
   }
 
@@ -606,6 +643,15 @@ export async function deleteMyProject(projectID, clientID) {
     projectID,
     clientID,
   );
+
+  await auditRepository.insertAuditLog({
+    entity: "Project",
+    entityID: projectID,
+    actionPerformed: "delete",
+    oldValue: toShortString(existing),
+    newValue: null,
+    userID: clientID,
+  });
 
   pushNotification({
     types: "system",

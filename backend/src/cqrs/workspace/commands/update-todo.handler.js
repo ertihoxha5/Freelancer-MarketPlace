@@ -3,7 +3,7 @@ import { notFoundError } from "../../../utils/errors.js";
 
 export class UpdateTodoHandler {
   async handle(command) {
-    const { todoId, contractID, title, description, dueDate, status } = command;
+    const { todoId, contractID, title, description, dueDate, status, projectID } = command;
 
     const sets = [];
     const values = [];
@@ -30,15 +30,27 @@ export class UpdateTodoHandler {
     }
 
     sets.push("updatedAt = NOW()");
-    values.push(todoId, contractID);
+    values.push(todoId);
 
-    const [result] = await db.execute(
-      `UPDATE WorkspaceTodos SET ${sets.join(", ")} WHERE id = ? AND contractID = ?`,
-      values
-    );
-
-    if (result.affectedRows === 0) {
-      throw notFoundError("Todo not found.");
+    // Support project scope for multi-freelancer shared workspace
+    if (projectID) {
+      values.push(projectID);
+      const [result] = await db.execute(
+        `UPDATE WorkspaceTodos SET ${sets.join(", ")} WHERE id = ? AND projectID = ?`,
+        values
+      );
+      if (result.affectedRows === 0) {
+        throw notFoundError("Todo not found.");
+      }
+    } else {
+      values.push(contractID);
+      const [result] = await db.execute(
+        `UPDATE WorkspaceTodos SET ${sets.join(", ")} WHERE id = ? AND contractID = ?`,
+        values
+      );
+      if (result.affectedRows === 0) {
+        throw notFoundError("Todo not found.");
+      }
     }
 
     const [rows] = await db.execute(`SELECT * FROM WorkspaceTodos WHERE id = ?`, [todoId]);

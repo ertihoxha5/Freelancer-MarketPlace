@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+
 import {
   fetchChatConversations,
   searchChatUsers,
@@ -340,7 +341,7 @@ export default function ClientMessages() {
                           : "Project chat"}
                       </p>
                       <p className="mt-1 text-xs text-slate-500 truncate">
-                        {conv.lastMessagePreview || "No messages yet"}
+                        {conv.lastMessagePreview || 'No messages yet'}
                       </p>
                     </button>
                   ))
@@ -361,7 +362,7 @@ export default function ClientMessages() {
                   className="flex-1 overflow-auto p-4 space-y-3"
                 >
                   {activeMessages.length === 0 ? (
-                    <p className="text-sm text-slate-500">No messages yet.</p>
+                    <p className="text-sm text-slate-500">No messages yet..</p>
                   ) : (
                     activeMessages.map((msg) => {
                       const mine = Number(msg.senderID) === Number(user?.id);

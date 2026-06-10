@@ -432,6 +432,58 @@ export function updateAdminDispute(id, payload) {
   });
 }
 
+/** GET /api/admin/audit-logs - fetch audit logs with filters */
+export async function fetchAdminAuditLogs(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const suffix = query ? `?${query}` : '';
+  return authedFetch(`${API_BASE}/api/admin/audit-logs${suffix}`);
+}
+
+/** DELETE /api/admin/audit-logs/:id */
+export async function deleteAdminAuditLog(id) {
+  return authedFetch(`${API_BASE}/api/admin/audit-logs/${id}`, {
+    method: "DELETE",
+  });
+}
+
+/** DELETE /api/admin/audit-logs (bulk old) */
+export async function deleteOldAdminAuditLogs(days = 90) {
+  return authedFetch(`${API_BASE}/api/admin/audit-logs?days=${days}`, {
+    method: "DELETE",
+  });
+}
+
+// 3 more admin CRUDS APIs
+export async function fetchAdminTestimonials(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return authedFetch(`${API_BASE}/api/admin/testimonials${q ? "?" + q : ""}`);
+}
+export async function updateAdminTestimonial(id, payload) {
+  return authedFetch(`${API_BASE}/api/admin/testimonials/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+export async function deleteAdminTestimonial(id) {
+  return authedFetch(`${API_BASE}/api/admin/testimonials/${id}`, { method: "DELETE" });
+}
+
+export async function fetchAdminReviews(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return authedFetch(`${API_BASE}/api/admin/reviews${q ? "?" + q : ""}`);
+}
+export async function updateAdminReview(id, payload) {
+  return authedFetch(`${API_BASE}/api/admin/reviews/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+export async function deleteAdminReview(id) {
+  return authedFetch(`${API_BASE}/api/admin/reviews/${id}`, { method: "DELETE" });
+}
+
+export async function fetchAdminMilestones(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return authedFetch(`${API_BASE}/api/admin/milestones${q ? "?" + q : ""}`);
+}
+export async function updateAdminMilestoneStatus(id, status) {
+  return authedFetch(`${API_BASE}/api/admin/milestones/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+}
+
 /** GET /api/admin/payments - all payments (admin) */
 export function fetchAdminPayments(params = {}) {
   const query = new URLSearchParams(params).toString();
@@ -1029,6 +1081,23 @@ export function createClientTestimonial(payload) {
   return authedFetch(`${API_BASE}/api/client/testimonials`, {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function fetchMyTestimonials() {
+  return authedFetch(`${API_BASE}/api/client/testimonials`);
+}
+
+export function updateClientTestimonial(id, payload) {
+  return authedFetch(`${API_BASE}/api/client/testimonials/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteClientTestimonial(id) {
+  return authedFetch(`${API_BASE}/api/client/testimonials/${id}`, {
+    method: "DELETE",
   });
 }
 

@@ -1,120 +1,17 @@
-import FreelancerNotification from "../models/FreelancerNotificationModel.js";
-import { notFoundError } from "../utils/errors.js";
+// Notifications for freelancers now use exactly the same logic and storage (MySQL Notifications table)
+// as client notifications. This eliminates the separate MongoDB collection for basic notifications
+// and the associated "bufferCommands" connection timing issues.
 
-const NOTIFICATION_CONFIG = {
-  message: {
-    icon: "message",
-    priority: "high",
-  },
-  system: {
-    icon: "bell",
-    priority: "medium",
-  },
-};
+import * as notificationService from "./notificationService.js";
 
-export async function getMyNotifications(userID) {
-  const notifications = await FreelancerNotification.find({
-    receiverID: Number(userID),
-  })
-    .sort({ createdAt: -1 })
-    .limit(50)
-    .lean();
+// Delegate all read/write operations to the shared client-style notification service/repository.
+export const getMyNotifications = notificationService.getMyNotifications;
+export const getMyUnreadCount = notificationService.getMyUnreadCount;
+export const markNotificationRead = notificationService.markNotificationRead;
+export const markAllNotificationsRead = notificationService.markAllNotificationsRead;
+export const deleteMyNotification = notificationService.deleteMyNotification;
+export const deleteAllMyNotifications = notificationService.deleteAllMyNotifications;
 
-  return notifications;
-}
-
-export async function getMyUnreadCount(userID) {
-  const count = await FreelancerNotification.countDocuments({
-    receiverID: Number(userID),
-    isRead: false,
-  });
-  return { count };
-}
-
-export async function markNotificationRead(id, userID) {
-  const notif = await FreelancerNotification.findOneAndUpdate(
-    { _id: id, receiverID: Number(userID) },
-    { $set: { isRead: true } },
-    { new: true },
-  );
-
-  if (!notif) {
-    throw notFoundError("Notification not found.");
-  }
-
-  return { id };
-}
-
-export async function markAllNotificationsRead(userID) {
-  const result = await FreelancerNotification.markAllReadForUser(
-    Number(userID),
-  );
-  return { affected: result.modifiedCount };
-}
-
-export async function deleteMyNotification(id, userID) {
-  const result = await FreelancerNotification.deleteOne({
-    _id: id,
-    receiverID: Number(userID),
-  });
-
-  if (result.deletedCount === 0) {
-    throw notFoundError("Notification not found.");
-  }
-
-  return { id };
-}
-
-export async function deleteAllMyNotifications(userID) {
-  const result = await FreelancerNotification.deleteMany({
-    receiverID: Number(userID),
-  });
-  return { affected: result.deletedCount };
-}
-
-/**
- * Create and send a freelancer notification in MongoDB.
- *
- * @param {{ types: 'system'|'message', receiverID: number, title: string, msg: string, metadata?: object }} payload
- */
-export async function pushFreelancerNotification({
-  types = "system",
-  receiverID,
-  title,
-  msg = null,
-  metadata = {},
-}) {
-  try {
-    const config = NOTIFICATION_CONFIG[types] || NOTIFICATION_CONFIG.system;
-
-    const notif = new FreelancerNotification({
-      receiverID: Number(receiverID),
-      types,
-      title: String(title).slice(0, 100),
-      msg: msg ? String(msg).slice(0, 500) : null,
-      isRead: false,
-      priority: config.priority,
-      icon: config.icon,
-      metadata: {
-        projectID: metadata.projectID ?? null,
-        projectTitle: metadata.projectTitle ?? null,
-        conversationID: metadata.conversationID ?? null,
-        senderName: metadata.senderName ?? null,
-        applicationID: metadata.applicationID ?? null,
-        contractID: metadata.contractID ?? null,
-        milestoneID: metadata.milestoneID ?? null,
-        reviewID: metadata.reviewID ?? null,
-        actionUrl: metadata.actionUrl ?? null,
-      },
-    });
-
-    await notif.save();
-    return notif;
-  } catch (err) {
-    console.error(
-      "Failed to create freelancer notification in MongoDB:",
-      err.message,
-    );
-    return null;
-  }
-}
+// Re-export the compatibility push (implemented in notificationService to avoid cycles
+// and to write to the unified MySQL table).
+export const { pushFreelancerNotification } = notificationService;

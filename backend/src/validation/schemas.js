@@ -217,7 +217,7 @@ export const authSchemas = {
 
 export const userSchemas = {
   register: z.object({
-    fullName: trimmedString("fullName", 50),
+    fullName: trimmedString("fullName", 255),
     email: z.string().trim().toLowerCase().email("Valid email is required."),
     password: strongPasswordSchema,
     roleID: z.coerce
@@ -231,7 +231,7 @@ export const userSchemas = {
 
 export const adminSchemas = {
   updateUser: z.object({
-    fullName: trimmedString("fullName", 50),
+    fullName: trimmedString("fullName", 255),
     roleID: z.coerce
       .number()
       .int()
@@ -247,10 +247,10 @@ export const adminSchemas = {
 
 export const catalogSchemas = {
   category: z.object({
-    cName: trimmedString("cName", 50).min(3, {
+    cName: trimmedString("cName", 255).min(3, {
       message: "cName must be at least 3 characters.",
     }),
-    cDesc: trimmedString("cDesc", 255),
+    cDesc: trimmedString("cDesc", 2000),
     slug: optionalTrimmedString(50, "slug"),
     iconUrl: optionalUrlString(255, "iconUrl"),
     parentCategoryID: positiveIntSchema("parentCategoryID").optional(),
@@ -273,7 +273,7 @@ export const catalogSchemas = {
       message: "Category order array must include at least one item.",
     }),
   skill: z.object({
-    skillName: trimmedString("skillName", 30),
+    skillName: trimmedString("skillName", 255),
     slug: optionalTrimmedString(30, "slug"),
     categoryID: positiveIntSchema("categoryID"),
     isActive: z.coerce.boolean().optional(),
@@ -375,6 +375,23 @@ export const projectSchemas = {
     categoryID: positiveIntSchema("categoryID").optional().nullable(),
     maxFreelancers: z.coerce.number().int().min(1).max(20).optional().default(1),
     pStatus: z.enum(["pending", "active", "completed", "cancelled"]).optional(),
+    // Optional structured project phases provided at post time
+    phases: z
+      .array(
+        z.object({
+          title: z.string().trim().max(100).optional().default(""),
+          deadline: nullableDateString,
+          budget: nullablePositiveMoney("Phase budget"),
+          description: z.string().trim().max(1000).optional().default(""),
+        }),
+      )
+      .max(10, "At most 10 phases allowed.")
+      .optional()
+      .default([]),
+    // Additional brief metadata
+    experienceLevel: z.enum(["Entry", "Intermediate", "Expert"]).optional().nullable(),
+    skills: optionalTrimmedString(300, "Skills"),
+    projectType: z.enum(["Fixed", "Hourly", "Milestone-based"]).optional().nullable(),
   }),
 };
 
@@ -421,16 +438,16 @@ export const settingsSchemas = {
 
 export const milestoneSchemas = {
   create: z.object({
-    title: trimmedString("Milestone title", 100),
-    mDesc: optionalTrimmedString(500, "Milestone description").default(""),
+    title: trimmedString("Milestone title", 255),
+    mDesc: optionalTrimmedString(2000, "Milestone description").default(""),
     amountPayable: z.coerce
       .number()
       .positive("Milestone amount must be greater than zero."),
     dueDate: nullableDateString,
   }),
   projectCreate: z.object({
-    title: trimmedString("Milestone title", 100),
-    mDesc: optionalTrimmedString(1000, "Milestone description").default(""),
+    title: trimmedString("Milestone title", 255),
+    mDesc: optionalTrimmedString(2000, "Milestone description").default(""),
     projectPhase: z
       .array(trimmedString("Project phase", 100))
       .max(30, "At most 30 project phases are allowed.")
@@ -529,7 +546,7 @@ export const contractSchemas = {
     contractID: positiveIntSchema("contract ID"),
   }),
   dispute: z.object({
-    reason: trimmedString("Dispute reason", 255).min(10, {
+    reason: trimmedString("Dispute reason", 2000).min(10, {
       message: "Dispute reason must be at least 10 characters.",
     }),
   }),
