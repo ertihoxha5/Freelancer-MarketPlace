@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import {
   fetchContractWorkspace,
   addWorkspaceTodo,
@@ -13,11 +14,12 @@ import {
   deleteWorkspaceSection,
 } from "../apiServices.js";
 import { FiEdit2, FiTrash2, FiEye, FiEyeOff, FiChevronUp, FiChevronDown, FiPlus, FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhoneOff } from "react-icons/fi";
-import { getSocket } from "../socket/socketClient";
+import { connectSocket, getSocket } from "../socket/socketClient";
 
 export default function ContractWorkspace() {
   const { id: contractID } = useParams();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,7 +46,11 @@ export default function ContractWorkspace() {
   const [showMeetingUI, setShowMeetingUI] = useState(false);
   const [isFloating, setIsFloating] = useState(false);
   const [meetingModalOpen, setMeetingModalOpen] = useState(false);
+  const [preJoinAudioOn, setPreJoinAudioOn] = useState(true);
+  const [preJoinVideoOn, setPreJoinVideoOn] = useState(true);
+  const [localStreamReady, setLocalStreamReady] = useState(false);
 
+  const previewVideoRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -189,6 +195,7 @@ export default function ContractWorkspace() {
   }
 
   async function moveSection(section, direction) {
+    const sections = data?.sections || [];
     const currentIndex = sections.findIndex((s) => s.id === section.id);
     if (currentIndex === -1) return;
 
@@ -199,7 +206,6 @@ export default function ContractWorkspace() {
     const target = sections[targetIndex];
 
     try {
-
       await Promise.all([
         updateWorkspaceSection(contractID, section.id, { sortOrder: target.sortOrder ?? currentIndex }),
         updateWorkspaceSection(contractID, target.id, { sortOrder: section.sortOrder ?? targetIndex }),
@@ -247,19 +253,110 @@ export default function ContractWorkspace() {
     }
   }
 
-  async function startLocalStream(videoConstraints = true) {
+  function attachStreamToVideo(videoRef, stream) {
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }
+
+  async function stopPreviewStream() {
+    if (previewVideoRef.current?.srcObject) {
+      previewVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      previewVideoRef.current.srcObject = null;
+    }
+  }
+
+  async function startPreviewStream() {
+    await stopPreviewStream();
+
+    if (!preJoinVideoOn) return null;
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: videoConstraints,
-        audio: true,
-      });
-      localStreamRef.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      attachStreamToVideo(previewVideoRef, stream);
       return stream;
     } catch (err) {
-      setMeetingError("Could not access camera/microphone. Please allow permissions.");
+      setPreJoinVideoOn(false);
+      setMeetingError("Camera is unavailable or blocked. You can still join and try turning it on later.");
+      return null;
+    }
+  }
+
+  // FUNKSIONI I RREGULLUAR PER KAMEREN - ME GARANCI QE PUNON
+  async function startLocalStream({ video = true, audio = true } = {}) {
+    console.log("=== STARTING LOCAL STREAM ===");
+    console.log("Video requested:", video, "Audio requested:", audio);
+    
+    try {
+      // Krijo constraints
+      const constraints = {};
+      if (video) constraints.video = { width: { ideal: 1280 }, height: { ideal: 720 } };
+      if (audio) constraints.audio = true;
+      
+      console.log("Constraints:", constraints);
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("Stream obtained successfully!");
+      console.log("Video tracks:", stream.getVideoTracks().length);
+      console.log("Audio tracks:", stream.getAudioTracks().length);
+      
+      // Aktivizo video track nese ekziston
+      if (stream.getVideoTracks().length > 0) {
+        const videoTrack = stream.getVideoTracks()[0];
+        videoTrack.enabled = true;
+        console.log("Video track enabled:", videoTrack.enabled);
+        setIsVideoOff(false);
+      } else if (video) {
+        console.log("No video track found");
+        setIsVideoOff(true);
+      }
+      
+      // Konfiguro audio track
+      if (stream.getAudioTracks().length > 0) {
+        const audioTrack = stream.getAudioTracks()[0];
+        audioTrack.enabled = !preJoinAudioOn;
+        setIsMuted(!preJoinAudioOn);
+        console.log("Audio track enabled:", audioTrack.enabled);
+      }
+      
+      localStreamRef.current = stream;
+      
+      // SIGUROHU QE VIDEO ELEMENTI E MERR STREAM-IN
+      if (localVideoRef.current) {
+        console.log("Attaching stream to localVideoRef");
+        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.onloadedmetadata = () => {
+          console.log("Video loadedmetadata event fired");
+          localVideoRef.current.play().catch(e => console.log("Play error:", e));
+        };
+      } else {
+        console.log("localVideoRef.current is null!");
+      }
+      
+      setLocalStreamReady(true);
+      return stream;
+      
+    } catch (err) {
+      console.error("Error in startLocalStream:", err);
+      setMeetingError("Could not access camera/microphone. Please check permissions.");
+      
+      // Provo vetem audio nese video deshton
+      if (video && !audio) {
+        try {
+          console.log("Trying audio only...");
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          localStreamRef.current = audioStream;
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = audioStream;
+          }
+          setIsVideoOff(true);
+          setMeetingError("Camera unavailable. Audio only mode.");
+          return audioStream;
+        } catch {
+          throw err;
+        }
+      }
+      
       throw err;
     }
   }
@@ -282,6 +379,7 @@ export default function ContractWorkspace() {
     };
 
     pc.ontrack = (event) => {
+      console.log("Got remote track:", event.track.kind);
       if (remoteVideoRef.current && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
@@ -293,9 +391,106 @@ export default function ContractWorkspace() {
   function joinMeeting() {
     setMeetingError('');
     setMeetingModalOpen(true);
-    setShowMeetingUI(true);
-    setIsCallActive(true);
     setMeetingChat([]);
+    setPreJoinVideoOn(true);
+    setPreJoinAudioOn(true);
+    setLocalStreamReady(false);
+    setTimeout(() => {
+      startPreviewStream();
+    }, 100);
+  }
+
+  // FUNKSIONI KRYESOR - FILLON MEETING DIREKT
+  async function startMeetingDirectly() {
+    console.log("=== STARTING MEETING DIRECTLY ===");
+    
+    setMeetingModalOpen(false);
+    setShowMeetingUI(true);
+    setIsJoiningMeeting(true);
+    setMeetingError('');
+
+    const socket = getSocket() || connectSocket();
+    if (!socket) {
+      setMeetingError('Realtime connection not available. Please refresh the page.');
+      setIsJoiningMeeting(false);
+      return;
+    }
+    socketRef.current = socket;
+
+    try {
+      // Fillo stream-in
+      console.log("Calling startLocalStream with video:", preJoinVideoOn, "audio:", preJoinAudioOn);
+      await startLocalStream({ video: preJoinVideoOn, audio: preJoinAudioOn });
+      console.log("Local stream started, stream ready:", localStreamReady);
+      
+      // Krijo peer connection
+      const pc = createPeerConnection();
+      peerConnectionRef.current = pc;
+
+      // Shto tracks
+      if (localStreamRef.current) {
+        console.log("Adding tracks to peer connection, track count:", localStreamRef.current.getTracks().length);
+        localStreamRef.current.getTracks().forEach((track) => {
+          console.log("Adding track:", track.kind, track.enabled);
+          pc.addTrack(track, localStreamRef.current);
+        });
+      }
+
+      // Setup listeners
+      setupSignalingListeners(pc, socket);
+
+      // Join room
+      const response = await new Promise((resolve, reject) => {
+        socket.emit('meeting:join', { contractID }, (response) => {
+          if (response?.ok) resolve(response);
+          else reject(new Error(response?.error || 'Failed to join meeting room'));
+        });
+      });
+
+      const participants = response.participants || [];
+      setMeetingParticipants(participants);
+      
+      // Dergo oferta
+      participants
+        .filter((participant) => Number(participant.userID) !== Number(user?.id))
+        .forEach((participant) => {
+          setRemoteUserName(participant.fullName || "Participant");
+          createAndSendOffer(pc, socket, participant.userID);
+        });
+
+      setIsInMeeting(true);
+      setIsCallActive(true);
+      setIsMuted(!preJoinAudioOn);
+      setIsVideoOff(!preJoinVideoOn);
+      
+      console.log("Meeting started successfully, isVideoOff:", !preJoinVideoOn);
+      
+    } catch (err) {
+      console.error('Start meeting error:', err);
+      setMeetingError(err.message || 'Failed to start the meeting. Check camera permissions.');
+      leaveMeeting();
+    } finally {
+      setIsJoiningMeeting(false);
+    }
+  }
+
+  async function togglePreJoinVideo() {
+    const next = !preJoinVideoOn;
+    setPreJoinVideoOn(next);
+    setMeetingError("");
+
+    if (next) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        attachStreamToVideo(previewVideoRef, stream);
+      } catch (err) {
+        console.error("Camera error:", err);
+        setPreJoinVideoOn(false);
+        setMeetingError("Camera is unavailable or blocked. Check browser permissions, then try again.");
+      }
+    } else {
+      await stopPreviewStream();
+    }
   }
 
   function setupSignalingListeners(pc, socket) {
@@ -335,10 +530,8 @@ export default function ContractWorkspace() {
 
     const onPeerJoined = ({ userID, fullName }) => {
       setRemoteUserName(fullName || "Participant");
-      const myID = Number(user?.id);
-      const theirID = Number(userID);
-      if (pc && !pc.remoteDescription && myID < theirID) {
-        createAndSendOffer(pc, socket, userID);
+      if (peerConnectionRef.current && socketRef.current) {
+        createAndSendOffer(peerConnectionRef.current, socketRef.current, userID);
       }
     };
 
@@ -352,7 +545,8 @@ export default function ContractWorkspace() {
     };
 
     const onChatMessage = (msg) => {
-      setMeetingChat((prev) => [...prev.slice(-50), msg]);
+      const normalized = { ...msg, isMe: Number(msg.userID) === Number(user?.id) };
+      setMeetingChat((prev) => [...prev.slice(-50), normalized]);
       setTimeout(() => {
         if (meetingChatRef.current) {
           meetingChatRef.current.scrollTop = meetingChatRef.current.scrollHeight;
@@ -409,7 +603,7 @@ export default function ContractWorkspace() {
 
         const pc = peerConnectionRef.current;
         if (pc && localStreamRef.current) {
-          const sender = pc.getSenders().find((s) => s.track.kind === "video");
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
           if (sender) await sender.replaceTrack(videoTrack);
         }
 
@@ -431,7 +625,7 @@ export default function ContractWorkspace() {
     const pc = peerConnectionRef.current;
     if (pc && localStreamRef.current) {
       const originalVideoTrack = localStreamRef.current.getVideoTracks()[0];
-      const sender = pc.getSenders().find((s) => s.track.kind === "video");
+      const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
       if (sender && originalVideoTrack) await sender.replaceTrack(originalVideoTrack);
     }
     setIsScreenSharing(false);
@@ -443,15 +637,6 @@ export default function ContractWorkspace() {
 
     const message = input.value.trim();
     socketRef.current.emit("meeting:chat-message", { contractID, message });
-
-    const myMsg = {
-      userID: user?.id,
-      fullName: user?.fullName || "You",
-      message,
-      timestamp: new Date().toISOString(),
-      isMe: true,
-    };
-    setMeetingChat((prev) => [...prev.slice(-50), myMsg]);
     input.value = "";
 
     setTimeout(() => {
@@ -468,31 +653,108 @@ export default function ContractWorkspace() {
       prompt("Copy this meeting link to invite:", link);
     });
 
-    const socket = getSocket();
+    const socket = getSocket() || connectSocket();
     if (socket) {
       socket.emit("meeting:invite", { contractID });
     }
   }
 
-  function toggleMute() {
-    if (!localStreamRef.current) return;
+  async function toggleMute() {
+    if (!localStreamRef.current) {
+      setMeetingError("Microphone not available yet.");
+      return;
+    }
+    
     const audioTrack = localStreamRef.current.getAudioTracks()[0];
     if (audioTrack) {
       audioTrack.enabled = !audioTrack.enabled;
       setIsMuted(!audioTrack.enabled);
+      return;
+    }
+
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const newTrack = audioStream.getAudioTracks()[0];
+      if (!newTrack) return;
+      localStreamRef.current.addTrack(newTrack);
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.addTrack(newTrack, localStreamRef.current);
+        const pc = peerConnectionRef.current;
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        meetingParticipants
+          .filter((participant) => Number(participant.userID) !== Number(user?.id))
+          .forEach((participant) => {
+            socketRef.current.emit("meeting:offer", {
+              contractID,
+              offer,
+              toUserID: participant.userID,
+            });
+          });
+      }
+      setIsMuted(false);
+    } catch (err) {
+      setMeetingError("Microphone is unavailable or blocked.");
     }
   }
 
-  function toggleVideo() {
-    if (!localStreamRef.current) return;
+  async function toggleVideo() {
+    console.log("Toggle video called, isVideoOff:", isVideoOff);
+    
+    if (!localStreamRef.current) {
+      setMeetingError("Camera not available yet.");
+      return;
+    }
+    
     const videoTrack = localStreamRef.current.getVideoTracks()[0];
     if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled;
-      setIsVideoOff(!videoTrack.enabled);
+      const newState = !videoTrack.enabled;
+      videoTrack.enabled = newState;
+      setIsVideoOff(!newState);
+      console.log("Video track enabled set to:", newState);
+      return;
+    }
+
+    // Shto video track nese nuk ka
+    try {
+      console.log("Adding new video track...");
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const newTrack = videoStream.getVideoTracks()[0];
+      if (!newTrack) return;
+      
+      localStreamRef.current.addTrack(newTrack);
+      
+      // Sigurohu qe video elementi e merr stream-in e ri
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+      
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.addTrack(newTrack, localStreamRef.current);
+        const pc = peerConnectionRef.current;
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        meetingParticipants
+          .filter((participant) => Number(participant.userID) !== Number(user?.id))
+          .forEach((participant) => {
+            socketRef.current.emit("meeting:offer", {
+              contractID,
+              offer,
+              toUserID: participant.userID,
+            });
+          });
+      }
+      setIsVideoOff(false);
+      setMeetingError("");
+      console.log("Video track added successfully");
+    } catch (err) {
+      console.error("Camera error:", err);
+      setMeetingError("Camera is unavailable or blocked. Check browser permissions, then try again.");
     }
   }
 
   function leaveMeeting() {
+    console.log("Leaving meeting...");
     const socket = socketRef.current;
 
     if (socket) {
@@ -520,6 +782,7 @@ export default function ContractWorkspace() {
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    stopPreviewStream();
 
     setIsInMeeting(false);
     setIsCallActive(false);
@@ -532,73 +795,9 @@ export default function ContractWorkspace() {
     setMeetingParticipants([]);
     setShowMeetingUI(false);
     setIsFloating(false);
+    setMeetingModalOpen(false);
+    setLocalStreamReady(false);
   }
-
-  useEffect(() => {
-    if (isCallActive && !localStreamRef.current) {
-      startMeetingProcess();
-    }
-  }, [isCallActive]);
-
-  async function startMeetingProcess() {
-    setIsJoiningMeeting(true);
-    setMeetingError('');
-
-    const socket = getSocket();
-    if (!socket) {
-      setMeetingError('Realtime connection not available. Please refresh the page.');
-      setIsCallActive(false);
-      setShowMeetingUI(false);
-      setIsJoiningMeeting(false);
-      return;
-    }
-    socketRef.current = socket;
-
-    try {
-
-      await new Promise(resolve => setTimeout(resolve, 80));
-
-      await startLocalStream();
-
-      await new Promise((resolve, reject) => {
-        socket.emit('meeting:join', { contractID }, (response) => {
-          if (response?.ok) {
-            if (response.participants) setMeetingParticipants(response.participants);
-            resolve();
-          } else {
-            reject(new Error(response?.error || 'Failed to join meeting room'));
-          }
-        });
-      });
-
-      const pc = createPeerConnection();
-      peerConnectionRef.current = pc;
-
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => {
-          pc.addTrack(track, localStreamRef.current);
-        });
-      }
-
-      setIsInMeeting(true);
-      setupSignalingListeners(pc, socket);
-
-    } catch (err) {
-      console.error('Start meeting process error:', err);
-      setMeetingError(err.message || 'Failed to start the meeting. Check camera permissions.');
-      leaveMeeting();
-    } finally {
-      setIsJoiningMeeting(false);
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      if (isInMeeting || isCallActive) {
-        leaveMeeting();
-      }
-    };
-  }, [isInMeeting, isCallActive]);
 
   const isMeetingInProgress = meetingParticipants.length > 0 || isCallActive;
 
@@ -681,7 +880,7 @@ export default function ContractWorkspace() {
             </div>
           )}
 
-          {}
+          {/* To-Do List Section */}
           <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-slate-900">To-Do List</h2>
@@ -766,88 +965,22 @@ export default function ContractWorkspace() {
             )}
           </section>
 
-          {}
+          {/* Video Meeting Section */}
           <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
                   <FiVideo className="h-5 w-5" /> Video Meeting
                 </h2>
-                {isMeetingInProgress && !isCallActive && (
+                {isMeetingInProgress && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-0.5 text-xs font-semibold text-emerald-700">
                     ● Meeting in progress ({meetingParticipants.length} here)
                   </span>
                 )}
-
-          {}
-          {meetingModalOpen && (
-            <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4">
-              <div className="bg-slate-950 text-white w-full max-w-5xl h-[88vh] rounded-2xl flex flex-col border border-white/10 overflow-hidden">
-                <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-slate-900">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">Video Meeting</span>
-                    <span className="text-sm text-emerald-400">Contract #{contractID}</span>
-                    {isJoiningMeeting && <span className="text-yellow-400 text-sm">Joining...</span>}
-                  </div>
-                  <button onClick={() => { leaveMeeting(); setMeetingModalOpen(false); }} className="px-4 py-1 bg-red-600 rounded text-sm">End Meeting</button>
-                </div>
-
-                <div className="flex-1 p-4 overflow-auto">
-                  {isJoiningMeeting ? (
-                    <div className="h-full flex flex-col items-center justify-center">
-                      <div className="animate-spin h-10 w-10 border-4 border-white border-t-transparent rounded-full mb-4"></div>
-                      <p>Starting video meeting...</p>
-                      <p className="text-xs text-white/60 mt-1">Allow camera and microphone access</p>
-                    </div>
-                  ) : (
-                    <div className="h-full flex flex-col">
-                      {}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                        <div className="bg-black rounded-xl overflow-hidden relative">
-                          <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
-                          <div className="absolute bottom-2 left-2 text-xs bg-black/70 px-2 py-0.5 rounded">You</div>
-                        </div>
-                        <div className="bg-black rounded-xl overflow-hidden relative">
-                          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                          <div className="absolute bottom-2 left-2 text-xs bg-black/70 px-2 py-0.5 rounded">{remoteUserName || "Other Party"}</div>
-                        </div>
-                      </div>
-
-                      {}
-                      <div className="flex justify-center gap-4 mt-4">
-                        <button onClick={toggleMute} className={`px-4 py-2 rounded-full text-sm ${isMuted ? 'bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}>{isMuted ? 'Unmute' : 'Mute'}</button>
-                        <button onClick={toggleVideo} className={`px-4 py-2 rounded-full text-sm ${isVideoOff ? 'bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}>{isVideoOff ? 'Show Video' : 'Hide Video'}</button>
-                        <button onClick={toggleScreenShare} className={`px-4 py-2 rounded-full text-sm ${isScreenSharing ? 'bg-blue-600' : 'bg-white/10 hover:bg-white/20'}`}>Share Screen</button>
-                        <button onClick={() => { leaveMeeting(); setMeetingModalOpen(false); }} className="px-4 py-2 bg-red-600 rounded-full text-sm">Leave</button>
-                      </div>
-
-                      {}
-                      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm flex-1 min-h-0">
-                        <div className="border border-white/10 rounded p-3">
-                          <div className="font-medium mb-2">Participants ({meetingParticipants.length})</div>
-                          {meetingParticipants.map((p, i) => <div key={i} className="text-xs">• {p.fullName}</div>)}
-                        </div>
-                        <div className="border border-white/10 rounded p-3 flex flex-col">
-                          <div className="font-medium mb-2">Chat</div>
-                          <div ref={meetingChatRef} className="flex-1 overflow-auto text-xs bg-black/30 p-2 rounded mb-2">
-                            {meetingChat.map((m, i) => <div key={i}><span className="text-emerald-300">{m.fullName}:</span> {m.message}</div>)}
-                          </div>
-                          <div className="flex gap-2">
-                            <input id="meeting-chat-input" className="flex-1 bg-white/10 text-sm px-2 rounded" placeholder="Message" onKeyDown={e => e.key === 'Enter' && sendMeetingChatMessage()} />
-                            <button onClick={sendMeetingChatMessage} className="bg-emerald-600 px-3 text-sm rounded">Send</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
               </div>
 
               <div className="flex items-center gap-2">
-                {!isCallActive && (
+                {!isCallActive && !isInMeeting && (
                   <>
                     <button
                       onClick={inviteToMeeting}
@@ -864,7 +997,7 @@ export default function ContractWorkspace() {
                     </button>
                   </>
                 )}
-                {isCallActive && (
+                {(isCallActive || isInMeeting) && (
                   <button
                     onClick={leaveMeeting}
                     className="flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
@@ -879,8 +1012,75 @@ export default function ContractWorkspace() {
               <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{meetingError}</div>
             )}
 
-            {}
-            {showMeetingUI && (
+            {/* Meeting Modal - Pre-join Lobby */}
+            {meetingModalOpen && (
+              <div className="fixed inset-0 z-[300] bg-[#202124] text-white">
+                <div className="mx-auto flex h-full max-w-6xl flex-col px-5 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-white/70">Contract #{contractID}</div>
+                    <button
+                      onClick={() => { stopPreviewStream(); setMeetingModalOpen(false); }}
+                      className="rounded-full px-4 py-2 text-sm text-white/80 hover:bg-white/10"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="grid flex-1 items-center gap-8 lg:grid-cols-[1.4fr_0.8fr]">
+                    <div className="overflow-hidden rounded-[28px] bg-[#111] shadow-2xl">
+                      <div className="relative aspect-video min-h-[320px]">
+                        {preJoinVideoOn ? (
+                          <video ref={previewVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-[#111]">
+                            <div className="flex h-28 w-28 items-center justify-center rounded-full bg-[#3c4043] text-4xl font-semibold">
+                              {(user?.fullName || "You").charAt(0).toUpperCase()}
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute bottom-4 left-4 rounded-full bg-black/60 px-3 py-1 text-sm">You</div>
+                        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-3">
+                          <button
+                            onClick={() => setPreJoinAudioOn((value) => !value)}
+                            className={`flex h-12 w-12 items-center justify-center rounded-full ${preJoinAudioOn ? "bg-[#3c4043] hover:bg-[#4b4f52]" : "bg-red-600 hover:bg-red-700"}`}
+                            title={preJoinAudioOn ? "Turn microphone off" : "Turn microphone on"}
+                          >
+                            {preJoinAudioOn ? <FiMic className="h-5 w-5" /> : <FiMicOff className="h-5 w-5" />}
+                          </button>
+                          <button
+                            onClick={togglePreJoinVideo}
+                            className={`flex h-12 w-12 items-center justify-center rounded-full ${preJoinVideoOn ? "bg-[#3c4043] hover:bg-[#4b4f52]" : "bg-red-600 hover:bg-red-700"}`}
+                            title={preJoinVideoOn ? "Turn camera off" : "Turn camera on"}
+                          >
+                            {preJoinVideoOn ? <FiVideo className="h-5 w-5" /> : <FiVideoOff className="h-5 w-5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-center lg:text-left">
+                      <h3 className="text-3xl font-medium">Ready to join?</h3>
+                      <p className="mt-3 text-sm leading-6 text-white/70">
+                        Check your camera and microphone before entering the workspace meeting.
+                      </p>
+                      {meetingError && (
+                        <div className="mt-5 rounded-xl bg-red-500/15 p-3 text-sm text-red-100">{meetingError}</div>
+                      )}
+                      <button
+                        onClick={startMeetingDirectly}
+                        disabled={isJoiningMeeting}
+                        className="mt-8 rounded-full bg-[#8ab4f8] px-8 py-3 text-sm font-semibold text-[#202124] hover:bg-[#a8c7fa] disabled:opacity-60"
+                      >
+                        {isJoiningMeeting ? "Joining..." : "Join now"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Active Meeting UI */}
+            {showMeetingUI && (isCallActive || isInMeeting) && !meetingModalOpen && (
               <div className={`mt-4 rounded-2xl border bg-slate-950 p-4 text-white ${isFloating ? 'fixed bottom-4 right-4 w-96 z-[200] shadow-2xl' : ''}`}>
                 <div className="flex items-center justify-between mb-3 px-2">
                   <div className="flex items-center gap-2 text-sm">
@@ -909,7 +1109,6 @@ export default function ContractWorkspace() {
                   </div>
                 ) : (
                   <>
-                    {}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                       <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
                         <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
@@ -923,7 +1122,6 @@ export default function ContractWorkspace() {
                       </div>
                     </div>
 
-                    {}
                     <div className="flex items-center justify-center gap-3 py-2 border-t border-white/10">
                       <button onClick={toggleMute} className={`p-3 rounded-full ${isMuted ? "bg-red-600" : "bg-white/10 hover:bg-white/20"}`}>
                         {isMuted ? <FiMicOff className="h-5 w-5" /> : <FiMic className="h-5 w-5" />}
@@ -939,7 +1137,6 @@ export default function ContractWorkspace() {
                       </button>
                     </div>
 
-                    {}
                     <div className="mt-4 grid grid-cols-1 lg:grid-cols-5 gap-4 text-sm">
                       <div className="lg:col-span-2 border border-white/10 rounded-xl p-3">
                         <div className="font-medium mb-2">Participants ({meetingParticipants.length})</div>
@@ -981,7 +1178,7 @@ export default function ContractWorkspace() {
             )}
           </section>
 
-          {}
+          {/* Freelancer CMS Section */}
           {isFreelancer && (
             <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between border-b pb-4">
@@ -1004,7 +1201,6 @@ export default function ContractWorkspace() {
                 </button>
               </div>
 
-              {}
               {isEditingMode && (
                 <div className="mb-6">
                   <div className="text-sm font-medium text-slate-700 mb-2">Add a content block</div>
@@ -1030,7 +1226,6 @@ export default function ContractWorkspace() {
                 </div>
               )}
 
-              {}
               {showAddSection && (
                 <form id="cms-add-form" onSubmit={handleAddSection} className="mb-6 rounded-xl border bg-slate-50 p-4">
                   <div className="flex items-center gap-2 mb-3 text-sm font-medium">
@@ -1118,7 +1313,6 @@ export default function ContractWorkspace() {
                 </form>
               )}
 
-              {}
               {sections.length === 0 ? (
                 <p className="text-sm text-slate-500">No content yet. Turn editing on and add your first block.</p>
               ) : (
@@ -1131,7 +1325,6 @@ export default function ContractWorkspace() {
                         key={section.id}
                         className={`rounded-2xl border bg-white transition ${!section.visible ? "opacity-70" : ""}`}
                       >
-                        {}
                         <div className="flex items-center justify-between border-b px-4 py-2.5 bg-slate-50 rounded-t-2xl">
                           <div className="flex items-center gap-2">
                             <span className="text-lg">
@@ -1144,7 +1337,6 @@ export default function ContractWorkspace() {
                             {!section.visible && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Hidden</span>}
                           </div>
 
-                          {}
                           {isEditingMode && (
                             <div className="flex items-center gap-1 text-slate-500">
                               <button
@@ -1189,7 +1381,6 @@ export default function ContractWorkspace() {
                           )}
                         </div>
 
-                        {}
                         <div className="p-4">
                           {!isEditing ? (
                             <div className="text-sm text-slate-700">
@@ -1217,7 +1408,6 @@ export default function ContractWorkspace() {
                               )}
                             </div>
                           ) : (
-
                             <div className="space-y-3">
                               <input
                                 value={editSectionData.title}
@@ -1314,7 +1504,7 @@ export default function ContractWorkspace() {
             </section>
           )}
 
-          {}
+          {/* Client View of Freelancer Updates */}
           {!isFreelancer && sections.length > 0 && (
             <section className="rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="mb-4 text-xl font-semibold text-slate-900">Freelancer Updates &amp; Notes</h2>

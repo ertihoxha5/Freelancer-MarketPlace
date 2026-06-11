@@ -221,27 +221,24 @@ export async function updateSection(req, res, next) {
 
     sets.push("updatedAt = NOW()");
     const projectID = await getProjectIDForWorkspace(contract);
+    let affectedRows = 0;
     if (projectID) {
       values.push(sectionId, projectID);
       const [result] = await db.execute(
         `UPDATE WorkspaceSections SET ${sets.join(", ")} WHERE id = ? AND projectID = ?`,
         values
       );
-      if (result.affectedRows === 0) {
-        throw notFoundError("Section not found.");
-      }
+      affectedRows = result.affectedRows;
     } else {
       values.push(sectionId, contract.id, contract.freelancerID);
       const [result] = await db.execute(
         `UPDATE WorkspaceSections SET ${sets.join(", ")} WHERE id = ? AND contractID = ? AND freelancerID = ?`,
         values
       );
-      if (result.affectedRows === 0) {
-        throw notFoundError("Section not found.");
-      }
+      affectedRows = result.affectedRows;
     }
 
-    if (result.affectedRows === 0) {
+    if (affectedRows === 0) {
       throw notFoundError("Section not found.");
     }
 

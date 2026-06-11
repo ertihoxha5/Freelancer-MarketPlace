@@ -15,6 +15,7 @@ export async function authenticateSocket(socket, next) {
         socket.user = {
             id: Number(user.id),
             email: user.email,
+            fullName: user.fullName,
             roleID: Number(user.roleID),
             tokenVersion: Number(user.tokenVersion),
         };

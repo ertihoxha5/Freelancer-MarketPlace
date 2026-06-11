@@ -3,25 +3,24 @@ export function registerMeetingHandlers({ io, socket }) {
   if (!global.meetingParticipants) {
     global.meetingParticipants = new Map();
   }
+  socket.data.meetingRooms = socket.data.meetingRooms || new Set();
 
   function getParticipants(room) {
-    return Array.from(global.meetingParticipants.get(room) || []);
+    return Array.from((global.meetingParticipants.get(room) || new Map()).values());
   }
 
   function updateParticipants(room, userID, fullName, action) {
     if (!global.meetingParticipants.has(room)) {
-      global.meetingParticipants.set(room, new Set());
+      global.meetingParticipants.set(room, new Map());
     }
     const participants = global.meetingParticipants.get(room);
 
     if (action === 'add') {
-      participants.add({ userID, fullName: fullName || `User ${userID}` });
+      participants.set(Number(userID), { userID: Number(userID), fullName: fullName || `User ${userID}` });
     } else if (action === 'remove') {
-      for (const p of participants) {
-        if (p.userID === userID) {
-          participants.delete(p);
-          break;
-        }
+      participants.delete(Number(userID));
+      if (participants.size === 0) {
+        global.meetingParticipants.delete(room);
       }
     }
 
@@ -34,6 +33,7 @@ export function registerMeetingHandlers({ io, socket }) {
     try {
       const room = `meeting:${contractID}`;
       socket.join(room);
+      socket.data.meetingRooms.add(room);
 
       const userID = socket.user.id;
       const fullName = socket.user.fullName || "User";
@@ -61,10 +61,19 @@ export function registerMeetingHandlers({ io, socket }) {
 
     updateParticipants(room, userID, null, 'remove');
     socket.leave(room);
+    socket.data.meetingRooms.delete(room);
 
     socket.to(room).emit("meeting:peer-left", {
       userID,
     });
+  });
+
+  socket.on("disconnect", () => {
+    const userID = socket.user.id;
+    for (const room of socket.data.meetingRooms || []) {
+      updateParticipants(room, userID, null, "remove");
+      socket.to(room).emit("meeting:peer-left", { userID });
+    }
   });
 
   socket.on("meeting:offer", ({ contractID, offer, toUserID }) => {

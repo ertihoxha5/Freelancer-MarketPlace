@@ -398,9 +398,13 @@ async function ensureWorkspaceSchema(pool) {
         FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE
       )
     `);
-  } else {
+  } else {
+    try {
+      await pool.query(`ALTER TABLE WorkspaceTodos MODIFY contractID INT NULL`);
+    } catch {}
+
     if (!(await columnExists(pool, "WorkspaceTodos", "projectID"))) {
-      await pool.query(`ALTER TABLE WorkspaceTodos ADD COLUMN projectID INT NULL AFTER contractID`);
+      await pool.query(`ALTER TABLE WorkspaceTodos ADD COLUMN projectID INT NULL AFTER contractID`);
       await pool.query(`
         UPDATE WorkspaceTodos wt
         JOIN Contracts c ON c.id = wt.contractID
@@ -433,6 +437,10 @@ async function ensureWorkspaceSchema(pool) {
       )
     `);
   } else {
+    try {
+      await pool.query(`ALTER TABLE WorkspaceSections MODIFY contractID INT NULL`);
+    } catch {}
+
     if (!(await columnExists(pool, "WorkspaceSections", "projectID"))) {
       await pool.query(`ALTER TABLE WorkspaceSections ADD COLUMN projectID INT NULL AFTER contractID`);
       await pool.query(`

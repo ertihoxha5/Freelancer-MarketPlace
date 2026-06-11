@@ -46,6 +46,7 @@ const translations = {
     client: 'Client',
     freelancer: 'Freelancer',
     login: 'Login',
+    sharedWorkspaceDesc: 'Shared project workspace for the client and all hired freelancers on this project.',
   },
   al: {
     home: 'Kryefaqja',
