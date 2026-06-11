@@ -97,9 +97,16 @@ export default function ProjectMilestones() {
   const isClient = Number(user?.roleID) === 2;
   const contractPage = isClient ? "/client/contracts" : "/freelancer/contracts";
   const paymentLink =
-    isClient && primaryMilestone
+    isClient && contract?.isFullySigned && primaryMilestone
       ? `/client/payment?contractId=${contract?.id}&milestoneId=${primaryMilestone.id}`
       : null;
+  const paymentMessage = !isClient
+    ? "Payment is handled by the client."
+    : !contract?.isFullySigned
+      ? "Both signatures are required before payment."
+      : !primaryMilestone
+        ? "Create a milestone before starting payment."
+        : "";
 
   const nextSteps = [
     {
@@ -129,7 +136,7 @@ export default function ProjectMilestones() {
           Go to payment page
         </Link>
       ) : (
-        <p className="text-sm text-slate-500">Payment is handled by the client after both signatures are complete.</p>
+        <p className="text-sm text-slate-500">{paymentMessage}</p>
       ),
     },
     {

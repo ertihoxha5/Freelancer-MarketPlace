@@ -424,6 +424,14 @@ export async function acceptProposalAndCreateContract({
       [applicationID, clientID, freelancerID, totalAmount ?? 0],
     );
 
+    await conn.execute(
+      `UPDATE Project
+       SET pStatus = 'active'
+       WHERE id = ?
+         AND pStatus = 'pending'`,
+      [projectID],
+    );
+
     const [contractRows] = await conn.execute(
       `${contractSelectSql("WHERE c.id = ?")} LIMIT 1`,
       [contractResult.insertId],
