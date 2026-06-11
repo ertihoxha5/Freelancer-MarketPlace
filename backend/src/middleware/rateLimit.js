@@ -41,9 +41,6 @@ export const authRefreshLimiter = rateLimit({
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Much more permissive in development to avoid "Too many requests." during testing,
-// multiple tab usage, rapid admin list loads (payments, applications, hired freelancers, search, etc.),
-// and import/export operations.
 const apiMax = isProduction
   ? Number(process.env.API_RATE_LIMIT_MAX) || 100
   : Number(process.env.API_RATE_LIMIT_MAX) || 2000;
@@ -54,6 +51,6 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many requests." },
-  // Skip rate limiting for admins in non-production (dev/staging convenience)
+
   skip: (req) => !isProduction && Number(req.user?.roleID) === 1,
 });

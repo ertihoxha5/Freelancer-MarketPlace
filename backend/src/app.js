@@ -35,21 +35,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.disable("x-powered-by");
-app.set("trust proxy", 1);
-
-// MongoDB connection is now explicitly awaited in server.js before listening
-// connectMongoDB();  // removed - must be awaited at startup
-
-// Request → RateLimit → Helmet → CORS → body/cookies → routes → CSRF (auth) → Validate → Controller
+app.set("trust proxy", 1);
 app.use(helmetMiddleware);
-app.use(corsMiddleware);
-
-// Webhook duhet të vijë PARA express.json() sepse Stripe dërgon raw body
+app.use(corsMiddleware);
 app.post(
   "/api/payment/webhook",
-  express.raw({ type: "application/json" }),
-  // webhook handler do ta shtojmë në paymentController
-  // Për momentin do ta vendosim më vonë pasi të kemi controller-in
+  express.raw({ type: "application/json" }),
 );
 
 app.use(express.json({ limit: "1mb" }));
@@ -101,9 +92,7 @@ app.use("/api/public", publicRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api", workspaceRoutes);
 
-app.use(csrfErrorHandler);
-
-// Error handler global
+app.use(csrfErrorHandler);
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   if (res.headersSent) {

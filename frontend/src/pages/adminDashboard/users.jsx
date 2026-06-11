@@ -141,8 +141,7 @@ export default function User() {
         setDeletingId(row.id);
         setError('');
         try {
-            await deleteAdminUser(row.id);
-            // Active list excludes inactive users, so remove it from current state.
+            await deleteAdminUser(row.id);
             setUsers((prev) => prev.filter((u) => u.id !== row.id));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to inactivate user.');
@@ -222,17 +221,12 @@ export default function User() {
         const fullName = (row.fullName || '').toLowerCase();
         const email = (row.email || '').toLowerCase();
         return fullName.includes(term) || email.includes(term);
-    });
-
-    // Apply advanced filters (role and created date range)
-    const advancedFiltered = filteredUsers.filter((row) => {
-        // Role filter
+    });
+    const advancedFiltered = filteredUsers.filter((row) => {
         if (filterRole !== 'all') {
             const roleId = String(row.roleID || row.roleId || '');
             if (roleId !== String(filterRole)) return false;
-        }
-
-        // Date range filter
+        }
         if (dateFrom) {
             const from = new Date(dateFrom);
             const created = new Date(row.createdAt);
@@ -240,8 +234,7 @@ export default function User() {
         }
         if (dateTo) {
             const to = new Date(dateTo);
-            const created = new Date(row.createdAt);
-            // include the whole day for the 'to' date
+            const created = new Date(row.createdAt);
             if (!Number.isNaN(to.getTime()) && !Number.isNaN(created.getTime())) {
                 const toEnd = new Date(to);
                 toEnd.setHours(23,59,59,999);

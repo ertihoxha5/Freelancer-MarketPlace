@@ -375,16 +375,12 @@ export async function acceptProposalAndCreateContract({
       const err = new Error("Unable to accept proposal. It may no longer be pending or the project limits have been reached.");
       err.statusCode = 409;
       throw err;
-    }
-
-    // Fetch maxFreelancers for this project
+    }
     const [projRows] = await conn.execute(
       `SELECT maxFreelancers FROM Project WHERE id = ?`,
       [projectID]
     );
-    const maxFreelancers = projRows[0]?.maxFreelancers || 1;
-
-    // Count how many are accepted now (after this one)
+    const maxFreelancers = projRows[0]?.maxFreelancers || 1;
     const [countRows] = await conn.execute(
       `SELECT COUNT(*) AS cnt FROM Proposal WHERE projectID = ? AND propStatus = 'accepted' AND isDeleted = FALSE`,
       [projectID]
@@ -392,8 +388,7 @@ export async function acceptProposalAndCreateContract({
     const acceptedNow = countRows[0].cnt;
 
     let rejectedApplications = [];
-    if (acceptedNow >= maxFreelancers) {
-      // Only reject remaining pending when the limit is reached
+    if (acceptedNow >= maxFreelancers) {
       const [rejRows] = await conn.execute(
         `SELECT
             id AS applicationID,
@@ -574,15 +569,13 @@ export async function getAllContractsForAdmin(params = {}) {
 
   const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
   const safePage = Math.max(parseInt(page, 10) || 1, 1);
-  const safeOffset = (safePage - 1) * safeLimit;
-
-  // Use template literals for LIMIT/OFFSET to avoid mysql2 ER_WRONG_ARGUMENTS
+  const safeOffset = (safePage - 1) * safeLimit;
   const sql = `${contractSelectSql(`WHERE ${where}`)} ORDER BY c.id DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
   const [rows] = await db.execute(sql, queryParams);
 
   const countSql = `
-    SELECT COUNT(*) as total 
-    FROM Contracts c 
+    SELECT COUNT(*) as total
+    FROM Contracts c
     INNER JOIN Proposal pr ON pr.id = c.proposalID
     INNER JOIN Project p ON p.id = pr.projectID
     INNER JOIN Users uc ON uc.id = c.clientID
@@ -696,9 +689,7 @@ export async function updateClientProject(
   clientID,
   { title, pDesc, budget, deadline, categoryID, maxFreelancers, pStatus, phases, experienceLevel, skills, projectType },
 ) {
-  const phasesJson = Array.isArray(phases) && phases.length > 0 ? JSON.stringify(phases) : null;
-
-  // Build dynamic SET for optional phase fields
+  const phasesJson = Array.isArray(phases) && phases.length > 0 ? JSON.stringify(phases) : null;
   const sets = [
     "title = ?",
     "pDesc = ?",
@@ -817,7 +808,7 @@ export async function getBrowseProjectsForFreelancer(
   }
 
   let query = `
-    SELECT 
+    SELECT
       p.id,
       p.title,
       p.pDesc,
@@ -952,7 +943,7 @@ export async function softDeleteApplicationForFreelancer(applicationID, freelanc
 
 export async function getMyApplications(freelancerID) {
     const [rows] = await db.execute(`
-        SELECT 
+        SELECT
             p.id AS projectId,
             p.title,
       p.pDesc,
@@ -991,7 +982,7 @@ export async function getAllProposals({ limit = 50, offset = 0, propStatus = nul
   }
 
   const [rows] = await db.execute(
-    `SELECT 
+    `SELECT
         pr.id AS proposalId,
         pr.projectID,
         pr.userID AS freelancerID,

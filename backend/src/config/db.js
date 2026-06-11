@@ -150,23 +150,14 @@ async function ensureUserAuthSchema(pool) {
   await pool.query(`
     UPDATE Users SET emailVerified = TRUE, emailVerifiedAt = COALESCE(emailVerifiedAt, NOW())
     WHERE emailVerified = FALSE
-  `);
-
-  // Extend lengths for user content
+  `);
   try { await pool.query(`ALTER TABLE Users MODIFY COLUMN fullName VARCHAR(255) NOT NULL`); } catch {}
-  try { await pool.query(`ALTER TABLE Users MODIFY COLUMN email VARCHAR(255) UNIQUE NOT NULL`); } catch {}
-
-  // Extend notification fields
+  try { await pool.query(`ALTER TABLE Users MODIFY COLUMN email VARCHAR(255) UNIQUE NOT NULL`); } catch {}
   try { await pool.query(`ALTER TABLE Notifications MODIFY COLUMN title VARCHAR(255) NOT NULL`); } catch {}
-  try { await pool.query(`ALTER TABLE Notifications MODIFY COLUMN msg TEXT`); } catch {}
-
-  // Profile fields
+  try { await pool.query(`ALTER TABLE Notifications MODIFY COLUMN msg TEXT`); } catch {}
   try { await pool.query(`ALTER TABLE Profiles MODIFY COLUMN bio TEXT`); } catch {}
-  try { await pool.query(`ALTER TABLE Profiles MODIFY COLUMN portofoliUrl VARCHAR(500)`); } catch {}
-
-  // Audit logs: add userID (the user who made the change)
-  if (!(await tableExists(pool, "AuditLogs"))) {
-    // created in schema.sql
+  try { await pool.query(`ALTER TABLE Profiles MODIFY COLUMN portofoliUrl VARCHAR(500)`); } catch {}
+  if (!(await tableExists(pool, "AuditLogs"))) {
   } else {
     if (!(await columnExists(pool, "AuditLogs", "userID"))) {
       await pool.query(`ALTER TABLE AuditLogs ADD COLUMN userID INT NULL AFTER newValue`);
@@ -259,9 +250,7 @@ async function ensureCategorySchema(pool) {
       ADD CONSTRAINT fk_categories_parent
       FOREIGN KEY (parentCategoryID) REFERENCES Categories(id) ON DELETE SET NULL
     `);
-  } catch {}
-
-  // Extend lengths
+  } catch {}
   try { await pool.query(`ALTER TABLE Categories MODIFY COLUMN cName VARCHAR(255) NOT NULL`); } catch {}
   try { await pool.query(`ALTER TABLE Categories MODIFY COLUMN cDesc TEXT NOT NULL`); } catch {}
   try { await pool.query(`ALTER TABLE Categories MODIFY COLUMN slug VARCHAR(255) NOT NULL`); } catch {}
@@ -387,14 +376,10 @@ async function ensureContractSchema(pool) {
       ALTER TABLE Contracts
       ADD COLUMN freelancerSignedAt DATETIME NULL
     `);
-  }
-
-  // Contracts.clientID and Contracts.freelancerID are expected to reference Users
-  // in fresh schemas. Existing databases may already have those constraints.
+  }
 }
 
-async function ensureWorkspaceSchema(pool) {
-  // Shared To-Do list for the contract workspace (freelancer manages, client views)
+async function ensureWorkspaceSchema(pool) {
   if (!(await tableExists(pool, "WorkspaceTodos"))) {
     await pool.query(`
       CREATE TABLE WorkspaceTodos (
@@ -413,11 +398,9 @@ async function ensureWorkspaceSchema(pool) {
         FOREIGN KEY (freelancerID) REFERENCES Users(id) ON DELETE CASCADE
       )
     `);
-  } else {
-    // Add projectID for shared project workspace when 2+ freelancers hired
+  } else {
     if (!(await columnExists(pool, "WorkspaceTodos", "projectID"))) {
-      await pool.query(`ALTER TABLE WorkspaceTodos ADD COLUMN projectID INT NULL AFTER contractID`);
-      // Backfill from contract -> proposal -> project (best effort)
+      await pool.query(`ALTER TABLE WorkspaceTodos ADD COLUMN projectID INT NULL AFTER contractID`);
       await pool.query(`
         UPDATE WorkspaceTodos wt
         JOIN Contracts c ON c.id = wt.contractID
@@ -426,9 +409,7 @@ async function ensureWorkspaceSchema(pool) {
         WHERE wt.projectID IS NULL
       `);
     }
-  }
-
-  // Freelancer's customizable CMS / sections for the workspace (dynamic, hideable without code changes)
+  }
   if (!(await tableExists(pool, "WorkspaceSections"))) {
     await pool.query(`
       CREATE TABLE WorkspaceSections (
@@ -461,8 +442,7 @@ async function ensureWorkspaceSchema(pool) {
         SET ws.projectID = pr.projectID
         WHERE ws.projectID IS NULL
       `);
-    }
-    // Update unique to project level for shared multi
+    }
     try {
       await pool.query(`ALTER TABLE WorkspaceSections DROP KEY uq_section`);
     } catch {}
@@ -516,9 +496,7 @@ async function ensureDisputeSchema(pool) {
       ADD CONSTRAINT fk_disputes_contract
       FOREIGN KEY (contractID) REFERENCES Contracts(id) ON DELETE CASCADE
     `);
-  } catch {}
-
-  // Extend lengths
+  } catch {}
   try { await pool.query(`ALTER TABLE Disputes MODIFY COLUMN reason TEXT NOT NULL`); } catch {}
   try { await pool.query(`ALTER TABLE Disputes MODIFY COLUMN resolution TEXT`); } catch {}
 }
@@ -563,8 +541,7 @@ async function ensureFilesSchema(pool) {
   }
 }
 
-async function ensureProjectPhasesSchema(pool) {
-  // Structured phases for client project posting + extra brief metadata
+async function ensureProjectPhasesSchema(pool) {
   if (!(await columnExists(pool, "Project", "phases"))) {
     await pool.query(`ALTER TABLE Project ADD COLUMN phases JSON NULL AFTER pDesc`);
   }
@@ -576,13 +553,10 @@ async function ensureProjectPhasesSchema(pool) {
   }
   if (!(await columnExists(pool, "Project", "projectType"))) {
     await pool.query(`ALTER TABLE Project ADD COLUMN projectType VARCHAR(30) NULL AFTER skills`);
-  }
-
-  // Enlarge pDesc to support detailed descriptions + phases (was too small at 255 chars)
+  }
   try {
     await pool.query(`ALTER TABLE Project MODIFY COLUMN pDesc TEXT`);
-  } catch (e) {
-    // Column may already be TEXT or larger; ignore
+  } catch (e) {
   }
 }
 
@@ -646,9 +620,7 @@ async function ensureTestimonialsSchema(pool) {
         FOREIGN KEY (userID) REFERENCES Users(id) ON DELETE CASCADE
       )
     `);
-  }
-
-  // Extend lengths
+  }
   try { await pool.query(`ALTER TABLE Testimonials MODIFY COLUMN fullName VARCHAR(255) NOT NULL`); } catch {}
   try { await pool.query(`ALTER TABLE Testimonials MODIFY COLUMN roleTitle VARCHAR(255) NOT NULL`); } catch {}
 }
@@ -727,9 +699,7 @@ async function ensureSavedProjectsSchema(pool) {
         ADD UNIQUE KEY unique_save (freelancerID, projectID)
       `);
     } catch {}
-  }
-
-  // Extend lengths
+  }
   try { await pool.query(`ALTER TABLE SavedProjects MODIFY COLUMN notes TEXT NULL`); } catch {}
   try { await pool.query(`ALTER TABLE SavedProjects MODIFY COLUMN folder VARCHAR(255) NOT NULL DEFAULT 'default'`); } catch {}
 }
@@ -744,9 +714,7 @@ async function ensureBusinessEntitySchema(pool) {
   await pool.query(`
     ALTER TABLE Review
     MODIFY comment TEXT NOT NULL
-  `);
-
-  // Upgrade Review table for full features (title, tags, rating as TINYINT, soft delete, etc.)
+  `);
   if (!(await columnExists(pool, "Review", "title"))) {
     await pool.query(`ALTER TABLE Review ADD COLUMN title VARCHAR(100) NULL AFTER stars`);
   }
@@ -764,18 +732,14 @@ async function ensureBusinessEntitySchema(pool) {
   }
   if (!(await columnExists(pool, "Review", "deletedAt"))) {
     await pool.query(`ALTER TABLE Review ADD COLUMN deletedAt DATETIME NULL AFTER updatedAt`);
-  }
-  // Change stars to TINYINT if it's still ENUM (data safe since values 1-5)
+  }
   try {
     await pool.query(`
-      ALTER TABLE Review 
+      ALTER TABLE Review
       MODIFY COLUMN stars TINYINT NOT NULL CHECK (stars BETWEEN 1 AND 5)
     `);
-  } catch (e) {
-    // ignore if already changed or constraint not supported in old MySQL
-  }
-
-  // SavedReports table for dynamic admin reports (task 7)
+  } catch (e) {
+  }
   if (!(await tableExists(pool, "SavedReports"))) {
     await pool.query(`
       CREATE TABLE SavedReports (
@@ -895,9 +859,7 @@ async function ensureMilestoneSchema(pool) {
       ADD CONSTRAINT fk_milestones_project
       FOREIGN KEY (projectID) REFERENCES Project(id) ON DELETE SET NULL
     `);
-  } catch {}
-
-  // Extend lengths for milestone content
+  } catch {}
   try { await pool.query(`ALTER TABLE Milestones MODIFY COLUMN title VARCHAR(255) NOT NULL`); } catch {}
   try { await pool.query(`ALTER TABLE Milestones MODIFY COLUMN mDesc TEXT NOT NULL`); } catch {}
 }
@@ -909,23 +871,17 @@ async function ensurePaymentSchema(pool) {
     : false;
   const hasStripeColumn = paymentTableExists
     ? await columnExists(pool, "Payment", "stripePaymentIntentId")
-    : false;
-
-  // Legacy migration: old stripe-based Payment table -> archive to legacy (if we don't already have one)
+    : false;
   if (paymentTableExists && hasStripeColumn && !hasTransactionId) {
     const legacyExists =
       (await tableExists(pool, "Payment_legacy")) ||
       (await tableExists(pool, "payment_legacy"));
 
-    if (legacyExists) {
-      // We already have a legacy copy. Do not drop/rename the current Payment (it may have FK dependents
-      // like MilestonePayment). Instead, just extend the existing table with the modern columns.
+    if (legacyExists) {
       console.info(
         "[db] Payment_legacy already exists — extending current Payment table with transactionID/notes (non-destructive)."
-      );
-      // Leave paymentTableExists=true; the upgrade block below will add the missing columns.
-    } else {
-      // First time we see a pure old stripe Payment: safely archive it.
+      );
+    } else {
       try {
         await pool.query("RENAME TABLE Payment TO Payment_legacy");
         paymentTableExists = false;
@@ -940,8 +896,7 @@ async function ensurePaymentSchema(pool) {
     }
   }
 
-  if (!paymentTableExists) {
-    // Ensure clean state before create (defensive against partial previous runs or name collisions)
+  if (!paymentTableExists) {
     await pool.query("DROP TABLE IF EXISTS Payment");
     await pool.query(`
       CREATE TABLE Payment(
@@ -972,15 +927,11 @@ async function ensurePaymentSchema(pool) {
       )
     `);
     paymentTableExists = true;
-  }
-
-  // Upgrade existing Payment table (from schema.sql or partial state) to include transactionID + notes
-  // Use fresh column checks so this is safe even after we just created the table in this run.
+  }
   if (paymentTableExists) {
     const currentHasTransactionId = await columnExists(pool, "Payment", "transactionID");
 
-    if (!currentHasTransactionId) {
-      // Add transactionID if missing
+    if (!currentHasTransactionId) {
       try {
         await pool.query(`
           ALTER TABLE Payment
@@ -992,26 +943,20 @@ async function ensurePaymentSchema(pool) {
           ALTER TABLE Payment
           ADD UNIQUE KEY uq_payment_transaction (transactionID)
         `);
-      } catch {}
-
-      // Add notes if missing
+      } catch {}
       try {
         await pool.query(`
           ALTER TABLE Payment
           ADD COLUMN notes TEXT NULL AFTER transactionID
         `);
       } catch {}
-    }
-
-    // Ensure amount is DECIMAL(12,2) (upgrade from older INT versions)
+    }
     try {
       await pool.query(`
         ALTER TABLE Payment
         MODIFY COLUMN amount DECIMAL(12,2) NOT NULL
       `);
-    } catch {}
-
-    // Ensure currency default is uppercase USD for consistency
+    } catch {}
     try {
       await pool.query(`
         ALTER TABLE Payment
@@ -1038,8 +983,7 @@ async function ensurePaymentSchema(pool) {
         INDEX idx_milestone_payment_status (pStatus)
       )
     `);
-  } else {
-    // Upgrade MilestonePayment amount to DECIMAL if needed
+  } else {
     try {
       await pool.query(`
         ALTER TABLE MilestonePayment

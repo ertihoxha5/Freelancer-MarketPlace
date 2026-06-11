@@ -180,7 +180,7 @@ export default function ClientContracts() {
       try {
         await confirmPayment(paymentIntentId);
       } catch {
-        /* may have been confirmed already */
+
       }
     }
     const contractId = payContract?.id;
@@ -252,7 +252,7 @@ export default function ClientContracts() {
             {loading ? <div className="rounded-lg border p-6 text-slate-500">Loading contracts...</div> : null}
             {!loading && contracts.length === 0 ? (
               <EmptyState
-                title=No contracts yet
+                title="No contracts yet"
                 description="Accepted proposals will appear here as active contracts."
               />
             ) : null}

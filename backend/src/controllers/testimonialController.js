@@ -60,4 +60,3 @@ export async function deleteMyTestimonial(req, res, next) {
     next(err);
   }
 }
-

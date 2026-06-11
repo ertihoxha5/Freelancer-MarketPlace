@@ -125,7 +125,7 @@ export default function FreelancerPayments() {
               </div>
             ) : null}
 
-            {/* Summary Cards */}
+            {}
             <div className="mb-8 grid gap-4 md:grid-cols-3">
               <div className="rounded-lg border border-slate-200 bg-white p-6">
                 <p className="text-sm font-medium text-slate-600">Total Earnings</p>
@@ -148,7 +148,7 @@ export default function FreelancerPayments() {
               </div>
             </div>
 
-            {/* Filter Bar */}
+            {}
             <div className="mb-6 flex flex-wrap gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -169,7 +169,7 @@ export default function FreelancerPayments() {
               </div>
             </div>
 
-            {/* Payments Table */}
+            {}
             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
               {loading ? (
                 <div className="p-8 text-center">
@@ -267,7 +267,7 @@ export default function FreelancerPayments() {
         </div>
       </main>
 
-      {/* Detail Modal */}
+      {}
       {detailOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/10 backdrop-blur-md p-4">
           <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg max-h-96 overflow-y-auto">

@@ -21,11 +21,8 @@ const Contact = () => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    // Këtu mund të shtosh logjikën e dërgimit të email-it më vonë
-    setSubmitted(true);
-    
-    // Reset form after submit
+    e.preventDefault();
+    setSubmitted(true);
     setTimeout(() => {
       setFormData({ name: '', email: '', subject: '', message: '' });
       setSubmitted(false);
@@ -45,7 +42,7 @@ const Contact = () => {
             We're here to help
           </h1>
           <p className="mt-6 text-xl text-white/80 max-w-2xl mx-auto">
-            Have questions about the platform, projects, or how we can support you? 
+            Have questions about the platform, projects, or how we can support you?
             Our team is ready to assist you.
           </p>
         </div>
@@ -53,7 +50,7 @@ const Contact = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-24">
         <div className="grid lg:grid-cols-5 gap-16">
-          
+
           <div className="lg:col-span-2 space-y-10">
             <div>
               <h2 className="text-3xl font-semibold text-slate-900 mb-8">Contact Information</h2>

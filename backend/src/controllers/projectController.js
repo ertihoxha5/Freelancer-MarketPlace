@@ -116,9 +116,9 @@ export async function createApplication(req, res, next) {
             projectId,
             validatedBody(req),
         );
-        return res.status(201).json({ 
-            message: "Application submitted successfully.", 
-            ...result 
+        return res.status(201).json({
+            message: "Application submitted successfully.",
+            ...result
         });
     } catch (err) {
         if (err.statusCode) return res.status(err.statusCode).json({ message: err.message });

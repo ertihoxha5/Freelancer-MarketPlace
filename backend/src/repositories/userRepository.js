@@ -98,10 +98,10 @@ export async function changePassword({id, passwordHash}){
             'UPDATE Users SET passwordHash = ?, tokenVersion = tokenVersion + 1 WHERE id = ? AND isActive = TRUE',
             [passwordHash, id],
         );
-        
+
         if (result.affectedRows === 0) {
             const err = new Error('No matching user to update.');
-            err.statusCode = 404; 
+            err.statusCode = 404;
             throw err;
         }
         const user = await findUserWithRoleById(id);

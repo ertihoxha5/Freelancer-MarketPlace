@@ -39,9 +39,9 @@ async function getContractForWorkspace(req) {
 }
 
 async function getProjectIDForWorkspace(contract) {
-  // Resolve projectID for shared workspace on multi-freelancer projects
+
   if (contract.projectID) return contract.projectID;
-  // Fallback: contract has proposalID usually
+
   if (contract.proposalID || contract.proposalId) {
     const pid = contract.proposalID || contract.proposalId;
     const [rows] = await db.execute(
@@ -73,7 +73,7 @@ export async function getWorkspace(req, res, next) {
       },
       isFreelancer,
       projectID,
-      isMultiFreelancerProject: !!projectID, // frontend can use this to treat as shared project dashboard/workspace
+      isMultiFreelancerProject: !!projectID,
       todos: workspaceData.todos,
       sections: workspaceData.sections,
     });
@@ -82,7 +82,6 @@ export async function getWorkspace(req, res, next) {
   }
 }
 
-// ========== TODOS (Freelancer manages, client reads) ==========
 export async function addTodo(req, res, next) {
   try {
     const contract = await getContractForWorkspace(req);
@@ -150,9 +149,6 @@ export async function deleteTodo(req, res, next) {
   }
 }
 
-// ========== CMS SECTIONS (Freelancer only - dynamic add/hide without code changes) ==========
-// NOTE: These are partially migrated to CQRS. See cqrs/workspace/commands for AddSectionCommand.
-// UpdateSection and DeleteSection still use direct DB for now - can be extracted similarly.
 export async function addSection(req, res, next) {
   try {
     const contract = await getContractForWorkspace(req);
@@ -176,7 +172,6 @@ export async function addSection(req, res, next) {
       )
     );
 
-    // Re-fetch using query bus for fresh data (CQRS separation)
     const workspaceData = await queryBus.execute(
       new GetWorkspaceQuery(contract.id, true, contract.freelancerID, projectID)
     );
@@ -250,7 +245,6 @@ export async function updateSection(req, res, next) {
       throw notFoundError("Section not found.");
     }
 
-    // Re-fetch using query bus (CQRS)
     const workspaceData = await queryBus.execute(
       new GetWorkspaceQuery(contract.id, true, contract.freelancerID, projectID)
     );
@@ -293,7 +287,6 @@ export async function deleteSection(req, res, next) {
       );
     }
 
-    // Re-fetch using query bus (CQRS)
     const workspaceData = await queryBus.execute(
       new GetWorkspaceQuery(contract.id, true, contract.freelancerID, projectID)
     );
@@ -315,6 +308,3 @@ export async function deleteSection(req, res, next) {
     next(err);
   }
 }
-
-// Note: Workspace read/write operations have been migrated to CQRS (see cqrs/workspace/*)
-// The old getWorkspaceData helper has been removed in favor of QueryBus + CommandBus.

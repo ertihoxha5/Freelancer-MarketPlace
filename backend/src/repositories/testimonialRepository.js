@@ -58,7 +58,7 @@ export async function getTestimonialsByUser(userID) {
 
 export async function updateTestimonial(id, userID, { fullName, roleTitle, rating, comment }) {
   const [result] = await db.execute(
-    `UPDATE Testimonials 
+    `UPDATE Testimonials
      SET fullName = ?, roleTitle = ?, rating = ?, comment = ?
      WHERE id = ? AND userID = ?`,
     [fullName, roleTitle, rating, comment, id, userID],
@@ -74,4 +74,3 @@ export async function deleteTestimonial(id, userID) {
   );
   return result.affectedRows > 0;
 }
-

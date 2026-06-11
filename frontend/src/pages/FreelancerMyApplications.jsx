@@ -285,7 +285,7 @@ export default function FreelancerMyApplications() {
 															<p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.coverLetter || "-"}</p>
 														</td>
 														<td className="px-4 py-4 text-slate-700">{item.clientName || "-"}</td>
-														
+
 														<td className="px-4 py-4 text-slate-700">
 															{item.bidAmount != null ? `$${Number(item.bidAmount).toLocaleString()}` : "-"}
 														</td>

@@ -22,19 +22,15 @@ export default function ContractWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Todo form (freelancer)
   const [newTodo, setNewTodo] = useState({ title: "", description: "", dueDate: "", status: "todo" });
 
-  // Section CMS (freelancer)
   const [showAddSection, setShowAddSection] = useState(false);
   const [newSection, setNewSection] = useState({ title: "", type: "note", content: "", items: [] });
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [editSectionData, setEditSectionData] = useState(null);
 
-  // Moodle-style editing mode for the CMS
   const [isEditingMode, setIsEditingMode] = useState(false);
 
-  // WebRTC Meeting state (Google Meet-like)
   const [isInMeeting, setIsInMeeting] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
   const [isJoiningMeeting, setIsJoiningMeeting] = useState(false);
@@ -57,12 +53,10 @@ export default function ContractWorkspace() {
   const socketRef = useRef(null);
   const meetingChatRef = useRef(null);
 
-  // language context removed - navbar only
   const isFreelancer = data?.isFreelancer;
   const isMulti = data?.isMultiFreelancerProject;
   const projectID = data?.projectID;
 
-  // Banner to indicate shared project workspace for 2+ freelancers
   const SharedBanner = isMulti ? (
     <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
       This is the <strong>shared project workspace</strong> for all hired freelancers and the client on this project. Changes are visible to everyone.
@@ -87,7 +81,6 @@ export default function ContractWorkspace() {
     if (contractID) loadWorkspace();
   }, [contractID]);
 
-  // ========== TODOS ==========
   async function handleAddTodo(e) {
     e.preventDefault();
     if (!newTodo.title.trim()) return;
@@ -119,7 +112,6 @@ export default function ContractWorkspace() {
     }
   }
 
-  // ========== CMS SECTIONS ==========
   async function handleAddSection(e) {
     e.preventDefault();
     if (!newSection.title.trim()) return;
@@ -164,7 +156,6 @@ export default function ContractWorkspace() {
         visible: editSectionData.visible,
       };
 
-      // Only send items for checklist sections
       if (editSectionData.type === "checklist" && Array.isArray(editSectionData.items)) {
         updatePayload.items = editSectionData.items;
       }
@@ -197,7 +188,6 @@ export default function ContractWorkspace() {
     }
   }
 
-  // Moodle-like: move section up/down (updates sortOrder)
   async function moveSection(section, direction) {
     const currentIndex = sections.findIndex((s) => s.id === section.id);
     if (currentIndex === -1) return;
@@ -209,7 +199,7 @@ export default function ContractWorkspace() {
     const target = sections[targetIndex];
 
     try {
-      // Swap sort orders
+
       await Promise.all([
         updateWorkspaceSection(contractID, section.id, { sortOrder: target.sortOrder ?? currentIndex }),
         updateWorkspaceSection(contractID, target.id, { sortOrder: section.sortOrder ?? targetIndex }),
@@ -220,7 +210,6 @@ export default function ContractWorkspace() {
     }
   }
 
-  // Quick add from Moodle-style chooser
   function addContentBlock(type) {
     const defaultTitles = {
       note: "New Note",
@@ -235,15 +224,14 @@ export default function ContractWorkspace() {
       content: "",
       items: type === "checklist" ? [{ text: "", done: false }] : [],
     });
-    setShowAddSection(true); // show the form
-    // Scroll to form if needed (simple)
+    setShowAddSection(true);
+
     setTimeout(() => {
       const form = document.getElementById("cms-add-form");
       if (form) form.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 50);
   }
 
-  // Live toggle checklist item (nice for CMS, not just CRUD)
   async function toggleChecklistItem(section, itemIndex) {
     if (!Array.isArray(section.items)) return;
 
@@ -259,7 +247,6 @@ export default function ContractWorkspace() {
     }
   }
 
-  // ==================== WebRTC Meeting Functions (Google Meet style) ====================
   async function startLocalStream(videoConstraints = true) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -305,9 +292,9 @@ export default function ContractWorkspace() {
 
   function joinMeeting() {
     setMeetingError('');
-    setMeetingModalOpen(true);  // Open the meeting like a Google Meet window
+    setMeetingModalOpen(true);
     setShowMeetingUI(true);
-    setIsCallActive(true);   // This will trigger the useEffect that starts media + signaling
+    setIsCallActive(true);
     setMeetingChat([]);
   }
 
@@ -413,7 +400,6 @@ export default function ContractWorkspace() {
     }
   }
 
-  // Screen sharing
   async function toggleScreenShare() {
     try {
       if (!isScreenSharing) {
@@ -473,7 +459,6 @@ export default function ContractWorkspace() {
     }, 10);
   }
 
-  // Invitation - copy link + notify
   function inviteToMeeting() {
     const link = `${window.location.origin}/contracts/${contractID}/workspace`;
     navigator.clipboard.writeText(link).then(() => {
@@ -549,7 +534,6 @@ export default function ContractWorkspace() {
     setIsFloating(false);
   }
 
-  // Start media + signaling only after the meeting UI is rendered (fixes ref not ready)
   useEffect(() => {
     if (isCallActive && !localStreamRef.current) {
       startMeetingProcess();
@@ -571,7 +555,7 @@ export default function ContractWorkspace() {
     socketRef.current = socket;
 
     try {
-      // Give React a moment to render the <video> elements
+
       await new Promise(resolve => setTimeout(resolve, 80));
 
       await startLocalStream();
@@ -608,7 +592,6 @@ export default function ContractWorkspace() {
     }
   }
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (isInMeeting || isCallActive) {
@@ -658,8 +641,8 @@ export default function ContractWorkspace() {
             <div>
               <h1 className="text-3xl font-semibold text-slate-900">{isMulti ? 'Shared Project Workspace' : 'Contract Workspace'}</h1>
               <p className="mt-1 text-slate-600">
-                {isMulti 
-                  ? (t('sharedWorkspaceDesc') || "Shared project workspace for the client and all hired freelancers on this project.") 
+                {isMulti
+                  ? (t('sharedWorkspaceDesc') || "Shared project workspace for the client and all hired freelancers on this project.")
                   : `Private collaboration space for ${isFreelancer ? "you and the client" : "you and the freelancer"}`}
               </p>
             </div>
@@ -698,7 +681,7 @@ export default function ContractWorkspace() {
             </div>
           )}
 
-          {/* SHARED TO-DO LIST */}
+          {}
           <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-slate-900">To-Do List</h2>
@@ -783,7 +766,7 @@ export default function ContractWorkspace() {
             )}
           </section>
 
-          {/* Video Meeting Section - Google Meet style in Workspace */}
+          {}
           <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -796,7 +779,7 @@ export default function ContractWorkspace() {
                   </span>
                 )}
 
-          {/* Google Meet-style Modal - this is what "opens" when you click Start/Join Meeting */}
+          {}
           {meetingModalOpen && (
             <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4">
               <div className="bg-slate-950 text-white w-full max-w-5xl h-[88vh] rounded-2xl flex flex-col border border-white/10 overflow-hidden">
@@ -818,7 +801,7 @@ export default function ContractWorkspace() {
                     </div>
                   ) : (
                     <div className="h-full flex flex-col">
-                      {/* Videos */}
+                      {}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
                         <div className="bg-black rounded-xl overflow-hidden relative">
                           <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
@@ -830,7 +813,7 @@ export default function ContractWorkspace() {
                         </div>
                       </div>
 
-                      {/* Controls */}
+                      {}
                       <div className="flex justify-center gap-4 mt-4">
                         <button onClick={toggleMute} className={`px-4 py-2 rounded-full text-sm ${isMuted ? 'bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}>{isMuted ? 'Unmute' : 'Mute'}</button>
                         <button onClick={toggleVideo} className={`px-4 py-2 rounded-full text-sm ${isVideoOff ? 'bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}>{isVideoOff ? 'Show Video' : 'Hide Video'}</button>
@@ -838,7 +821,7 @@ export default function ContractWorkspace() {
                         <button onClick={() => { leaveMeeting(); setMeetingModalOpen(false); }} className="px-4 py-2 bg-red-600 rounded-full text-sm">Leave</button>
                       </div>
 
-                      {/* Participants + Chat */}
+                      {}
                       <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm flex-1 min-h-0">
                         <div className="border border-white/10 rounded p-3">
                           <div className="font-medium mb-2">Participants ({meetingParticipants.length})</div>
@@ -896,7 +879,7 @@ export default function ContractWorkspace() {
               <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{meetingError}</div>
             )}
 
-            {/* Google Meet style meeting UI */}
+            {}
             {showMeetingUI && (
               <div className={`mt-4 rounded-2xl border bg-slate-950 p-4 text-white ${isFloating ? 'fixed bottom-4 right-4 w-96 z-[200] shadow-2xl' : ''}`}>
                 <div className="flex items-center justify-between mb-3 px-2">
@@ -926,7 +909,7 @@ export default function ContractWorkspace() {
                   </div>
                 ) : (
                   <>
-                    {/* Video Grid */}
+                    {}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                       <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
                         <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
@@ -940,7 +923,7 @@ export default function ContractWorkspace() {
                       </div>
                     </div>
 
-                    {/* Controls */}
+                    {}
                     <div className="flex items-center justify-center gap-3 py-2 border-t border-white/10">
                       <button onClick={toggleMute} className={`p-3 rounded-full ${isMuted ? "bg-red-600" : "bg-white/10 hover:bg-white/20"}`}>
                         {isMuted ? <FiMicOff className="h-5 w-5" /> : <FiMic className="h-5 w-5" />}
@@ -956,7 +939,7 @@ export default function ContractWorkspace() {
                       </button>
                     </div>
 
-                    {/* Participants + Chat */}
+                    {}
                     <div className="mt-4 grid grid-cols-1 lg:grid-cols-5 gap-4 text-sm">
                       <div className="lg:col-span-2 border border-white/10 rounded-xl p-3">
                         <div className="font-medium mb-2">Participants ({meetingParticipants.length})</div>
@@ -998,7 +981,7 @@ export default function ContractWorkspace() {
             )}
           </section>
 
-          {/* FREELANCER CMS / CUSTOM SECTIONS - Moodle-style CMS */}
+          {}
           {isFreelancer && (
             <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between border-b pb-4">
@@ -1021,7 +1004,7 @@ export default function ContractWorkspace() {
                 </button>
               </div>
 
-              {/* Moodle-like Content Chooser (only when editing) */}
+              {}
               {isEditingMode && (
                 <div className="mb-6">
                   <div className="text-sm font-medium text-slate-700 mb-2">Add a content block</div>
@@ -1047,7 +1030,7 @@ export default function ContractWorkspace() {
                 </div>
               )}
 
-              {/* Add / Edit Form (shown when adding or when we triggered from chooser) */}
+              {}
               {showAddSection && (
                 <form id="cms-add-form" onSubmit={handleAddSection} className="mb-6 rounded-xl border bg-slate-50 p-4">
                   <div className="flex items-center gap-2 mb-3 text-sm font-medium">
@@ -1135,7 +1118,7 @@ export default function ContractWorkspace() {
                 </form>
               )}
 
-              {/* Sections list - different look in editing mode */}
+              {}
               {sections.length === 0 ? (
                 <p className="text-sm text-slate-500">No content yet. Turn editing on and add your first block.</p>
               ) : (
@@ -1148,7 +1131,7 @@ export default function ContractWorkspace() {
                         key={section.id}
                         className={`rounded-2xl border bg-white transition ${!section.visible ? "opacity-70" : ""}`}
                       >
-                        {/* Section header with type icon + actions */}
+                        {}
                         <div className="flex items-center justify-between border-b px-4 py-2.5 bg-slate-50 rounded-t-2xl">
                           <div className="flex items-center gap-2">
                             <span className="text-lg">
@@ -1161,7 +1144,7 @@ export default function ContractWorkspace() {
                             {!section.visible && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Hidden</span>}
                           </div>
 
-                          {/* Moodle-style action icons (only when editing mode) */}
+                          {}
                           {isEditingMode && (
                             <div className="flex items-center gap-1 text-slate-500">
                               <button
@@ -1182,7 +1165,7 @@ export default function ContractWorkspace() {
                               <button
                                 onClick={() => startEditSection(section)}
                                 className="p-1 hover:text-slate-900 rounded hover:bg-white"
-                                title=Edit
+                                title="Edit"
                               >
                                 <FiEdit2 className="h-4 w-4" />
                               </button>
@@ -1198,7 +1181,7 @@ export default function ContractWorkspace() {
                               <button
                                 onClick={() => handleDeleteSection(section.id)}
                                 className="p-1 hover:text-red-600 rounded hover:bg-red-50"
-                                title=Delete
+                                title="Delete"
                               >
                                 <FiTrash2 className="h-4 w-4" />
                               </button>
@@ -1206,7 +1189,7 @@ export default function ContractWorkspace() {
                           )}
                         </div>
 
-                        {/* Content area */}
+                        {}
                         <div className="p-4">
                           {!isEditing ? (
                             <div className="text-sm text-slate-700">
@@ -1234,7 +1217,7 @@ export default function ContractWorkspace() {
                               )}
                             </div>
                           ) : (
-                            // Inline edit (still a bit form-like but cleaner)
+
                             <div className="space-y-3">
                               <input
                                 value={editSectionData.title}
@@ -1331,7 +1314,7 @@ export default function ContractWorkspace() {
             </section>
           )}
 
-          {/* Client view of freelancer sections */}
+          {}
           {!isFreelancer && sections.length > 0 && (
             <section className="rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="mb-4 text-xl font-semibold text-slate-900">Freelancer Updates &amp; Notes</h2>

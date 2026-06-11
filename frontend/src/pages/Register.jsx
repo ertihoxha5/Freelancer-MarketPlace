@@ -69,7 +69,7 @@ function Register() {
 
       <div className="flex min-h-[calc(100vh-76px)] items-center justify-center px-6 py-12">
         <div className="grid w-full max-w-5xl gap-16 md:grid-cols-2">
-          {/* Left Side - Information */}
+          {}
           <div className="flex flex-col justify-center">
             <h1 className="text-5xl font-semibold text-slate-900 leading-tight">
               Join Freelancer Marketplace
@@ -156,10 +156,10 @@ function Register() {
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-3">I want to join as</label>
                 <div className="grid grid-cols-2 gap-4">
-                  <label 
+                  <label
                     className={`rounded-2xl border p-5 cursor-pointer transition-all text-center ${
-                      form.roleID === '2' 
-                        ? 'border-olive-600 bg-olive-50' 
+                      form.roleID === '2'
+                        ? 'border-olive-600 bg-olive-50'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
@@ -175,10 +175,10 @@ function Register() {
                     <p className="text-sm text-slate-500 mt-1">I want to hire talent</p>
                   </label>
 
-                  <label 
+                  <label
                     className={`rounded-2xl border p-5 cursor-pointer transition-all text-center ${
-                      form.roleID === '3' 
-                        ? 'border-olive-600 bg-olive-50' 
+                      form.roleID === '3'
+                        ? 'border-olive-600 bg-olive-50'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >

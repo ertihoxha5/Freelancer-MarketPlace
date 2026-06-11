@@ -92,7 +92,7 @@ export default function ClientPayment() {
       try {
         await confirmPayment(paymentIntentId);
       } catch {
-        /* webhook may already have synced */
+
       }
     }
     navigate("/client/contracts", { replace: true });

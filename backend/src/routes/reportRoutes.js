@@ -29,9 +29,7 @@ router.get(
   authMiddleware.requireRole(1),
   validateRequest({ query: querySchemas.search }),
   reportController.projectReport,
-);
-
-// Saved dynamic reports - professional CRUD + advanced search (Task 7)
+);
 router.post("/saved", authMiddleware.requireRole(1), reportController.saveReport);
 
 router.get(

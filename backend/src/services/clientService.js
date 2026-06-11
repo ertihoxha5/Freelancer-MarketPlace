@@ -79,8 +79,7 @@ export async function updateMyApplicationStatus(
   }
   if (!Number.isInteger(appId) || appId <= 0) {
     throw validationError("Valid application ID is required.");
-  }
-  // Get the existing application.
+  }
   const existing = await projectRepository.getClientApplicationById(
     appId,
     clientId,
@@ -88,9 +87,7 @@ export async function updateMyApplicationStatus(
 
   if (!existing) {
     throw notFoundError("Application not found.");
-  }
-
-  // Return early when status has not changed.
+  }
   if (existing.propStatus === propStatus) {
     return {
       applicationId: appId,
@@ -101,11 +98,9 @@ export async function updateMyApplicationStatus(
   if (propStatus === "accepted" && existing.propStatus !== "accepted") {
     if (!["pending", "active"].includes(existing.projectStatus)) {
       throw conflictError("Cannot accept proposals for projects in this status.");
-    }
-
-    // Enforce maxFreelancers limit (only when newly accepting)
+    }
     const acceptedCount = await projectRepository.getAcceptedProposalCount(existing.projectId);
-    const max = existing.maxFreelancers || 1; // from the application query (populated in getClientApplicationById)
+    const max = existing.maxFreelancers || 1;
     if (acceptedCount >= max) {
       throw conflictError(`You cannot hire more than ${max} freelancer(s) for this project (currently hired: ${acceptedCount}).`);
     }
@@ -132,9 +127,7 @@ export async function updateMyApplicationStatus(
       newValue: toShortString(propStatus),
       userID: clientId,
     });
-  }
-
-  // Notify the freelancer only when the application is accepted or rejected.
+  }
   if (propStatus === "accepted" || propStatus === "rejected") {
     const projectDetails = await projectRepository.getClientProjectById(
       existing.projectId,
@@ -143,9 +136,7 @@ export async function updateMyApplicationStatus(
 
     const projectTitle =
       projectDetails?.title || existing.projectTitle || "Project";
-    let contract = null;
-
-    // If proposal is accepted, automatically set project status to active
+    let contract = null;
     if (propStatus === "accepted") {
       const workflow = await projectRepository.acceptProposalAndCreateContract({
         applicationID: appId,
@@ -213,9 +204,7 @@ export async function updateMyApplicationStatus(
         applicationID: appId,
         actionUrl: "/freelancer/applications",
       },
-    }).catch(() => {});
-
-    // MongoDB activity feed.
+    }).catch(() => {});
     createActivity({
       freelancerID: existing.freelancerID,
       eventType:
@@ -338,7 +327,7 @@ function parseBase64Image(data) {
     throw validationError("Unsupported image type.");
   }
   const buffer = Buffer.from(payload, "base64");
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const MAX_SIZE = 5 * 1024 * 1024;
   if (buffer.length > MAX_SIZE) {
     throw validationError("Image must be smaller than 5MB.");
   }

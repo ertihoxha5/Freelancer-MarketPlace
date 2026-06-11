@@ -260,7 +260,7 @@ export async function logout() {
       body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     });
   } catch {
-    /* ignore logout errors */
+
   }
   clearAuthTokens();
 }
@@ -451,9 +451,7 @@ export async function deleteOldAdminAuditLogs(days = 90) {
   return authedFetch(`${API_BASE}/api/admin/audit-logs?days=${days}`, {
     method: "DELETE",
   });
-}
-
-// 3 more admin CRUDS APIs
+}
 export async function fetchAdminTestimonials(params = {}) {
   const q = new URLSearchParams(params).toString();
   return authedFetch(`${API_BASE}/api/admin/testimonials${q ? "?" + q : ""}`);
@@ -503,9 +501,7 @@ export function fetchAdminContracts(params = {}) {
   const query = new URLSearchParams(params).toString();
   const suffix = query ? `?${query}` : '';
   return authedFetch(`${API_BASE}/api/admin/contracts${suffix}`);
-}
-
-// ─── CLIENT PROJECT APIs ───────────────────────────────────────────────────
+}
 
 /**
  * GET /api/client/projects — fetch all projects for logged-in client
@@ -574,8 +570,7 @@ export function updateClientProfile(payload) {
 
 /**
  * DELETE /api/client/projects/:id — delete own project as client
- */
-// ─── NOTIFICATION APIs ─────────────────────────────────────────────────────
+ */
 
 export function fetchNotifications() {
   return authedFetch(`${API_BASE}/api/client/notifications`);
@@ -639,9 +634,7 @@ export function deleteAllAdminNotifications() {
   return authedFetch(`${API_BASE}/api/admin/notifications/delete-all`, {
     method: "DELETE",
   });
-}
-
-// ─── CHAT APIs ──────────────────────────────────────────────────────────────
+}
 
 export function fetchChatConversations() {
   return authedFetch(`${API_BASE}/api/chat/conversations`);
@@ -684,9 +677,7 @@ export function createOrGetDirectConversation(payload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
-
-// ─── FREELANCER NOTIFICATION APIs ──────────────────────────────────────────
+}
 
 export function fetchFreelancerNotifications() {
   return authedFetch(`${API_BASE}/api/freelancer/notifications`);
@@ -952,9 +943,7 @@ export function fetchClientReport(id) {
 
 export function fetchFreelancerReport(id) {
   return authedFetch(`${API_BASE}/api/reports/freelancer/${id || "me"}`);
-}
-
-// Contracts
+}
 export async function createPaymentIntent(payload) {
   return authedFetch(`${API_BASE}/api/payment/intent`, {
     method: "POST",
@@ -1011,9 +1000,7 @@ export function fetchFreelancerContracts() {
 
 export function fetchFreelancerContract(id) {
   return authedFetch(`${API_BASE}/api/freelancer/contracts/${id}`);
-}
-
-// Milestones
+}
 export function createMilestone(contractId, payload) {
   return authedFetch(
     `${API_BASE}/api/client/contracts/${contractId}/milestones`,
@@ -1030,9 +1017,7 @@ export function updateMilestoneStatus(id, status, role = "client") {
     method: "PATCH",
     body: JSON.stringify({ mStatus: status }),
   });
-}
-
-// Reviews
+}
 export function createReview(contractId, payload, role = "client") {
   return authedFetch(`${API_BASE}/api/${role}/contracts/${contractId}/reviews`, {
     method: "POST",
@@ -1042,9 +1027,7 @@ export function createReview(contractId, payload, role = "client") {
 
 export function fetchMyReviews() {
   return authedFetch(`${API_BASE}/api/freelancer/reviews`);
-}
-
-// Freelancer Payments
+}
 export function fetchFreelancerPayments(params = {}) {
   const query = new URLSearchParams(params).toString();
   const suffix = query ? `?${query}` : '';
@@ -1053,18 +1036,14 @@ export function fetchFreelancerPayments(params = {}) {
 
 export function fetchFreelancerPayment(id) {
   return authedFetch(`${API_BASE}/api/freelancer/payments/${id}`);
-}
-
-// Search
+}
 export function searchProjects(params = {}) {
   return authedFetch(`${API_BASE}/api/search/projects${qs(params)}`);
 }
 
 export function searchFreelancers(params = {}) {
   return authedFetch(`${API_BASE}/api/search/freelancers${qs(params)}`);
-}
-
-// Reports
+}
 export function fetchPlatformReport() {
   return authedFetch(`${API_BASE}/api/reports/platform-summary`);
 }
@@ -1110,9 +1089,7 @@ export function updateAdminSettings(payload) {
     method: "PUT",
     body: JSON.stringify(payload),
   });
-}
-
-// Saved Dynamic Reports (Task 7 - professional save/search/CRUD + advanced search)
+}
 export async function saveAdminReport(payload) {
   return authedFetch(`${API_BASE}/api/reports/saved`, {
     method: "POST",
@@ -1146,14 +1123,10 @@ export async function runSavedReport(id) {
   return authedFetch(`${API_BASE}/api/reports/saved/${id}/run`, {
     method: "POST",
   });
-}
-
-// Export
+}
 export function exportData(resource, format = "csv") {
   return downloadExport(resource, format);
-}
-
-// ========== Contract Workspace (client + freelancer private space) ==========
+}
 export async function fetchContractWorkspace(contractID) {
   return authedFetch(`${API_BASE}/api/contracts/${contractID}/workspace`);
 }

@@ -57,7 +57,7 @@ function Login() {
 
       <div className="flex min-h-[calc(100vh-76px)] items-center justify-center px-6 py-12">
         <div className="grid w-full max-w-5xl gap-16 md:grid-cols-2">
-          {/* Left Side */}
+          {}
           <div className="flex flex-col justify-center">
             <h1 className="text-5xl font-semibold text-slate-900 leading-tight">
               Welcome back

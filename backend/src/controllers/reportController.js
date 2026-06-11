@@ -188,9 +188,7 @@ export async function projectReport(req, res, next) {
   } catch (err) {
     next(err);
   }
-}
-
-// ==================== SAVED DYNAMIC REPORTS (Task 7 - professional CRUD + search) ====================
+}
 
 export async function saveReport(req, res, next) {
   try {
@@ -232,9 +230,7 @@ export async function listSavedReports(req, res, next) {
       return res.status(403).json({ message: "Admin only." });
     }
 
-    const { page = 1, limit = 20, q, reportType, from, to, isArchived } = req.query;
-
-    // Safe pagination (avoid mysql2 prepared stmt issues with LIMIT ? OFFSET ?)
+    const { page = 1, limit = 20, q, reportType, from, to, isArchived } = req.query;
     const rawLimit = Number(limit) || 20;
     const safeLimit = Math.min(Math.max(Math.floor(rawLimit), 1), 100);
 
@@ -380,15 +376,8 @@ export async function runSavedReport(req, res, next) {
     const report = await getSavedReportByIdInternal(id);
     if (!report) {
       return res.status(404).json({ message: "Report not found." });
-    }
-
-    // Re-execute based on the saved reportType + criteria when possible.
-    // For now we provide fresh platform data for most types (matching what the generator often falls back to).
-    // This makes "Run Again" actually return updated numbers instead of stale snapshot.
-    let freshData = await fetchPlatformSummaryData();
-
-    // Future: extend with clientReport/freelancerReport/project logic using report.criteria
-    // e.g. if (report.reportType === 'client' && report.criteria?.userId) { ... }
+    }
+    let freshData = await fetchPlatformSummaryData();
 
     await db.execute(
       `UPDATE SavedReports SET lastRunAt = NOW(), runCount = COALESCE(runCount, 0) + 1, dataSnapshot = ? WHERE id = ?`,
@@ -409,9 +398,9 @@ function safeParseJSON(str) {
 
 async function getSavedReportByIdInternal(id) {
   const [rows] = await db.execute(
-    `SELECT sr.*, u.fullName AS createdByName 
-     FROM SavedReports sr 
-     INNER JOIN Users u ON u.id = sr.createdBy 
+    `SELECT sr.*, u.fullName AS createdByName
+     FROM SavedReports sr
+     INNER JOIN Users u ON u.id = sr.createdBy
      WHERE sr.id = ?`,
     [id]
   );

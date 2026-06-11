@@ -108,9 +108,7 @@ export default function Disputes() {
             const result = await updateAdminDispute(selectedDispute.id, {
                 status: updateForm.status,
                 resolution: updateForm.resolution || null,
-            });
-
-            // Update disputes list and selected dispute
+            });
             setDisputes((prev) =>
                 prev.map((d) => (d.id === result.dispute.id ? result.dispute : d))
             );
@@ -148,7 +146,7 @@ export default function Disputes() {
                             </div>
                         ) : null}
 
-                        {/* Filter Bar */}
+                        {}
                         <div className="mb-6 flex flex-wrap gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -174,7 +172,7 @@ export default function Disputes() {
                             </div>
                         </div>
 
-                        {/* Disputes Table */}
+                        {}
                         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
                             {loading ? (
                                 <div className="p-8 text-center">
@@ -256,7 +254,7 @@ export default function Disputes() {
                 </div>
             </main>
 
-            {/* Detail Modal */}
+            {}
             {detailOpen ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/10 backdrop-blur-md p-4">
                     <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg max-h-96 overflow-y-auto">

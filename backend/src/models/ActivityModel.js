@@ -7,15 +7,12 @@ import mongoose from "mongoose";
  * append-heavy, and reads are usually scoped by freelancerID with time sorting.
  */
 const activitySchema = new mongoose.Schema(
-  {
-    // Freelancer who owns this activity.
+  {
     freelancerID: {
       type: Number,
       required: true,
       index: true,
-    },
-
-    // Activity event type.
+    },
     eventType: {
       type: String,
       required: true,
@@ -30,22 +27,16 @@ const activitySchema = new mongoose.Schema(
         "profile_viewed",
         "review_received",
       ],
-    },
-
-    // Short display title.
+    },
     title: {
       type: String,
       required: true,
       maxlength: 100,
-    },
-
-    // Full display message.
+    },
     message: {
       type: String,
       maxlength: 500,
-    },
-
-    // Event-specific metadata.
+    },
     metadata: {
       projectID: Number,
       projectTitle: String,

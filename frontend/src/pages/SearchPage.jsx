@@ -252,7 +252,7 @@ export default function SearchPage() {
               ) : null}
             </div>
 
-            {/* More advanced filters for the freelancers search tab */}
+            {}
             {activeTab === "freelancers" && (
               <div className="mb-6 rounded-2xl border border-purple-200 bg-purple-50/70 p-4">
                 <div className="flex items-center justify-between mb-3">

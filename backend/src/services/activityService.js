@@ -108,8 +108,7 @@ export async function createActivity({
 
     await activity.save();
     return activity;
-  } catch (err) {
-    // Activity creation should not block the main business flow.
+  } catch (err) {
     console.error("Failed to create activity in MongoDB:", err.message);
     return null;
   }

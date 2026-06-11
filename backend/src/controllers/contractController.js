@@ -56,9 +56,7 @@ export async function getMyContracts(req, res, next) {
       ? await projectRepository.getContractsByClientId(req.user.id)
       : await projectRepository.getContractsByFreelancerId(req.user.id);
 
-    console.log(`📦 Found ${contractsRaw.length} raw contracts`);
-
-    // Improved version with error handling per contract
+    console.log(`📦 Found ${contractsRaw.length} raw contracts`);
     const contracts = await Promise.all(
       contractsRaw.map(async (contract) => {
         try {
@@ -69,7 +67,7 @@ export async function getMyContracts(req, res, next) {
           return decorateContract({ ...contract, hasReviewed });
         } catch (reviewErr) {
           console.error(`❌ Failed to check review for contract ${contract.id}:`, reviewErr.message);
-          return decorateContract({ ...contract, hasReviewed: false }); // Safe fallback
+          return decorateContract({ ...contract, hasReviewed: false });
         }
       })
     );
@@ -77,26 +75,26 @@ export async function getMyContracts(req, res, next) {
     return res.status(200).json({ contracts });
   } catch (err) {
     console.error("🔥 Critical error in getMyContracts:", err);
-    
+
     if (err.statusCode) {
       return res.status(err.statusCode).json({ message: err.message });
     }
-    
-    next(err); // Let global error handler catch it
+
+    next(err);
   }
 }
 
 export async function getMyContractById(req, res, next) {
   try {
     const contract = await getContractForRequest(req);
-    
+
     const milestones = await milestoneRepository.getMilestonesByContractId(
       contract.id
     );
     const disputes = await disputeRepository.getDisputesByContractId(
       contract.id
     );
-    
+
     let hasReviewed = false;
     try {
       hasReviewed = await reviewRepository.hasReviewedAlready(
@@ -113,7 +111,7 @@ export async function getMyContractById(req, res, next) {
     });
   } catch (err) {
     console.error("🔥 Error in getMyContractById:", err);
-    
+
     if (err.statusCode) {
       return res.status(err.statusCode).json({ message: err.message });
     }

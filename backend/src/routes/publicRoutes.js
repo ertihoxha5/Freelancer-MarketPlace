@@ -8,4 +8,3 @@ router.get("/home-data", publicController.getHomeData);
 router.get("/testimonials", testimonialController.getTestimonials);
 
 export default router;
-

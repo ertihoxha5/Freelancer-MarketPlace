@@ -58,7 +58,6 @@ export default function ClientDisputes() {
         if (!active) return;
         setContracts(contractList);
 
-        // Load details for contracts to collect disputes (advanced aggregation)
         const allDisputes = [];
         for (const c of contractList) {
           try {
@@ -73,7 +72,7 @@ export default function ClientDisputes() {
               });
             });
           } catch (e) {
-            // ignore individual contract fetch errors
+
           }
         }
         if (active) setDisputes(allDisputes);
@@ -122,7 +121,7 @@ export default function ClientDisputes() {
     setCreating(true);
     try {
       await createContractDispute(selectedContractId, { reason: reason.trim() });
-      // Refresh disputes by reloading contracts + details (simple approach)
+
       const contractsData = await fetchMyContracts();
       const contractList = Array.isArray(contractsData.contracts) ? contractsData.contracts : [];
       setContracts(contractList);
@@ -215,7 +214,7 @@ export default function ClientDisputes() {
               </div>
             </div>
 
-            {/* Stats */}
+            {}
             <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="text-xs uppercase tracking-widest text-slate-500">Total Disputes</div>
@@ -235,7 +234,7 @@ export default function ClientDisputes() {
               <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
             )}
 
-            {/* Filters */}
+            {}
             <div className="mb-4 flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
@@ -304,7 +303,7 @@ export default function ClientDisputes() {
         </div>
       </main>
 
-      {/* Create Dispute Modal */}
+      {}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white shadow-xl">
@@ -355,7 +354,7 @@ export default function ClientDisputes() {
         </div>
       )}
 
-      {/* Dispute Detail Modal */}
+      {}
       {selectedDispute && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">

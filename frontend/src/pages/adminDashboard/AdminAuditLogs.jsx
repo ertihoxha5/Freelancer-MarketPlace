@@ -53,7 +53,7 @@ export default function AdminAuditLogs() {
     setError("");
     try {
       const params = { page: currentPage, limit, ...filters };
-      // clean empty
+
       Object.keys(params).forEach(key => {
         if (!params[key]) delete params[key];
       });
@@ -71,7 +71,7 @@ export default function AdminAuditLogs() {
 
   useEffect(() => {
     loadLogs(1);
-  }, [filters]); // reload on filter change
+  }, [filters]);
 
   async function handleDelete(id) {
     if (!window.confirm("Delete this audit log entry?")) return;
@@ -139,7 +139,7 @@ export default function AdminAuditLogs() {
               </div>
             )}
 
-            {/* Filters */}
+            {}
             <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <input
                 type="text"
@@ -232,7 +232,7 @@ export default function AdminAuditLogs() {
               </div>
             )}
 
-            {/* Pagination */}
+            {}
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-center gap-2">
                 <button
@@ -256,7 +256,7 @@ export default function AdminAuditLogs() {
         </div>
       </main>
 
-      {/* Detail Modal */}
+      {}
       {selectedLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-3xl rounded-3xl border bg-white shadow-xl">

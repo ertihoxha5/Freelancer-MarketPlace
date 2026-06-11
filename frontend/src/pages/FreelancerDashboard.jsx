@@ -137,7 +137,7 @@ export default function FreelancerDashboard() {
               </div>
             )}
 
-            {/* Quick Actions - the heart of a good dashboard */}
+            {}
             <div className="mb-8">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-slate-500">Quick Actions</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -175,7 +175,7 @@ export default function FreelancerDashboard() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-12">
-              {/* Recent Work */}
+              {}
               <div className="xl:col-span-7 space-y-6">
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="mb-4 flex items-center justify-between">
@@ -224,7 +224,7 @@ export default function FreelancerDashboard() {
                   )}
                 </div>
 
-                {/* Work Summary - more compact and useful */}
+                {}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-slate-900">Work at a Glance</h2>
@@ -255,7 +255,7 @@ export default function FreelancerDashboard() {
                 </div>
               </div>
 
-              {/* Right sidebar: Profile + Earnings + Motivation */}
+              {}
               <div className="xl:col-span-5 space-y-6">
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
@@ -284,7 +284,7 @@ export default function FreelancerDashboard() {
                     </div>
                   </div>
 
-                  {/* Profile Completion - prominent */}
+                  {}
                   <div>
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="font-medium text-slate-700">Profile strength</span>
@@ -310,7 +310,7 @@ export default function FreelancerDashboard() {
                   </div>
                 </div>
 
-                {/* Earnings highlight */}
+                {}
                 <div className="rounded-3xl bg-gradient-to-br from-[#1a3c2e] to-[#0f2a21] p-6 text-white shadow-sm">
                   <div className="flex items-center gap-2 text-emerald-300">
                     <FiDollarSign className="h-5 w-5" />
@@ -330,7 +330,7 @@ export default function FreelancerDashboard() {
                   </Link>
                 </div>
 
-                {/* Smart Next Steps */}
+                {}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                     <FiCheckCircle className="text-emerald-600" /> Recommended next steps

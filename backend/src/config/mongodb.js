@@ -2,9 +2,7 @@ import mongoose from "mongoose";
 import "dotenv/config";
 
 const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://localhost:27017/freelancerMarketplace";
-
-// Disable operation buffering so we fail fast instead of hanging with "buffering timed out"
+  process.env.MONGO_URI || "mongodb://localhost:27017/freelancerMarketplace";
 mongoose.set("bufferCommands", false);
 
 let isConnected = false;
@@ -35,7 +33,7 @@ export async function connectMongoDB() {
       console.error("   Ensure MONGO_URI in .env is valid and MongoDB is reachable.");
       console.error("   Reviews will not work until MongoDB is connected.");
       isConnected = false;
-      throw err; // Re-throw so callers can await and handle
+      throw err;
     } finally {
       connectionPromise = null;
     }
@@ -62,8 +60,7 @@ mongoose.connection.on("error", (err) => {
 export function getMongoStatus() {
   return {
     connected: isConnected,
-    state: mongoose.connection.readyState,
-    // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+    state: mongoose.connection.readyState,
     stateLabel: ["disconnected", "connected", "connecting", "disconnecting"][
       mongoose.connection.readyState
     ],

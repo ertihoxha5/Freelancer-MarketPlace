@@ -44,7 +44,7 @@ export default function ProjectFilters({ currentFilters, onFilterChange }) {
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-1">Skills (IDs)</label>
-          <input type="text" placeholder="1,3,5" value={local.skillIds} onChange={(e) => 
+          <input type="text" placeholder="1,3,5" value={local.skillIds} onChange={(e) =>
               setLocal((prev) => ({ ...prev, skillIds: e.target.value }))}
             className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm"/>
         </div>

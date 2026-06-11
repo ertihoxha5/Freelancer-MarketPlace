@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-/* eslint-disable react-refresh/only-export-components */
+
 
 const translations = {
   en: {
@@ -447,9 +447,7 @@ export const useLanguage = () => {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
-};
-
-// Helper for common status values (used in many tables)
+};
 export const getStatusLabel = (status, t) => {
   const key = String(status || '').toLowerCase().replace(/ /g, '');
   const map = {

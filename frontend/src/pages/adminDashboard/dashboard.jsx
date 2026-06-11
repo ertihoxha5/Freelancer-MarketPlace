@@ -51,7 +51,7 @@ export default function AdminDashboard() {
         setTotalUsers(Number(usersData.total) || 0);
         setUsers(usersData.users || []);
         setDisputes(disputesData.disputes || []);
-        // contractsData available if you want to show contract count in KPIs
+
       } catch (err) {
         if (alive) {
           setError(err instanceof Error ? err.message : "Unable to load dashboard.");
@@ -74,7 +74,6 @@ export default function AdminDashboard() {
     { label: "This Month Activity", value: Number(summary?.activeThisMonth || 0), change: "+15%" },
   ];
 
-  // Mock trend data for professional look (can be replaced with real time-series later)
   const userGrowth = [
     { month: "Jan", users: 120 },
     { month: "Feb", users: 185 },
@@ -139,7 +138,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <>
-                {/* KPI Row - Professional with trends */}
+                {}
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                   {kpis.map((item) => (
                     <div key={item.label} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -152,7 +151,7 @@ export default function AdminDashboard() {
                   ))}
                 </div>
 
-                {/* Analytics Row - Multiple professional charts */}
+                {}
                 <div className="mt-6 grid gap-6 lg:grid-cols-2">
                   <Card title="User Growth Trend">
                     <div className="h-72">
@@ -226,7 +225,7 @@ export default function AdminDashboard() {
                   </Card>
                 </div>
 
-                {/* Professional Tables and Activity */}
+                {}
                 <div className="mt-6 grid gap-6 xl:grid-cols-2">
                   <Card title="Recent Users">
                     <div className="overflow-hidden rounded-2xl border border-slate-200">
@@ -324,4 +323,3 @@ function QuickLink({ href, label }) {
     </a>
   );
 }
-

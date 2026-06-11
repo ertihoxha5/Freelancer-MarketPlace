@@ -28,7 +28,6 @@ export default function ClientHiredFreelancers() {
           ? contractsData.contracts
           : [];
 
-        // Build unique freelancers map from contracts
         const freelancerMap = new Map();
 
         for (const contract of contracts) {
@@ -48,7 +47,6 @@ export default function ClientHiredFreelancers() {
           entry.contracts.push(contract);
         }
 
-        // Enrich with hasReviewed for all contracts (reviews allowed at any time)
         const enriched = [];
         for (const [fid, data] of freelancerMap.entries()) {
           let hasAnyReviewable = false;
@@ -134,7 +132,7 @@ export default function ClientHiredFreelancers() {
               </div>
             )}
 
-            {/* Stats */}
+            {}
             <div className="mb-8 grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="text-sm text-slate-500">Unique Hired</div>
@@ -191,7 +189,7 @@ export default function ClientHiredFreelancers() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => {
-                            // Pick most recent unreviewed contract, fallback to most recent overall
+
                             let contractToReview = freelancer.contractDetails.find(
                               (c) => !c.hasReviewed && !reviewedContracts.has(c.id)
                             );
@@ -215,7 +213,7 @@ export default function ClientHiredFreelancers() {
                       </div>
                     </div>
 
-                    {/* List of contracts/projects for this freelancer */}
+                    {}
                     <div className="mt-4 border-t pt-4">
                       <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">
                         Contracts with this freelancer

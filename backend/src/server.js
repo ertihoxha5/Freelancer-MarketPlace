@@ -8,21 +8,17 @@ import { registerCqrsHandlers } from "./cqrs/registry.js";
 const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
-  const httpServer = http.createServer(app);
-
-  // Register CQRS handlers (commands vs queries separation)
+  const httpServer = http.createServer(app);
   registerCqrsHandlers();
 
-  try {
-    // Ensure MongoDB is connected before accepting traffic (reviews depend on it)
+  try {
     console.info("Connecting to MongoDB...");
     await connectMongoDB();
     console.info("✅ MongoDB ready for reviews.");
   } catch (err) {
     console.error("⚠️  MongoDB connection failed during startup.");
     console.error("   Reviews will return errors until MongoDB is available.");
-    console.error("   Check your MONGO_URI and that MongoDB is running.");
-    // We still start the server so MySQL/MySQL-based features continue to function
+    console.error("   Check your MONGO_URI and that MongoDB is running.");
   }
 
   initSocketServer(httpServer);

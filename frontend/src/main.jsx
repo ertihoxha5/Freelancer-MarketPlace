@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+
 import { lazy, Suspense } from "react";
 import Loading from "./components/Loading.jsx";
 import { StrictMode } from "react";
@@ -99,9 +99,7 @@ const FreelancerContracts = lazy(() => import("./pages/FreelancerContracts.jsx")
 const FreelancerReviews = lazy(() => import("./pages/FreelancerReviews.jsx"));
 const ContractWorkspace = lazy(() => import("./pages/ContractWorkspace.jsx"));
 const FreelancerMessages = lazy(() => import("./pages/FreelancerMessages.jsx"));
-const ErrorPage = lazy(() => import("./pages/ErrorPage.jsx"));
-
-// Add new pages as children of the layout below.
+const ErrorPage = lazy(() => import("./pages/ErrorPage.jsx"));
 const router = createBrowserRouter([
   {
     element: <AppLayout />,

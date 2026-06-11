@@ -3,6 +3,6 @@ export class GetWorkspaceQuery {
     this.contractID = contractID;
     this.isFreelancer = isFreelancer;
     this.freelancerID = freelancerID;
-    this.projectID = projectID; // for shared workspace on multi-freelancer projects
+    this.projectID = projectID;
   }
 }

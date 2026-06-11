@@ -54,7 +54,6 @@ export default function AdminAnalytics() {
     loadAnalytics();
   }, []);
 
-  // Derive real-ish data from backend
   const userGrowth = summary ? [
     { date: "Jan", active: Math.floor((summary.totalUsers || 500) * 0.7), new: 85 },
     { date: "Feb", active: Math.floor((summary.totalUsers || 500) * 0.8), new: 112 },
@@ -97,7 +96,7 @@ export default function AdminAnalytics() {
               <div className="flex gap-2 text-sm">
                 <input type="date" value={dateRange.from} onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })} className="border rounded px-3 py-2" />
                 <input type="date" value={dateRange.to} onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })} className="border rounded px-3 py-2" />
-                <button className="px-4 py-2 bg-slate-900 text-white rounded" onClick={() => { /* could trigger refetch with range */ }}>Apply Range</button>
+                <button className="px-4 py-2 bg-slate-900 text-white rounded" onClick={() => {  }}>Apply Range</button>
               </div>
             </div>
 

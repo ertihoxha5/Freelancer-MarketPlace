@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-
-// Optional real Stripe support (only loaded/used when a real key + real clientSecret are present)
+import { useEffect, useState } from "react";
 let StripeLibs = null;
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
 
@@ -30,14 +28,10 @@ function SimulatedCheckout({ amountLabel, onSuccess, onError }) {
 
   async function handleMockPay() {
     setSubmitting(true);
-    setMessage("");
-
-    // Simulate network/processing delay for better UX
+    setMessage("");
     await new Promise((r) => setTimeout(r, 650));
 
-    try {
-      // Signal success to parent. The parent is responsible for calling the real
-      // backend confirmPayment(paymentIntentId) which marks it succeeded + holds funds.
+    try {
       onSuccess?.({ status: "succeeded", id: "mock_payment" });
     } catch (err) {
       const msg = err?.message || "Simulated payment failed.";
@@ -84,9 +78,7 @@ function SimulatedCheckout({ amountLabel, onSuccess, onError }) {
       </p>
     </div>
   );
-}
-
-// Tiny real Stripe checkout (only when a proper key + real clientSecret exist)
+}
 function RealStripeCheckout({ clientSecret, onSuccess, onError }) {
   const [stripe, setStripe] = useState(null);
   const [ElementsComp, setElementsComp] = useState(null);
@@ -94,9 +86,7 @@ function RealStripeCheckout({ clientSecret, onSuccess, onError }) {
   const [UseStripeHook, setUseStripeHook] = useState(null);
   const [UseElementsHook, setUseElementsHook] = useState(null);
   const [ready, setReady] = useState(false);
-  const [loadError, setLoadError] = useState("");
-
-  // Lazy load Stripe libs only for the real flow
+  const [loadError, setLoadError] = useState("");
   useEffect(() => {
     let cancelled = false;
     loadStripeIfNeeded().then((libs) => {

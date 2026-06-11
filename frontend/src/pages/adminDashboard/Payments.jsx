@@ -102,7 +102,7 @@ export default function AdminPayments() {
               </p>
             </div>
 
-            {/* Statistics */}
+            {}
             <div className="mb-8 grid gap-4 md:grid-cols-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="text-sm text-slate-500">Total Payments</div>
@@ -139,7 +139,7 @@ export default function AdminPayments() {
               </div>
             )}
 
-            {/* Filter */}
+            {}
             <div className="mb-4 flex items-center gap-3">
               <label className="text-sm font-medium text-slate-600">Filter by status:</label>
               <select
@@ -170,7 +170,7 @@ export default function AdminPayments() {
               </div>
             </div>
 
-            {/* Payments Table - ID focused */}
+            {}
             {loading ? (
               <div className="rounded-2xl border border-slate-200 p-8 text-center text-slate-500">Loading payments...</div>
             ) : payments.length === 0 ? (
@@ -226,7 +226,7 @@ export default function AdminPayments() {
               </div>
             )}
 
-            {/* Details Modal */}
+            {}
             {detailOpen && selectedPayment && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                 <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">

@@ -141,7 +141,7 @@ export default function ClientProfile() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-              {/* Left info panel - consistent with Freelancer */}
+              {}
               <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 overflow-hidden rounded-full bg-slate-200 border border-slate-100">
@@ -175,7 +175,7 @@ export default function ClientProfile() {
                 </div>
               </aside>
 
-              {/* Main form */}
+              {}
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 {error && (
                   <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">

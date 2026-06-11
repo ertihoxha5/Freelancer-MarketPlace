@@ -6,6 +6,6 @@ export class AddTodoCommand {
     this.description = description;
     this.dueDate = dueDate;
     this.status = status;
-    this.projectID = projectID; // shared for multi-freelancer projects
+    this.projectID = projectID;
   }
 }

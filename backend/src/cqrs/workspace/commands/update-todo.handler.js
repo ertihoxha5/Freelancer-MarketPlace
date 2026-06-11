@@ -32,7 +32,6 @@ export class UpdateTodoHandler {
     sets.push("updatedAt = NOW()");
     values.push(todoId);
 
-    // Support project scope for multi-freelancer shared workspace
     if (projectID) {
       values.push(projectID);
       const [result] = await db.execute(

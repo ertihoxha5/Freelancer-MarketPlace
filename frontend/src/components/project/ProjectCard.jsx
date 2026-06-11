@@ -29,7 +29,7 @@ export default function ProjectCard({ project, onUnsave, onApplyNow }) {
       <div className="mt-2 text-xs text-slate-500">Client: <span className="font-medium text-slate-700">{project.clientName}</span></div>
       <button onClick={() => onApplyNow?.(project)}
         className="mt-6 w-full bg-[#1a3c2e] hover:bg-[#2a5c46] text-white font-semibold py-3 rounded-2xl text-sm transition">Apply Now</button>
-      {/*Ketu e kom lan e vendos pastaj projektet qe do aplikoje freelanceri e rregullojm pasi te behet edhe My Applications - Freelancer*/}
+      {}
     </div>
   );
 }

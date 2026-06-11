@@ -76,7 +76,7 @@ const Features = () => {
 
           <div className="grid md:grid-cols-2 gap-8">
             {coreFeatures.map((feature, i) => (
-              <div 
+              <div
                 key={i}
                 className="group bg-white border border-slate-100 hover:border-[#1a3c2e] p-10 rounded-3xl transition-all hover:shadow-xl"
               >
@@ -104,7 +104,7 @@ const Features = () => {
                   <div className="h-3 w-3 bg-[#1a3c2e] rounded-full"></div>
                   <h3 className="text-2xl font-semibold text-slate-900">{benefit.for}</h3>
                 </div>
-                
+
                 <ul className="space-y-5">
                   {benefit.points.map((point, idx) => (
                     <li key={idx} className="flex gap-4">
@@ -150,8 +150,8 @@ const Features = () => {
         <div className="max-w-2xl mx-auto px-6">
           <h2 className="text-5xl font-semibold mb-6">Ready to experience a better way to work?</h2>
           <p className="text-xl text-white/80 mb-10">Join thousands of clients and freelancers already using Freelancer Marketplace.</p>
-          
-          <Link 
+
+          <Link
             to="/register"
             className="inline-block px-14 py-6 bg-white text-[#1a3c2e] font-semibold text-2xl rounded-3xl hover:bg-slate-100 transition-all"
           >

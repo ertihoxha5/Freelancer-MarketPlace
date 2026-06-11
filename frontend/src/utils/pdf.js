@@ -122,79 +122,118 @@ function buildPdfFromPages(pages) {
   });
 }
 
+const COLORS = {
+  black: "0 0 0",
+  darkText: "0.12 0.12 0.12",
+  mediumGray: "0.35 0.35 0.35",
+  lightGray: "0.95 0.95 0.95",
+  borderGray: "0.82 0.82 0.82",
+  brandGreen: "0.10 0.24 0.18",      // #1a3c2e
+  brandGreenLight: "0.90 0.93 0.91",
+  white: "1 1 1",
+};
+
 function renderHeader(page, title, subtitle, pageNumber, totalPages) {
-  rect(page, 0, 0, 612, 792, null, "1 1 1");
-  rect(page, 0, 720, 612, 72, null, "0.09 0.24 0.18");
-  text(page, 44, 757, 20, title, "F2");
+  // White background
+  rect(page, 0, 0, 612, 792, null, COLORS.white);
+  
+  // Professional green header bar
+  rect(page, 0, 720, 612, 72, null, COLORS.brandGreen);
+  
+  // White text for header
+  push(page, `${COLORS.white} rg`);
+  
+  // Title (bold, white)
+  text(page, 44, 757, 17, title, "F2");
+  
+  // Subtitle (white)
   if (subtitle) {
-    text(page, 44, 737, 10, subtitle, "F1");
+    text(page, 44, 738, 9, subtitle, "F1");
   }
-  text(page, 464, 740, 10, `Page ${pageNumber} of ${totalPages}`, "F1");
-  rect(page, 44, 709, 524, 2, null, "0.86 0.89 0.88");
+  
+  // Page number (white)
+  text(page, 480, 738, 9, `Page ${pageNumber} of ${totalPages}`, "F1");
+  
+  // Reset to black for body content
+  push(page, `${COLORS.black} rg`);
+  
+  // Subtle divider
+  rect(page, 44, 709, 524, 1, null, COLORS.borderGray);
+  
+  // Branding line under header
+  text(page, 44, 696, 7, "FREELANCER MARKETPLACE", "F2");
 }
 
 function renderFooter(page, footerText) {
-  rect(page, 44, 38, 524, 1, null, "0.86 0.89 0.88");
-  if (footerText) {
-    text(page, 44, 24, 9, footerText, "F1");
-  }
+  rect(page, 44, 38, 524, 1, null, BRAND.border);
+  const footer = footerText || "Confidential • Freelancer Marketplace";
+  text(page, 44, 24, 8, footer, "F1");
 }
 
 function renderSection(page, y, title) {
-  rect(page, 44, y - 4, 524, 18, null, "0.95 0.97 0.96");
-  rect(page, 44, y - 4, 4, 18, null, "0.09 0.24 0.18");
-  text(page, 56, y + 4, 11, title, "F2");
-  return y - 28;
+  // Section background pill
+  rect(page, 44, y - 3, 524, 20, null, BRAND.surface);
+  // Left accent bar
+  rect(page, 44, y - 3, 4, 20, null, BRAND.green);
+  text(page, 56, y + 5, 10, title, "F2");
+  return y - 26;
 }
 
 function renderLabelValue(page, y, label, value) {
-  const labelWidth = 150;
-  const valueWidth = 332;
-  const lineHeight = 14;
   const labelText = String(label ?? "");
   const valueText = String(value ?? "-");
-  const valueLines = buildTextLines(valueText, Math.max(28, Math.floor(valueWidth / 6)));
-  const height = Math.max(1, valueLines.length) * lineHeight + 4;
+  const valueLines = buildTextLines(valueText, 68);
+  const lineHeight = 13;
+  const height = Math.max(16, valueLines.length * lineHeight + 6);
 
-  rect(page, 44, y - height + 10, 524, height, "0.88 0.90 0.89", "1 1 1");
-  text(page, 56, y - 2, 10, labelText, "F2");
+  // Alternating row background
+  rect(page, 44, y - height + 8, 524, height, null, BRAND.surface);
+  
+  text(page, 56, y - 1, 9, labelText, "F2");
+  
   valueLines.forEach((line, index) => {
-    text(page, 210, y - 2 - index * lineHeight, 10, line, "F1");
+    text(page, 200, y - 1 - index * lineHeight, 9, line, "F1");
   });
-  return y - height - 6;
+  
+  return y - height - 4;
 }
 
 function renderParagraph(page, y, textValue, widthChars = 72) {
   const lines = buildTextLines(textValue, widthChars);
-  const lineHeight = 14;
+  const lineHeight = 13;
   lines.forEach((line, index) => {
-    text(page, 56, y - index * lineHeight, 10, line, "F1");
+    text(page, 56, y - index * lineHeight, 9, line, "F1");
   });
-  return y - lines.length * lineHeight - 6;
+  return y - lines.length * lineHeight - 8;
 }
 
 function renderChip(page, x, y, label, value, width) {
-  rect(page, x, y, width, 32, "0.79 0.85 0.82", "0.96 0.98 0.97");
-  text(page, x + 10, y + 18, 8, label, "F2");
-  text(page, x + 10, y + 8, 11, value, "F1");
+  rect(page, x, y, width, 28, null, BRAND.greenLight);
+  rect(page, x, y, width, 28, BRAND.border, null);
+  text(page, x + 8, y + 16, 7, label, "F2");
+  text(page, x + 8, y + 6, 10, value, "F1");
+}
+
+function renderKeyValueRow(page, y, key, value) {
+  text(page, 56, y, 9, key, "F2");
+  const valLines = buildTextLines(String(value ?? "-"), 60);
+  valLines.forEach((line, i) => {
+    text(page, 180, y - (i * 12), 9, line, "F1");
+  });
+  return y - Math.max(14, valLines.length * 12);
 }
 
 export function exportApplicationPdf(application) {
   const title = "Application Review";
   const projectTitle = application?.projectTitle || "Untitled project";
-  const subtitle = `Client review export for "${projectTitle}"`;
-  const footerText = `Generated on ${new Date().toLocaleString()}`;
+  const subtitle = `Exported for client review • ${projectTitle}`;
+  const footerText = `Freelancer Marketplace • Generated ${new Date().toLocaleDateString()}`;
 
-  // Collect body content commands per logical page first.
-  // Then, when building final PDF pages, we ALWAYS draw header + footer FIRST (white bg + header bar at top of stream),
-  // followed by the body commands. This prevents the full-page white rect from overpainting the content.
-  const pageBodies = []; // each entry is an array of PDF drawing commands for the body of that page
+  const pageBodies = [];
 
   let bodyCmds = [];
-  let y = 672;
+  let y = 665;
 
-  // Proxy object so we can reuse the existing renderSection / renderLabelValue / renderParagraph helpers.
-  // They expect an object with .commands array and will push drawing commands into it.
   const bodyProxy = { commands: bodyCmds };
 
   function startBodyPage() {
@@ -203,33 +242,31 @@ export function exportApplicationPdf(application) {
     }
     bodyCmds = [];
     bodyProxy.commands = bodyCmds;
-    y = 672;
+    y = 665;
   }
 
-  // Draw top status chips (absolute positioning, below where header bar will be)
   function drawChip(x, yPos, label, value, width) {
-    // These go into the current bodyCmds via the proxy? For chips we push directly to current bodyCmds.
     const safeLabel = escapePdfText(label);
     const safeValue = escapePdfText(value);
-    bodyCmds.push(`0.79 0.85 0.82 rg ${x} ${yPos} ${width} 32 re f`);
-    bodyCmds.push(`0.96 0.98 0.97 rg ${x} ${yPos} ${width} 32 re S`); // light border-ish
-    bodyCmds.push(`BT /F2 8 Tf ${x + 10} ${yPos + 18} Td (${safeLabel}) Tj ET`);
-    bodyCmds.push(`BT /F1 11 Tf ${x + 10} ${yPos + 8} Td (${safeValue}) Tj ET`);
+    bodyCmds.push(`${BRAND.greenLight} rg ${x} ${yPos} ${width} 26 re f`);
+    bodyCmds.push(`${BRAND.border} RG ${x} ${yPos} ${width} 26 re S`);
+    bodyCmds.push(`BT /F2 7 Tf ${x + 8} ${yPos + 15} Td (${safeLabel}) Tj ET`);
+    bodyCmds.push(`BT /F1 10 Tf ${x + 8} ${yPos + 5} Td (${safeValue}) Tj ET`);
   }
 
-  // First page body
   startBodyPage();
 
-  drawChip(44, 680, "STATUS", String(application?.propStatus || "pending").toUpperCase(), 114);
-  drawChip(168, 680, "BID", application?.bidAmount != null ? `$${Number(application.bidAmount).toLocaleString()}` : "-", 126);
-  drawChip(304, 680, "EST. DAYS", application?.estimatedDays != null ? String(application.estimatedDays) : "-", 126);
-  drawChip(440, 680, "APPLIED", application?.createdAt ? new Date(application.createdAt).toLocaleDateString() : "-", 126);
+  // Top status chips row
+  drawChip(44, 672, "STATUS", String(application?.propStatus || "pending").toUpperCase(), 108);
+  drawChip(160, 672, "BID", application?.bidAmount != null ? `$${Number(application.bidAmount).toLocaleString()}` : "-", 118);
+  drawChip(286, 672, "EST. DAYS", application?.estimatedDays != null ? String(application.estimatedDays) : "-", 118);
+  drawChip(412, 672, "APPLIED", application?.createdAt ? new Date(application.createdAt).toLocaleDateString() : "-", 118);
 
   y = renderSection(bodyProxy, y, "Application Summary");
   y = renderLabelValue(bodyProxy, y, "Application ID", application?.applicationId ?? "-");
   y = renderLabelValue(bodyProxy, y, "Status", application?.propStatus ?? "pending");
   y = renderLabelValue(bodyProxy, y, "Applied on", application?.createdAt ? new Date(application.createdAt).toLocaleString() : "-");
-  y = renderLabelValue(bodyProxy, y, "Updated on", application?.updatedAt ? new Date(application.updatedAt).toLocaleString() : "-");
+  y = renderLabelValue(bodyProxy, y, "Last updated", application?.updatedAt ? new Date(application.updatedAt).toLocaleString() : "-");
 
   y = renderSection(bodyProxy, y, "Freelancer");
   y = renderLabelValue(bodyProxy, y, "Name", application?.freelancerName || "-");
@@ -238,12 +275,12 @@ export function exportApplicationPdf(application) {
   y = renderSection(bodyProxy, y, "Project");
   y = renderLabelValue(bodyProxy, y, "Project title", projectTitle);
   y = renderLabelValue(bodyProxy, y, "Project status", application?.projectStatus || "-");
-  y = renderLabelValue(bodyProxy, y, "Project budget", application?.projectBudget != null ? `$${Number(application.projectBudget).toLocaleString()}` : "-");
+  y = renderLabelValue(bodyProxy, y, "Budget", application?.projectBudget != null ? `$${Number(application.projectBudget).toLocaleString()}` : "-");
   y = renderLabelValue(bodyProxy, y, "Deadline", application?.projectDeadline ? new Date(application.projectDeadline).toLocaleDateString() : "-");
 
   y = renderSection(bodyProxy, y, "Cover Letter");
   const coverLetter = application?.coverLetter?.trim() || "No cover letter was provided.";
-  y = renderParagraph(bodyProxy, y, coverLetter, 72);
+  y = renderParagraph(bodyProxy, y, coverLetter, 78);
 
   const attachmentName = application?.attachmentName || application?.fileName || null;
   if (attachmentName) {
@@ -251,23 +288,21 @@ export function exportApplicationPdf(application) {
     y = renderLabelValue(bodyProxy, y, "File", attachmentName);
   }
 
-  // Save first page's body
   if (bodyCmds.length > 0) {
     pageBodies.push(bodyCmds);
   }
 
-  if (y < 100) {
-    // Second page body
+  // Add a closing note page if content is short
+  if (y < 180) {
     startBodyPage();
-    y = renderSection(bodyProxy, y, "Additional Notes");
-    y = renderParagraph(bodyProxy, y, "This application was exported with the full project and freelancer metadata for offline review.", 72);
+    y = renderSection(bodyProxy, y, "Notes");
+    y = renderParagraph(bodyProxy, y, "This document contains the full details of the freelancer application for offline review and record keeping.", 78);
+    y = renderParagraph(bodyProxy, y, "For the latest status or to take action, please log into the Freelancer Marketplace platform.", 78);
     if (bodyCmds.length > 0) {
       pageBodies.push(bodyCmds);
     }
   }
 
-  // Assemble final pages: HEADER + FOOTER commands FIRST, then body commands.
-  // This guarantees the full-page white background + green header bar are painted before any body text.
   const finalPages = [];
   const total = Math.max(1, pageBodies.length);
 
@@ -275,17 +310,14 @@ export function exportApplicationPdf(application) {
     const pg = createPage();
     const pageNum = index + 1;
 
-    // These must be the very first commands for the page
     renderHeader(pg, title, subtitle, pageNum, total);
     renderFooter(pg, footerText);
 
-    // Body content drawn on top of the header/footer
     pg.commands.push(...bodyCommandsForPage);
 
     finalPages.push(pg);
   });
 
-  // Edge case: nothing to export
   if (finalPages.length === 0) {
     const pg = createPage();
     renderHeader(pg, title, subtitle, 1, 1);
@@ -297,19 +329,41 @@ export function exportApplicationPdf(application) {
   downloadBlob(blob, `application-${application?.applicationId ?? "export"}.pdf`);
 }
 
-export function exportPdf(lines, filename = "export", title = "Export") {
-  const safeLines = Array.isArray(lines) ? lines : [String(lines ?? "")];
+export function exportPdf(linesOrData, filename = "export", title = "Export") {
   const page = createPage();
-  let y = 720;
-  text(page, 72, y, 16, title, "F2");
-  y -= 24;
-  safeLines.forEach((line) => {
-    const wrapped = buildTextLines(line, 76);
-    wrapped.forEach((wrappedLine) => {
-      text(page, 72, y, 11, wrappedLine, "F1");
-      y -= 15;
-    });
+  let y = 665;
+
+  // Use shared header for consistency
+  const subtitle = `Generated ${new Date().toLocaleDateString()}`;
+  renderHeader(page, title, subtitle, 1, 1);
+
+  y = 665;
+
+  const safeLines = Array.isArray(linesOrData) ? linesOrData : [String(linesOrData ?? "")];
+
+  safeLines.forEach((item) => {
+    if (y < 90) return;
+
+    if (typeof item === "object" && item !== null && "key" in item) {
+      text(page, 50, y, 9, String(item.key), "F2");
+      const val = String(item.value ?? "-");
+      const valLines = buildTextLines(val, 62);
+      valLines.forEach((vl, i) => {
+        text(page, 185, y - i * 11, 9, vl, "F1");
+      });
+      y -= Math.max(13, valLines.length * 11 + 3);
+    } else {
+      const wrapped = buildTextLines(item, 78);
+      wrapped.forEach((line) => {
+        text(page, 50, y, 9, line, "F1");
+        y -= 11;
+      });
+      y -= 3;
+    }
   });
+
+  renderFooter(page, "Freelancer Marketplace • Confidential Report");
+
   const blob = buildPdfFromPages([page]);
   downloadBlob(blob, `${filename}.pdf`);
 }

@@ -199,7 +199,7 @@ export default function ClientTestimonials() {
 
             {error && <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
-            {/* Filters */}
+            {}
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <input
                 type="text"
@@ -240,7 +240,7 @@ export default function ClientTestimonials() {
         </div>
       </main>
 
-      {/* Advanced Create / Edit Modal */}
+      {}
       {showForm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-2xl rounded-3xl border bg-white shadow-2xl">
@@ -288,7 +288,7 @@ export default function ClientTestimonials() {
                 />
               </div>
 
-              {/* Live Preview */}
+              {}
               <div className="rounded-2xl border bg-slate-50 p-4">
                 <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Live Preview (how it may appear)</div>
                 <div className="bg-white rounded-2xl p-4 border">

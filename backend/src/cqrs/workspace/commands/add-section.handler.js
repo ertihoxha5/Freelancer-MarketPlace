@@ -33,8 +33,6 @@ export class AddSectionHandler {
       ]
     );
 
-    // For simplicity, the caller will re-fetch via query bus if needed.
-    // Returning success indicator.
     return { success: true };
   }
 }

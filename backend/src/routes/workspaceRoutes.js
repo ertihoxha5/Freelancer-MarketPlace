@@ -21,18 +21,14 @@ const sectionSchema = z.object({
   visible: z.boolean().optional(),
 });
 
-// All workspace routes require auth + contract ownership is checked inside controller
 router.use(authMiddleware.authenticateToken);
 
-// GET workspace data (todos + visible sections for client, all for freelancer)
 router.get("/contracts/:id/workspace", workspaceController.getWorkspace);
 
-// Todos - freelancer only (enforced in controller)
 router.post("/contracts/:id/workspace/todos", validateRequest({ body: todoSchema }), workspaceController.addTodo);
 router.patch("/contracts/:id/workspace/todos/:todoId", workspaceController.updateTodo);
 router.delete("/contracts/:id/workspace/todos/:todoId", workspaceController.deleteTodo);
 
-// CMS Sections - freelancer only
 router.post("/contracts/:id/workspace/sections", validateRequest({ body: sectionSchema }), workspaceController.addSection);
 router.patch("/contracts/:id/workspace/sections/:sectionId", workspaceController.updateSection);
 router.delete("/contracts/:id/workspace/sections/:sectionId", workspaceController.deleteSection);

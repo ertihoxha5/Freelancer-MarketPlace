@@ -28,11 +28,11 @@ export default function AdminContracts() {
 
   useEffect(() => {
     loadContracts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [filters.status, filters.search, filters.page]);
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 })); // reset page on filter
+    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
   };
 
   const { contracts, total, page, limit } = contractsData;
@@ -56,7 +56,7 @@ export default function AdminContracts() {
               <h1 className="text-4xl font-semibold text-slate-900 mt-1">All Contracts</h1>
             </div>
 
-            {/* Professional KPI strip */}
+            {}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="rounded-2xl border p-4 bg-white">
                 <div className="text-xs text-slate-500">Total Contracts</div>
@@ -94,7 +94,7 @@ export default function AdminContracts() {
                 <option value="pending">Pending</option>
                 <option value="cancelled">Cancelled</option>
               </select>
-              <button className="ml-auto px-4 py-2 border rounded-2xl text-sm" onClick={() => {/* TODO: call export */}}>Export CSV</button>
+              <button className="ml-auto px-4 py-2 border rounded-2xl text-sm" onClick={() => {}}>Export CSV</button>
             </div>
 
             <div className="rounded-3xl border bg-white shadow-sm overflow-hidden">
@@ -140,15 +140,15 @@ export default function AdminContracts() {
             <div className="flex justify-between items-center mt-4 text-sm">
               <p className="text-slate-500">Showing {contracts.length} of {total} contracts</p>
               <div className="flex gap-2">
-                <button 
-                  disabled={page <= 1} 
+                <button
+                  disabled={page <= 1}
                   onClick={() => handleFilterChange('page', page - 1)}
                   className="px-3 py-1 border rounded disabled:opacity-50"
                 >
                   Prev
                 </button>
                 <span>Page {page}</span>
-                <button 
+                <button
                   onClick={() => handleFilterChange('page', page + 1)}
                   className="px-3 py-1 border rounded"
                 >

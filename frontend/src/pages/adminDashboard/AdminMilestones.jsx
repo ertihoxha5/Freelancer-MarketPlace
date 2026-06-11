@@ -8,7 +8,6 @@ import {
   updateAdminMilestoneStatus,
 } from "../../apiServices.js";
 
-
 export default function AdminMilestones() {
   const { user } = useAuth();
 

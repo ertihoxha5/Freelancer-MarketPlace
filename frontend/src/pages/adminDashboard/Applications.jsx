@@ -94,7 +94,7 @@ export default function AdminApplications() {
               </p>
             </div>
 
-            {/* Statistics */}
+            {}
             <div className="mb-8 grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="text-sm text-slate-500">Total Applications</div>
@@ -127,7 +127,7 @@ export default function AdminApplications() {
               </div>
             )}
 
-            {/* Filter */}
+            {}
             <div className="mb-4 flex items-center gap-3">
               <label className="text-sm font-medium text-slate-600">Filter by status:</label>
               <select
@@ -151,7 +151,7 @@ export default function AdminApplications() {
               </div>
             </div>
 
-            {/* Applications Table - ID focused */}
+            {}
             {loading ? (
               <div className="rounded-2xl border border-slate-200 p-8 text-center text-slate-500">Loading applications...</div>
             ) : applications.length === 0 ? (
@@ -208,7 +208,7 @@ export default function AdminApplications() {
               </div>
             )}
 
-            {/* Details Modal */}
+            {}
             {detailOpen && selectedApp && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                 <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">

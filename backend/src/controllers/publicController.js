@@ -43,4 +43,3 @@ export async function getHomeData(req, res, next) {
     next(err);
   }
 }
-

@@ -40,8 +40,7 @@ function NotificationIcon({ type, isRead }) {
         💬
       </div>
     );
-  }
-  // system
+  }
   return (
     <div
       className={`${base} ${isRead ? "bg-slate-100 text-slate-400" : "bg-green-100 text-green-600"}`}
@@ -113,7 +112,7 @@ export default function FreelancerNotifications() {
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
     } catch {
-      /* silent */
+
     } finally {
       setProcessingId(null);
     }
@@ -240,7 +239,7 @@ export default function FreelancerNotifications() {
               })}
             </div>
 
-            {/* ── Content ── */}
+            {}
             {loading ? (
               <div className="space-y-3">
                 {[...Array(4)].map((_, i) => (

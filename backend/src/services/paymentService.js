@@ -1,4 +1,4 @@
-// backend/src/services/paymentService.js
+
 import { createHash } from "node:crypto";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as projectRepository from "../repositories/projectRepository.js";
@@ -27,20 +27,18 @@ function logTransaction(action, details) {
  * POST /api/payment/intent  → Krijo intent (SIMULIM)
  */
 export async function createPaymentIntent(userID, body) {
-  const { 
-    amount, 
-    currency = DEFAULT_CURRENCY, 
-    projectId, 
-    milestoneID, 
-    contractID, 
-    description 
+  const {
+    amount,
+    currency = DEFAULT_CURRENCY,
+    projectId,
+    milestoneID,
+    contractID,
+    description
   } = body;
 
   if (!amount || amount <= 0) {
     throw validationError("Amount duhet të jetë më i madh se 0");
-  }
-
-  // Kontrollo pronësinë nëse ka contract
+  }
   if (contractID) {
     await assertClientOwnsContract(contractID, userID);
   }
@@ -55,20 +53,20 @@ export async function createPaymentIntent(userID, body) {
     pStatus: "pending",
     transactionID: mockTransactionId,
     notes: description || "Payment for freelance project",
-    metadata: { 
+    metadata: {
       projectId: projectId || null,
       createdBy: "mock_intent",
-      userID 
+      userID
     }
   };
 
   const payment = await paymentRepository.createPayment(paymentData);
 
-  logTransaction("create_intent", { 
-    paymentId: payment.id, 
-    amount, 
+  logTransaction("create_intent", {
+    paymentId: payment.id,
+    amount,
     transactionID: mockTransactionId,
-    userID 
+    userID
   });
 
   return {
@@ -286,8 +284,7 @@ export async function releaseMilestoneFunds(milestoneID, releasedBy) {
 /**
  * Get payment history for freelancer (earnings from completed milestones)
  */
-export async function getFreelancerPaymentHistory(freelancerID, pagination = {}) {
-  // Support both {page, limit} (from validation schema) and {limit, offset}
+export async function getFreelancerPaymentHistory(freelancerID, pagination = {}) {
   const rawLimit = Number(pagination.limit) || Number(pagination.pageSize) || 20;
   const limit = Math.min(Math.max(Math.floor(rawLimit), 1), 100);
 
@@ -304,7 +301,7 @@ export async function getFreelancerPaymentHistory(freelancerID, pagination = {})
   const safeOffset = offset;
 
   const [rows] = await db.execute(
-    `SELECT 
+    `SELECT
         p.id,
         p.contractID,
         p.amount,
@@ -354,7 +351,7 @@ export async function getFreelancerPaymentHistory(freelancerID, pagination = {})
  */
 export async function getFreelancerPaymentDetail(paymentID, freelancerID) {
   const payment = await paymentRepository.getPaymentById(paymentID);
-  
+
   if (!payment) {
     throw notFoundError("Payment not found.");
   }
@@ -369,7 +366,7 @@ export async function getFreelancerPaymentDetail(paymentID, freelancerID) {
   }
 
   const [details] = await db.execute(
-    `SELECT 
+    `SELECT
         p.*,
         mp.releasedAt,
         mp.pStatus AS milestonePaymentStatus,

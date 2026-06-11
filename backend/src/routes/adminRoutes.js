@@ -169,9 +169,7 @@ router.patch(
   "/disputes/:id",
   validateRequest({ params: paramSchemas.id, body: adminSchemas.updateDispute }),
   adminController.updateDisputeStatus,
-);
-
-// Admin Payments & Applications (Proposals)
+);
 router.get(
   "/payments",
   validateRequest({ query: querySchemas.pagination }),
@@ -187,9 +185,7 @@ router.get(
   "/contracts",
   validateRequest({ query: querySchemas.pagination }),
   adminController.getAllContracts,
-);
-
-// Audit Logs
+);
 router.get(
   "/audit-logs",
   validateRequest({ query: querySchemas.pagination }),
@@ -204,9 +200,7 @@ router.delete(
   "/audit-logs",
   validateRequest({ query: querySchemas.pagination }),
   adminController.deleteOldAuditLogs,
-);
-
-// 3 more admin CRUDS
+);
 router.get("/testimonials", adminController.getAllTestimonials);
 router.patch(
   "/testimonials/:id",

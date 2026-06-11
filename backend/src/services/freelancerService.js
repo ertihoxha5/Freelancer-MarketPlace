@@ -42,7 +42,7 @@ function parseBase64Image(data) {
   }
 
   const buffer = Buffer.from(payload, "base64");
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const MAX_SIZE = 5 * 1024 * 1024;
   if (buffer.length > MAX_SIZE) {
     throw validationError("Image must be smaller than 5MB.");
   }

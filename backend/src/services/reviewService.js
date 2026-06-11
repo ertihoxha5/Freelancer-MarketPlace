@@ -66,9 +66,7 @@ export async function createReview(contractID, reviewerID, role, payload) {
   const contract = await projectRepository.getContractById(contractId);
   if (!contract) {
     throw notFoundError("Contract not found.");
-  }
-
-  // Reviews can be left at any time during or after the contract (not restricted to completed status)
+  }
 
   const partyContext = getContractPartyContext(contract, reviewerId, role);
 

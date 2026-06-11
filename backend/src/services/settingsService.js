@@ -21,4 +21,3 @@ export async function updateSettings(payload) {
 
   return updated;
 }
-

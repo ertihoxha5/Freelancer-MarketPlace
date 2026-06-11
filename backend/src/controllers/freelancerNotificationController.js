@@ -1,5 +1,4 @@
-// Legacy controller kept for compatibility. It now delegates to the exact same
-// notification logic used by clients (MySQL Notifications table via shared service).
+
 import * as notificationService from "../services/notificationService.js";
 import { validatedParams } from "../middleware/validateRequest.js";
 

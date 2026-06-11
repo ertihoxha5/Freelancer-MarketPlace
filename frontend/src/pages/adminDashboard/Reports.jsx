@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { FiBarChart2, FiDownload, FiEdit2, FiPlay, FiRefreshCw, FiSave, FiSearch, FiTrash2, FiUsers, FiDollarSign, FiFileText, FiTrendingUp } from "react-icons/fi";
 import Header from "../../components/Header.jsx";
 import Sidebar from "../../components/Sidebar.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -41,21 +42,17 @@ export default function Reports() {
   const [freelancerReport, setFreelancerReport] = useState(null);
   const [filters, setFilters] = useState({ from: "", to: "", status: "", format: "json" });
   const [error, setError] = useState("");
-
-  // Dynamic report generation state for task 7
   const [reportType, setReportType] = useState("platform");
   const [reportCriteria, setReportCriteria] = useState({ from: "", to: "", status: "", userId: "" });
   const [customTitle, setCustomTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [formatting, setFormatting] = useState({ showCards: true, showCharts: true, showTable: true });
   const [generatedReport, setGeneratedReport] = useState(null);
-
-  // Saved reports state for professional CRUD + advanced search
   const [savedReports, setSavedReports] = useState([]);
   const [savedSearch, setSavedSearch] = useState({ q: "", reportType: "", from: "", to: "", page: 1, limit: 10 });
   const [savedLoading, setSavedLoading] = useState(false);
   const [savedTotal, setSavedTotal] = useState(0);
-  const [editingSaved, setEditingSaved] = useState(null); // for edit modal
+  const [editingSaved, setEditingSaved] = useState(null);
   const [saveForm, setSaveForm] = useState({ name: "", description: "", tags: "" });
 
   useEffect(() => {
@@ -73,8 +70,6 @@ export default function Reports() {
     if (!freelancerId) return;
     setFreelancerReport(await fetchFreelancerReport(freelancerId));
   }
-
-  // Dynamic report generation
   async function generateReport() {
     setError("");
     let data = { ...summary };
@@ -98,15 +93,12 @@ export default function Reports() {
         data = await fetchFreelancerReport(reportCriteria.userId);
         title = customTitle || `Freelancer Report - User ${reportCriteria.userId}`;
       } else if (reportType === "project") {
-        // Reuse existing project filters
         const projectFilters = { ...filters, ...reportCriteria };
-        // For demo, fetch summary + note that full project report uses download
         data = await fetchPlatformSummaryReport();
         data.projectFilters = projectFilters;
         title = customTitle || "Project Performance Report";
       } else if (reportType === "custom") {
         data = await fetchPlatformSummaryReport();
-        // Could aggregate more, for now base on platform + criteria
         title = customTitle || "Custom Performance Report";
       }
 
@@ -116,12 +108,12 @@ export default function Reports() {
         notes: notes || "Generated for admin review.",
         generatedAt: new Date().toISOString(),
         generatedBy: user?.fullName || "Admin",
-        reportType,                              // important for backend save
+        reportType,
         criteria: { ...reportCriteria, ...filters },
         formatting: { ...formatting },
         personalization: { title: customTitle || "", notes: notes || "" },
-        dataSnapshot: { ...data },               // keep the raw report numbers separate
-        type: reportType,                        // legacy key for display fallbacks
+        dataSnapshot: { ...data },
+        type: reportType,
       };
       setGeneratedReport(report);
     } catch (err) {
@@ -137,9 +129,6 @@ export default function Reports() {
       return;
     }
     try {
-      // Build a clean payload matching backend expectations.
-      // We put a "rich" dataSnapshot so that after Load (which does setGeneratedReport(dataSnapshot || saved))
-      // the preview header (title, generatedBy, notes) + the number cards still work.
       const richSnapshot = {
         ...(generatedReport.dataSnapshot || generatedReport),
         title: generatedReport.title || trimmedName,
@@ -162,16 +151,13 @@ export default function Reports() {
       await saveAdminReport(payload);
       setSaveForm({ name: "", description: "", tags: "" });
       setError("");
-      // After saving, reset search to defaults so the brand new report is visible at the top
       const freshSearch = { q: "", reportType: "", from: "", to: "", page: 1, limit: 10 };
       setSavedSearch(freshSearch);
-      // Load the first page (newest first) so user immediately sees what they just saved
       await loadSavedReportsWithSearch(freshSearch);
       alert("Report saved successfully!");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to save report.";
       setError(msg);
-      // Also surface it right under the save button area if possible (top banner should show it too)
       console.error("Save report failed:", err);
     }
   }
@@ -196,7 +182,6 @@ export default function Reports() {
   async function searchSavedReports(newSearch = {}) {
     const updated = { ...savedSearch, ...newSearch, page: 1 };
     setSavedSearch(updated);
-    // load will be triggered by useEffect or manual
     await loadSavedReportsWithSearch(updated);
   }
 
@@ -214,14 +199,11 @@ export default function Reports() {
   }
 
   async function loadSavedIntoGenerator(saved) {
-    // Restore criteria, formatting, personalization, and snapshot data
     setReportType(saved.reportType || "platform");
     setReportCriteria(saved.criteria || {});
     setCustomTitle(saved.personalization?.title || saved.title || saved.name || "");
     setNotes(saved.personalization?.notes || saved.notes || "");
     setFormatting(saved.formatting || { showCards: true, showCharts: true, showTable: true });
-
-    // Build a display-friendly object for the preview (title + numbers for cards)
     const snapshot = saved.dataSnapshot || saved;
     const displayReport = {
       ...snapshot,
@@ -280,33 +262,48 @@ export default function Reports() {
       setError(err instanceof Error ? err.message : "Update failed.");
     }
   }
-
-  // Auto-load saved reports on mount or when search changes (simplified)
   useEffect(() => {
     if (savedSearch.page) {
       loadSavedReports();
     }
-  }, [savedSearch.page, savedSearch.limit]); // trigger on pagination
+  }, [savedSearch.page, savedSearch.limit]);
 
   function exportGeneratedReport(fmt) {
     if (!generatedReport) return;
     const filename = (generatedReport.title || "report").replace(/\s+/g, "-").toLowerCase();
     const exportRows = [
-      { key: "Title", value: generatedReport.title },
-      { key: "Generated At", value: generatedReport.generatedAt },
+      { key: "Report Title", value: generatedReport.title },
+      { key: "Report Type", value: generatedReport.reportType || generatedReport.type },
+      { key: "Generated At", value: new Date(generatedReport.generatedAt).toLocaleString() },
       { key: "Generated By", value: generatedReport.generatedBy },
-      { key: "Notes", value: generatedReport.notes },
-      { key: "Criteria", value: JSON.stringify(generatedReport.criteria) },
-      ...Object.entries(generatedReport)
-        .filter(([k]) => !["title", "notes", "generatedAt", "generatedBy", "criteria", "type"].includes(k))
-        .map(([k, v]) => ({ key: k, value: typeof v === "object" ? JSON.stringify(v) : v })),
+      { key: "Notes", value: generatedReport.notes || "—" },
+      { key: "Criteria", value: JSON.stringify(generatedReport.criteria || {}) },
     ];
+
+    // Add key numeric metrics first
+    const metrics = Object.entries(generatedReport)
+      .filter(([k, v]) => typeof v === "number" || (typeof v === "string" && v.startsWith("$")))
+      .slice(0, 12);
+
+    if (metrics.length) {
+      exportRows.push({ key: "— Key Metrics —", value: "" });
+      metrics.forEach(([k, v]) => exportRows.push({ key: k, value: v }));
+    }
+
+    // Add remaining snapshot data
+    const rest = Object.entries(generatedReport)
+      .filter(([k]) => !["title", "notes", "generatedAt", "generatedBy", "criteria", "type", "reportType"].includes(k) && typeof generatedReport[k] !== "function")
+      .slice(0, 20);
+
+    if (rest.length) {
+      exportRows.push({ key: "— Additional Data —", value: "" });
+      rest.forEach(([k, v]) => exportRows.push({ key: k, value: typeof v === "object" ? JSON.stringify(v) : v }));
+    }
 
     if (fmt === "csv") exportCSV(exportRows, filename);
     else if (fmt === "json") exportJSON(exportRows, filename);
     else if (fmt === "pdf") {
-      const lines = exportRows.map(r => `${r.key}: ${r.value}`);
-      exportPdf(lines, filename, generatedReport.title);
+      exportPdf(exportRows, filename, generatedReport.title);
     }
   }
 
@@ -345,12 +342,31 @@ export default function Reports() {
         <div className="flex h-full min-h-0 flex-col overflow-hidden border-t border-slate-200 bg-white lg:flex-row">
           <Sidebar roleID={user?.roleID} />
           <section className="min-h-full min-w-0 flex-1 overflow-auto p-6 sm:p-8">
-            <div className="mb-6">
-              <h1 className="text-3xl font-semibold text-slate-900">Reports</h1>
-              <p className="mt-2 text-slate-600">Platform, client, freelancer, and project reporting.</p>
+            <div className="mb-6 flex items-end justify-between">
+              <div>
+                <div className="flex items-center gap-3">
+                  <FiBarChart2 className="h-8 w-8 text-[#1a3c2e]" />
+                  <div>
+                    <h1 className="text-3xl font-semibold text-slate-900">Reports &amp; Insights</h1>
+                    <p className="mt-1 text-slate-600">Platform overview, per-user analytics, saved reports and exports</p>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:flex items-center gap-2 text-sm">
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-50 active:bg-slate-100"
+                >
+                  <FiRefreshCw className="h-4 w-4" /> Refresh Data
+                </button>
+              </div>
             </div>
 
-            {error ? <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+            {error && (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+                <span>{error}</span>
+              </div>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               {platformStats.map((item) => (
@@ -361,24 +377,88 @@ export default function Reports() {
               ))}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {[
-                ["Users", summary?.totalUsers],
-                ["Projects", summary?.totalProjects],
-                ["Contracts", summary?.totalContracts],
-                ["Revenue", `$${Number(summary?.totalRevenue || 0).toLocaleString()}`],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm text-slate-500">{label}</p>
-                  <p className="mt-2 text-3xl font-semibold text-slate-900">{value ?? "-"}</p>
+            {/* Visual Overview Charts - added for better design */}
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 mb-3">Visual Overview</h3>
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="font-semibold text-slate-900">Projects by Status</h4>
+                    <FiFileText className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <div className="h-52">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={summary?.projectsByStatus || []}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="status" tick={{ fontSize: 11 }} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#1a3c2e" radius={4} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              ))}
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="font-semibold text-slate-900">Users by Role</h4>
+                    <FiUsers className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <div className="h-52 flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie 
+                          data={summary?.usersByRole || []} 
+                          dataKey="count" 
+                          nameKey="roleName" 
+                          outerRadius={78} 
+                          innerRadius={42}
+                        >
+                          {(summary?.usersByRole || []).map((_, i) => (
+                            <Cell key={i} fill={colors[i % colors.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mt-2 justify-center">
+                    {(summary?.usersByRole || []).map((r, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span className="inline-block h-2 w-2 rounded-full" style={{ background: colors[i % colors.length] }} />
+                        {r.roleName}: {r.count}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="font-semibold text-slate-900">Monthly Activity</h4>
+                    <FiTrendingUp className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <div className="h-52">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={monthlyLine.length ? monthlyLine : (summary?.monthlyActivity || [])}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="amount" stroke="#1a3c2e" strokeWidth={2.5} dot={false} />
+                        <Line type="monotone" dataKey="projectsPosted" stroke="#16a34a" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1 flex gap-3 justify-center">
+                    <span className="flex items-center gap-1"><span className="h-px w-3 bg-[#1a3c2e] inline-block" /> Revenue/Amount</span>
+                    <span className="flex items-center gap-1"><span className="h-px w-3 bg-[#16a34a] inline-block" /> Projects</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Keep existing client/freelancer/project report sections for backward compatibility */}
-            {/* (original client report loaders and project export section remain below in file) */}
+            {}
 
-            {/* Dynamic Report Generation - Task 7 (added at end of main content for visibility) */}
             <div className="mt-8 border-t pt-6">
               <h2 className="text-2xl font-semibold text-slate-900 mb-4">Dynamic Report Generator</h2>
               <p className="text-sm text-slate-500 mb-4">Select criteria, formatting options, add personalization, then generate and export.</p>
@@ -395,7 +475,6 @@ export default function Reports() {
                   </select>
                 </div>
 
-                {/* Dynamic Criteria */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Date From</label>
                   <input type="date" value={reportCriteria.from} onChange={(e) => setReportCriteria({ ...reportCriteria, from: e.target.value })} className="w-full border rounded px-3 py-2 text-sm" />
@@ -417,7 +496,7 @@ export default function Reports() {
                 )}
               </div>
 
-              {/* Personalization */}
+              {}
               <div className="grid gap-4 md:grid-cols-2 mb-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Custom Report Title</label>
@@ -429,7 +508,7 @@ export default function Reports() {
                 </div>
               </div>
 
-              {/* Formatting Options */}
+              {}
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Formatting Options</label>
                 <div className="flex flex-wrap gap-4 text-sm">
@@ -445,58 +524,127 @@ export default function Reports() {
                 </div>
               </div>
 
-              <button onClick={generateReport} className="rounded-lg bg-[#1a3c2e] px-5 py-2 text-sm font-semibold text-white hover:bg-[#214b38] mb-6">
-                Generate Dynamic Report
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={generateReport} className="rounded-xl bg-[#1a3c2e] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#214b38] flex items-center gap-2">
+                  <FiBarChart2 className="h-4 w-4" /> Generate Dynamic Report
+                </button>
+                {generatedReport && (
+                  <button onClick={() => setGeneratedReport(null)} className="text-sm text-slate-500 hover:text-slate-700 px-3">Clear Preview</button>
+                )}
+              </div>
 
-              {/* Generated Report Display with Personalization & Formatting */}
+              {}
               {generatedReport && (
-                <div className="mt-4 border rounded-2xl p-6 bg-white">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-semibold">{generatedReport.title}</h3>
-                    <p className="text-xs text-slate-500">Generated: {new Date(generatedReport.generatedAt).toLocaleString()} by {generatedReport.generatedBy}</p>
-                    {generatedReport.notes && <p className="mt-1 text-sm italic text-slate-600">Notes: {generatedReport.notes}</p>}
-                    {generatedReport.criteria && Object.values(generatedReport.criteria).some(Boolean) && (
-                      <p className="text-xs text-slate-400 mt-1">Criteria: {JSON.stringify(generatedReport.criteria)}</p>
+                <div className="mt-4 border border-slate-200 rounded-3xl bg-white shadow-sm overflow-hidden">
+                  {/* Report Header */}
+                  <div className="bg-slate-900 px-6 py-5 text-white">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded bg-white/10 text-xs uppercase tracking-widest">Report</span>
+                          <span className="text-xs opacity-70 capitalize">{generatedReport.reportType || generatedReport.type}</span>
+                        </div>
+                        <h3 className="text-2xl font-semibold mt-1 tracking-tight">{generatedReport.title}</h3>
+                        <p className="text-xs opacity-75 mt-1">
+                          Generated {new Date(generatedReport.generatedAt).toLocaleString()} • by {generatedReport.generatedBy}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button onClick={() => exportGeneratedReport("csv")} className="flex items-center gap-1.5 rounded-lg border border-white/30 hover:bg-white/10 px-3 py-1.5 text-xs">
+                          <FiDownload className="h-3.5 w-3.5" /> CSV
+                        </button>
+                        <button onClick={() => exportGeneratedReport("json")} className="flex items-center gap-1.5 rounded-lg border border-white/30 hover:bg-white/10 px-3 py-1.5 text-xs">
+                          <FiDownload className="h-3.5 w-3.5" /> JSON
+                        </button>
+                        <button onClick={() => exportGeneratedReport("pdf")} className="flex items-center gap-1.5 rounded-lg bg-white text-slate-900 px-3 py-1.5 text-xs font-medium">
+                          <FiDownload className="h-3.5 w-3.5" /> PDF
+                        </button>
+                      </div>
+                    </div>
+                    {generatedReport.notes && (
+                      <p className="mt-3 text-sm opacity-80 border-l-2 border-white/30 pl-3 italic">“{generatedReport.notes}”</p>
                     )}
                   </div>
 
-                  {formatting.showCards && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                      {Object.entries(generatedReport).filter(([k, v]) => typeof v === "number" || (typeof v === "string" && v.startsWith("$"))).slice(0, 8).map(([key, value]) => (
-                        <div key={key} className="border rounded p-3">
-                          <div className="text-xs text-slate-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</div>
-                          <div className="font-semibold text-lg">{value}</div>
+                  <div className="p-6">
+                    {/* KPI Cards */}
+                    {formatting.showCards && (
+                      <div className="mb-6">
+                        <div className="uppercase text-xs tracking-widest text-slate-500 mb-2">Key Metrics</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          {Object.entries(generatedReport)
+                            .filter(([k, v]) => typeof v === "number" || (typeof v === "string" && (v.startsWith("$") || /^\d/.test(v))))
+                            .slice(0, 10)
+                            .map(([key, value]) => (
+                              <div key={key} className="rounded-2xl border bg-slate-50 p-4">
+                                <div className="text-xs uppercase tracking-wider text-slate-500">{key.replace(/([A-Z])/g, ' $1')}</div>
+                                <div className="mt-1 text-xl font-semibold text-slate-900 tabular-nums">{value}</div>
+                              </div>
+                            ))}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    )}
 
-                  {formatting.showCharts && (generatedReport.projectsByStatus || generatedReport.earningsByMonth || generatedReport.monthlyActivity) && (
-                    <div className="mb-6">
-                      <h4 className="font-medium mb-2">Charts</h4>
-                      {/* Reuse some chart logic from summary if data matches */}
-                      <div className="text-sm text-slate-500">(Charts rendered based on report data - see platform summary above for examples)</div>
-                    </div>
-                  )}
+                    {/* Charts in Preview */}
+                    {formatting.showCharts && (
+                      <div className="mb-6">
+                        <div className="uppercase text-xs tracking-widest text-slate-500 mb-2">Visuals</div>
+                        <div className="grid gap-4 lg:grid-cols-2">
+                          {(generatedReport.projectsByStatus || summary?.projectsByStatus) && (
+                            <div className="rounded-2xl border p-4">
+                              <div className="text-sm font-medium mb-2">Projects by Status</div>
+                              <div className="h-44">
+                                <ResponsiveContainer>
+                                  <BarChart data={generatedReport.projectsByStatus || summary?.projectsByStatus}>
+                                    <CartesianGrid strokeDasharray="2 2" />
+                                    <XAxis dataKey="status" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="count" fill="#1a3c2e" />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          )}
+                          {(generatedReport.earningsByMonth || generatedReport.monthlyActivity || summary?.monthlyActivity) && (
+                            <div className="rounded-2xl border p-4">
+                              <div className="text-sm font-medium mb-2">Trend</div>
+                              <div className="h-44">
+                                <ResponsiveContainer>
+                                  <LineChart data={generatedReport.earningsByMonth || generatedReport.monthlyActivity || summary?.monthlyActivity}>
+                                    <CartesianGrid strokeDasharray="2 2" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Line type="monotone" dataKey="amount" stroke="#1a3c2e" strokeWidth={2} />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-                  {formatting.showTable && (
-                    <div>
-                      <h4 className="font-medium mb-2">Data Table</h4>
-                      <pre className="text-xs bg-slate-50 p-3 rounded overflow-auto max-h-64">{JSON.stringify(generatedReport, null, 2)}</pre>
-                    </div>
-                  )}
-
-                  {/* Export for this dynamic report */}
-                  <div className="mt-6 pt-4 border-t flex gap-2">
-                    <button onClick={() => exportGeneratedReport("csv")} className="text-sm border px-3 py-1.5 rounded">Export CSV</button>
-                    <button onClick={() => exportGeneratedReport("json")} className="text-sm border px-3 py-1.5 rounded">Export JSON</button>
-                    <button onClick={() => exportGeneratedReport("pdf")} className="text-sm border px-3 py-1.5 rounded bg-slate-900 text-white">Export PDF</button>
+                    {/* Data Table */}
+                    {formatting.showTable && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="uppercase text-xs tracking-widest text-slate-500">Raw Data Snapshot</div>
+                          <button onClick={() => setGeneratedReport(prev => ({...prev, _showFull: !prev._showFull}))} className="text-xs text-slate-500 hover:text-slate-700">
+                            {generatedReport._showFull ? "Collapse" : "Expand"}
+                          </button>
+                        </div>
+                        <div className="rounded-2xl border bg-slate-50 p-4 overflow-auto max-h-72 text-xs font-mono">
+                          <pre>{JSON.stringify(generatedReport._showFull ? generatedReport : Object.fromEntries(Object.entries(generatedReport).slice(0, 12)), null, 2)}</pre>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Professional "Save" step — saving is deliberately metadata-rich (name + description + tags required) */}
+              {}
               {generatedReport && (
                 <div className="mt-6 border rounded-2xl p-5 bg-slate-50">
                   <h4 className="font-semibold text-slate-900 mb-1">Save this report to library</h4>
@@ -509,7 +657,7 @@ export default function Reports() {
                         value={saveForm.name}
                         onChange={(e) => {
                           setSaveForm({ ...saveForm, name: e.target.value });
-                          if (error) setError(""); // clear previous save/generate error when user starts fixing the name
+                          if (error) setError("");
                         }}
                         placeholder="e.g. Q3 Platform Health"
                         className="w-full border rounded px-3 py-2 text-sm"
@@ -553,14 +701,21 @@ export default function Reports() {
                 </div>
               )}
 
-              {/* Professional Saved Reports - Advanced Search + full CRUD */}
+              {}
               <div className="mt-8 border-t pt-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold">Saved Reports Library</h3>
-                  <button onClick={loadSavedReports} className="text-sm border px-3 py-1 rounded">Refresh</button>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                      <FiSave className="h-5 w-5" /> Saved Reports Library
+                    </h3>
+                    <p className="text-xs text-slate-500">Reusable snapshots you can load, re-run, or export anytime</p>
+                  </div>
+                  <button onClick={loadSavedReports} className="flex items-center gap-1 text-sm border px-3 py-1.5 rounded hover:bg-white">
+                    <FiRefreshCw className="h-3.5 w-3.5" /> Refresh
+                  </button>
                 </div>
 
-                {/* Advanced Search for Saved Reports */}
+                {}
                 <div className="mb-4 p-4 bg-white rounded-xl border">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                     <input
@@ -631,7 +786,7 @@ export default function Reports() {
                   </table>
                 </div>
 
-                {/* Pagination */}
+                {}
                 <div className="flex justify-between mt-3 text-sm">
                   <button disabled={savedSearch.page <= 1} onClick={() => searchSavedReports({ page: savedSearch.page - 1 })} className="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
                   <span>Page {savedSearch.page} • {savedTotal} total</span>
@@ -640,7 +795,7 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Edit Saved Report Modal (professional CRUD) */}
+            {}
             {editingSaved && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                 <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
@@ -684,7 +839,7 @@ export default function Reports() {
               </div>
             )}
 
-            {/* Charts + legacy sections (original content kept after the generator) */}
+            {}
             <div className="mt-6 grid gap-6 xl:grid-cols-3">
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="mb-4 text-lg font-semibold text-slate-900">Projects by Status</h2>

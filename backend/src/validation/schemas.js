@@ -374,8 +374,7 @@ export const projectSchemas = {
     deadline: nullableDateString,
     categoryID: positiveIntSchema("categoryID").optional().nullable(),
     maxFreelancers: z.coerce.number().int().min(1).max(20).optional().default(1),
-    pStatus: z.enum(["pending", "active", "completed", "cancelled"]).optional(),
-    // Optional structured project phases provided at post time
+    pStatus: z.enum(["pending", "active", "completed", "cancelled"]).optional(),
     phases: z
       .array(
         z.object({
@@ -387,8 +386,7 @@ export const projectSchemas = {
       )
       .max(10, "At most 10 phases allowed.")
       .optional()
-      .default([]),
-    // Additional brief metadata
+      .default([]),
     experienceLevel: z.enum(["Entry", "Intermediate", "Expert"]).optional().nullable(),
     skills: optionalTrimmedString(300, "Skills"),
     projectType: z.enum(["Fixed", "Hourly", "Milestone-based"]).optional().nullable(),
@@ -559,11 +557,9 @@ export const importSchemas = {
   applications: z.object({
     projectID: positiveIntSchema("projectID").optional(),
   }),
-  contracts: z.object({
-    // optional filters or defaults
+  contracts: z.object({
   }),
-  freelancers: z.object({
-    // for bulk creating freelancer users
+  freelancers: z.object({
   }),
 };
 

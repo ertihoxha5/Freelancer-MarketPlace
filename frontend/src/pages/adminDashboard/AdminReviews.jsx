@@ -9,7 +9,6 @@ import {
   deleteAdminReview,
 } from "../../apiServices.js";
 
-
 export default function AdminReviews() {
   const { user } = useAuth();
 

@@ -129,11 +129,11 @@ export default function ClientApplications() {
           }
           if (
             newStatus === "accepted" &&
-            draftStatus === "accepted" && // was the change to accepted
+            draftStatus === "accepted" &&
             item.projectId === selectedApplication.projectId &&
             !incremented
           ) {
-            // bump the cached accepted count for other rows of same project
+
             incremented = true;
             return {
               ...item,
@@ -334,36 +334,36 @@ export default function ClientApplications() {
 
             <div className="grid gap-6 p-6 lg:grid-cols-2">
               <div className="space-y-4">
-                <Section title=Freelancer>
+                <Section title="Freelancer">
                   <p className="font-medium text-slate-900">{selectedApplication.freelancerName || "-"}</p>
                   <p className="text-sm text-slate-600">{selectedApplication.freelancerEmail || "-"}</p>
                 </Section>
 
-                <Section title=Application info>
-                  <DetailRow label=Status value={selectedApplication.propStatus || "pending"} />
-                  <DetailRow label=Bid amount value={selectedApplication.bidAmount != null ? `$${Number(selectedApplication.bidAmount).toLocaleString()}` : "-"} />
-                  <DetailRow label=Est. days value={selectedApplication.estimatedDays ?? "-"} />
-                  <DetailRow label=Applied on value={formatDate(selectedApplication.createdAt)} />
+                <Section title="Application info">
+                  <DetailRow label="Status" value={selectedApplication.propStatus || "pending"} />
+                  <DetailRow label="Bid amount" value={selectedApplication.bidAmount != null ? `$${Number(selectedApplication.bidAmount).toLocaleString()}` : "-"} />
+                  <DetailRow label="Est. days" value={selectedApplication.estimatedDays ?? "-"} />
+                  <DetailRow label="Applied on" value={formatDate(selectedApplication.createdAt)} />
                 </Section>
               </div>
 
               <div className="space-y-4">
-                <Section title=Project info>
+                <Section title="Project info">
                   <DetailRow
-                    label=Budget
+                    label="Budget"
                     value={selectedApplication.projectBudget != null ? `$${Number(selectedApplication.projectBudget).toLocaleString()}` : "-"}
                   />
-                  <DetailRow label=Project status value={selectedApplication.projectStatus || "-"} />
-                  <DetailRow label=Deadline value={formatDate(selectedApplication.projectDeadline)} />
+                  <DetailRow label="Project status" value={selectedApplication.projectStatus || "-"} />
+                  <DetailRow label="Deadline" value={formatDate(selectedApplication.projectDeadline)} />
                   {selectedApplication.maxFreelancers != null && (
                     <DetailRow
-                      label=Hire limit
+                      label="Hire limit"
                       value={`${selectedApplication.acceptedCount || 0} / ${selectedApplication.maxFreelancers}`}
                     />
                   )}
                 </Section>
 
-                <Section title=Preview>
+                <Section title="Preview">
                   <p className="text-sm leading-6 text-slate-700">
                     {getExcerpt(selectedApplication.coverLetter)}
                   </p>

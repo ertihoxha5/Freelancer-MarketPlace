@@ -41,17 +41,14 @@ function NotificationBell({ user }) {
       try {
         let data;
         if (isAdmin) data = await fetchAdminUnreadCount();
-        else if (isFreelancer) {
-          // Use the same single source of truth for notifications as clients.
+        else if (isFreelancer) {
           data = await fetchFreelancerUnreadCount();
         } else data = await fetchUnreadCount();
         if (!cancelled && data) setUnread(Number(data.count) || 0);
       } catch {
         setUnread(0);
       }
-    }
-
-    // Listen for local badge updates dispatched from the notifications page
+    }
     function onBadgeUpdate(event) {
       if (cancelled) return;
       const count = Number(event?.detail?.count);
@@ -103,7 +100,7 @@ function NotificationBell({ user }) {
       title={t('notifications')}
       className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
     >
-      {/* Bell SVG */}
+      {}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         className="h-5 w-5"
@@ -119,7 +116,7 @@ function NotificationBell({ user }) {
         />
       </svg>
 
-      {/* Unread badge */}
+      {}
       {unread > 0 && (
         <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-[#1a3c2e]">
           {unread > 99 ? "99+" : unread}

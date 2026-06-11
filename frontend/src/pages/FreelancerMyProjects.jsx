@@ -71,8 +71,7 @@ export default function FreelancerMyProjects() {
 			const isAccepted = item.propStatus === "accepted";
 			const projectStatus = String(item.projectStatus ?? "").toLowerCase();
 			const isProjectOpen = ["active", "completed", "cancelled"].includes(projectStatus);
-			const matchesStatus = status === "all" || projectStatus === status;
-			// Date range filter (applied on application createdAt)
+			const matchesStatus = status === "all" || projectStatus === status;
 			if (dateFrom) {
 				const from = new Date(dateFrom);
 				const created = new Date(item.createdAt);
@@ -168,7 +167,7 @@ export default function FreelancerMyProjects() {
 										placeholder="Project title, client, or description"
 										className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#1a3c2e] focus:outline-none focus:ring-2 focus:ring-[#1a3c2e]/15"
 									/>
-									{/* Advanced filters toggle removed from here and placed with status select */}
+									{}
 								</div>
 								<div>
 									<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">

@@ -229,8 +229,7 @@ export default function ClientPostProject() {
       const activePhases = phasesEnabled ? getActivePhases() : [];
       await createClientProject({
         title: form.title.trim(),
-        // Store only the user's actual description. Phases + metadata are stored in dedicated columns.
-        // The rich version (with phases text + meta) is built client-side only for exports/briefs.
+
         pDesc: form.pDesc ? form.pDesc.trim() : "",
         budget: form.budget ? Number(form.budget) : null,
         categoryID: Number(form.categoryID),
@@ -257,7 +256,7 @@ export default function ClientPostProject() {
 
   function exportCsv() {
     const data = getBriefExportData();
-    // Flatten for CSV
+
     const flat = [{
       ...data,
       phases: data.phases.length ? JSON.stringify(data.phases) : "",
@@ -271,7 +270,7 @@ export default function ClientPostProject() {
   }
 
   function exportExcel() {
-    // Client-side .xls (HTML table) - opens cleanly in Excel / Numbers / Google Sheets
+
     const data = getBriefExportData();
     const activePhases = data.phases;
 
@@ -499,7 +498,7 @@ export default function ClientPostProject() {
                 <p className="mt-1 text-xs text-slate-500">Comma separated. Helps matching freelancers find your project.</p>
               </div>
 
-              {/* Opt-in Project Phases - hidden until user explicitly asks */}
+              {}
               {!phasesEnabled ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
                   <div className="mb-2 text-2xl">📋</div>
@@ -511,7 +510,7 @@ export default function ClientPostProject() {
                     type="button"
                     onClick={() => {
                       setPhasesEnabled(true);
-                      // Seed with two empty phases when first enabling
+
                       if (!form.phases || form.phases.length === 0) {
                         setForm((current) => ({
                           ...current,

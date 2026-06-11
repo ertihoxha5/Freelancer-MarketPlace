@@ -1,8 +1,7 @@
 export function registerMeetingHandlers({ io, socket }) {
-  // Simple in-memory tracking of participants per meeting room
-  // In production, use Redis or DB for persistence across restarts
+
   if (!global.meetingParticipants) {
-    global.meetingParticipants = new Map(); // room -> Set of {userID, fullName}
+    global.meetingParticipants = new Map();
   }
 
   function getParticipants(room) {
@@ -26,13 +25,11 @@ export function registerMeetingHandlers({ io, socket }) {
       }
     }
 
-    // Broadcast updated list to room
     io.to(room).emit("meeting:participants-updated", {
       participants: getParticipants(room),
     });
   }
 
-  // Join a meeting room for a specific contract/workspace
   socket.on("meeting:join", async ({ contractID }, ack) => {
     try {
       const room = `meeting:${contractID}`;
@@ -43,17 +40,15 @@ export function registerMeetingHandlers({ io, socket }) {
 
       updateParticipants(room, userID, fullName, 'add');
 
-      // Notify others that a new peer joined (for WebRTC)
       socket.to(room).emit("meeting:peer-joined", {
         userID,
         fullName,
       });
 
-      // Send current participants to the joiner
-      ack?.({ 
-        ok: true, 
-        room, 
-        participants: getParticipants(room) 
+      ack?.({
+        ok: true,
+        room,
+        participants: getParticipants(room)
       });
     } catch (err) {
       ack?.({ ok: false, error: err.message });
@@ -72,7 +67,6 @@ export function registerMeetingHandlers({ io, socket }) {
     });
   });
 
-  // WebRTC Signaling
   socket.on("meeting:offer", ({ contractID, offer, toUserID }) => {
     const room = `meeting:${contractID}`;
     const payload = {
@@ -114,7 +108,6 @@ export function registerMeetingHandlers({ io, socket }) {
     }
   });
 
-  // In-meeting chat (Google Meet style)
   socket.on("meeting:chat-message", ({ contractID, message }) => {
     const room = `meeting:${contractID}`;
     const chatMessage = {
@@ -126,11 +119,9 @@ export function registerMeetingHandlers({ io, socket }) {
     io.to(room).emit("meeting:chat-message", chatMessage);
   });
 
-  // Invitation / share link notification (to notify the other party)
   socket.on("meeting:invite", ({ contractID }) => {
     const room = `meeting:${contractID}`;
-    // Notify others in the workspace/contract that a meeting invitation was sent
-    // We broadcast to the meeting room (they will see it if already in workspace)
+
     socket.to(room).emit("meeting:invited", {
       fromUserID: socket.user.id,
       fromFullName: socket.user.fullName || "User",

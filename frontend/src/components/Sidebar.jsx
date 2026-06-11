@@ -116,7 +116,7 @@ export default function Sidebar({ roleID }) {
           {t(getRoleLabel(roleID))}
         </h2>
       </div>
-    
+
       <nav className="py-2">
         {config.map((item) => (
           <NavLink

@@ -139,7 +139,7 @@ export async function listFreelancerPreviousProjects(userID, limit = 6) {
     INNER JOIN Project p ON p.id = pr.projectID
     INNER JOIN Users uc ON uc.id = p.clientID
     LEFT JOIN Contracts ct ON ct.proposalID = pr.id
-    WHERE pr.userID = ? 
+    WHERE pr.userID = ?
       AND pr.propStatus = 'accepted'
     ORDER BY p.id DESC
     LIMIT ${safeLimit}`;

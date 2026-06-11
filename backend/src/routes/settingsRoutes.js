@@ -16,4 +16,3 @@ router.put(
 );
 
 export default router;
-

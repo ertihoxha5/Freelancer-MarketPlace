@@ -179,9 +179,7 @@ router.delete(
   "/reviews/:reviewID",
   validateRequest({ params: paramSchemas.reviewID }),
   reviewController.deleteReview,
-);
-
-// Use the exact same notification logic/controller as clients (MySQL-backed, unified Notifications table).
+);
 router.get(
   "/notifications/unread-count",
   notificationController.getUnreadCount,

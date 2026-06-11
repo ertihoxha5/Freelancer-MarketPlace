@@ -161,7 +161,7 @@ export default function ClientProjectDetail() {
                     <p className="mt-6 text-slate-600 whitespace-pre-wrap">{project.pDesc}</p>
                   )}
 
-                  {/* Phases (if the project was posted with structured phases) */}
+                  {}
                   {Array.isArray(project.phases) && project.phases.length > 0 && (
                     <div className="mt-6">
                       <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Project Phases</h4>
@@ -180,11 +180,11 @@ export default function ClientProjectDetail() {
                     </div>
                   )}
 
-                  {/* For multi-freelancer projects, link to the shared workspace (dashboard + workspace are the same) */}
+                  {}
                   {project && project.maxFreelancers && project.maxFreelancers > 1 && project.acceptedCount >= 2 && (
                     <div className="mt-4">
                       <Link
-                        to={`/contracts/${project.contracts?.[0]?.id || ''}/workspace`} // one of the contracts; backend resolves to shared project workspace
+                        to={`/contracts/${project.contracts?.[0]?.id || ''}/workspace`}
                         className="inline-flex items-center rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
                       >
                         Open Shared Project Workspace (for all {project.maxFreelancers} freelancers)
@@ -192,7 +192,7 @@ export default function ClientProjectDetail() {
                     </div>
                   )}
 
-                  {/* Export the project + phases (csv, json, excel, pdf) */}
+                  {}
                   <div className="mt-5 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -213,8 +213,7 @@ export default function ClientProjectDetail() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        // Simple xls via table for this project
+                      onClick={() => {
                         const html = `<table border="1"><tr><td>Title</td><td>${project.title}</td></tr><tr><td>Budget</td><td>${project.budget || ""}</td></tr><tr><td>Phases</td><td>${JSON.stringify(project.phases || [])}</td></tr></table>`;
                         const blob = new Blob(["\ufeff", html], { type: "application/vnd.ms-excel" });
                         const a = document.createElement("a");

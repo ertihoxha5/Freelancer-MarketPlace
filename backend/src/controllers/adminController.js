@@ -129,9 +129,7 @@ export async function getAllPayments(req, res, next) {
     const [payments, total] = await Promise.all([
       paymentRepository.getAllPayments({ limit, offset, pStatus: pStatus || null }),
       paymentRepository.countAllPayments({ pStatus: pStatus || null }),
-    ]);
-
-    // Quick statistics
+    ]);
     const statusCounts = {};
     payments.forEach((p) => {
       statusCounts[p.pStatus] = (statusCounts[p.pStatus] || 0) + 1;
@@ -195,11 +193,11 @@ export async function updateDisputeStatus(req, res, next) {
     try {
         const { id } = validatedParams(req);
         const { status, resolution } = validatedBody(req);
-        
+
         if (!status) {
             throw validationError('Status is required.');
         }
-        
+
         const validStatuses = ['open', 'in_review', 'resolved', 'rejected'];
         if (!validStatuses.includes(status)) {
             throw validationError(`Status must be one of: ${validStatuses.join(', ')}`);
@@ -293,15 +291,12 @@ export async function deleteOldAuditLogs(req, res, next) {
     }
     next(err);
   }
-}
-
-// === 3 more admin CRUDS: Testimonials, Reviews, Milestones ===
+}
 
 export async function getAllTestimonials(req, res, next) {
   try {
     const { limit = 100, includeUnpublished = 'true' } = validatedQuery(req);
-    const testimonials = await testimonialService.getTestimonials(Number(limit));
-    // For admin, return all (service currently returns published, but we can extend if needed; here use direct for unpublished too if flag)
+    const testimonials = await testimonialService.getTestimonials(Number(limit));
     return res.status(200).json({ testimonials });
   } catch (err) {
     next(err);
@@ -311,8 +306,7 @@ export async function getAllTestimonials(req, res, next) {
 export async function updateTestimonial(req, res, next) {
   try {
     const { id } = validatedParams(req);
-    const updated = await testimonialService.updateMyTestimonial ? 
-      // fallback direct since no full admin update yet
+    const updated = await testimonialService.updateMyTestimonial ?
       (async () => {
         const { fullName, roleTitle, rating, comment, isPublished } = validatedBody(req);
         const [result] = await (await import('../config/db.js')).db.execute(
@@ -344,8 +338,7 @@ export async function deleteTestimonial(req, res, next) {
 
 export async function getAllReviews(req, res, next) {
   try {
-    const { limit = 50, stars, isVerified } = validatedQuery(req);
-    // Simple admin list using repo style
+    const { limit = 50, stars, isVerified } = validatedQuery(req);
     let where = 'deletedAt IS NULL';
     const params = [];
     if (stars) { where += ' AND stars = ?'; params.push(Number(stars)); }
@@ -388,9 +381,7 @@ export async function deleteReview(req, res, next) {
   } catch (err) {
     next(err);
   }
-}
-
-// Simple Milestones admin list + update (third CRUD)
+}
 export async function getAllMilestones(req, res, next) {
   try {
     const { limit = 50, status } = validatedQuery(req);
@@ -398,9 +389,9 @@ export async function getAllMilestones(req, res, next) {
     const params = [];
     if (status) { where += ' AND status = ?'; params.push(status); }
     const [rows] = await (await import('../config/db.js')).db.execute(
-      `SELECT m.*, p.title as projectTitle, c.id as contractId FROM Milestones m 
-       LEFT JOIN Project p ON p.id = m.projectID 
-       LEFT JOIN Contracts c ON c.id = m.contractID 
+      `SELECT m.*, p.title as projectTitle, c.id as contractId FROM Milestones m
+       LEFT JOIN Project p ON p.id = m.projectID
+       LEFT JOIN Contracts c ON c.id = m.contractID
        WHERE ${where} ORDER BY m.createdAt DESC LIMIT ${Number(limit)}`,
       params
     );

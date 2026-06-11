@@ -46,8 +46,6 @@ function getSortClause(sortOption) {
   }
 }
 
-// ==================== MYSQL IMPLEMENTATION (reviews now stored in MySQL) ====================
-
 export async function createReview({
   rating,
   title,
@@ -61,7 +59,7 @@ export async function createReview({
     const tagsJson = tags && tags.length ? JSON.stringify(tags) : null;
 
     const [result] = await db.execute(
-      `INSERT INTO Review 
+      `INSERT INTO Review
        (stars, title, comment, tags, contractID, reviewerID, receiverID, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
       [rating, title || null, comment, tagsJson, contractID, reviewerID, receiverID]
@@ -107,8 +105,8 @@ export async function getReviewById(reviewID) {
 export async function getReviewByContractAndReviewer(contractID, reviewerID) {
   try {
     const [rows] = await db.execute(
-      `SELECT * FROM Review 
-       WHERE contractID = ? AND reviewerID = ? AND deletedAt IS NULL 
+      `SELECT * FROM Review
+       WHERE contractID = ? AND reviewerID = ? AND deletedAt IS NULL
        LIMIT 1`,
       [contractID, reviewerID]
     );
@@ -149,9 +147,9 @@ export async function getReviewsByReceiverId(receiverID, options = {}) {
   const total = countRows[0]?.total || 0;
 
   const dataSql = `
-    SELECT * FROM Review 
-    WHERE ${where} 
-    ${sort} 
+    SELECT * FROM Review
+    WHERE ${where}
+    ${sort}
     LIMIT ${limit} OFFSET ${skip}
   `;
   const [rows] = await db.execute(dataSql, params);
@@ -216,8 +214,8 @@ export async function softDeleteReview(reviewID) {
 
 export async function getAverageRatingByReceiverId(receiverID) {
   const [rows] = await db.execute(
-    `SELECT AVG(stars) as averageRating, COUNT(*) as reviewCount 
-     FROM Review 
+    `SELECT AVG(stars) as averageRating, COUNT(*) as reviewCount
+     FROM Review
      WHERE receiverID = ? AND deletedAt IS NULL`,
     [receiverID]
   );
@@ -231,10 +229,10 @@ export async function getAverageRatingByReceiverId(receiverID) {
 
 export async function getRatingStatsByReceiverId(receiverID) {
   const [rows] = await db.execute(
-    `SELECT stars as rating, COUNT(*) as count 
-     FROM Review 
-     WHERE receiverID = ? AND deletedAt IS NULL 
-     GROUP BY stars 
+    `SELECT stars as rating, COUNT(*) as count
+     FROM Review
+     WHERE receiverID = ? AND deletedAt IS NULL
+     GROUP BY stars
      ORDER BY stars`,
     [receiverID]
   );

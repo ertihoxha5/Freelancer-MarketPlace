@@ -72,7 +72,7 @@ export default function FreelancerReviews() {
             {loading ? <div className="rounded-lg border p-6 text-slate-500">Loading reviews...</div> : null}
             {!loading && reviews.length === 0 ? (
               <EmptyState
-                title=No reviews yet
+                title="No reviews yet"
                 description="Client reviews from completed contracts will appear here."
               />
             ) : null}

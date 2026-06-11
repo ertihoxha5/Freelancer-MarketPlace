@@ -97,8 +97,7 @@ export async function sendRows(res, rows, format, filename) {
     return res.end();
   }
 
-  if (format === "pdf") {
-    // Generate a simple but valid PDF with the table as text content (no external deps)
+  if (format === "pdf") {
     const lines = [];
     lines.push(filename + " - " + rows.length + " records");
     lines.push("");
@@ -119,9 +118,7 @@ export async function sendRows(res, rows, format, filename) {
       lines.push(line);
     });
 
-    const content = lines.join("\n");
-
-    // Escape PDF special chars
+    const content = lines.join("\n");
     const escapedContent = content
       .replace(/\\/g, "\\\\")
       .replace(/\(/g, "\\(")
@@ -155,12 +152,12 @@ endobj
 endobj
 xref
 0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000266 00000 n 
-0000000${(280 + escapedContent.length).toString().padStart(6, "0")} 00000 n 
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000266 00000 n
+0000000${(280 + escapedContent.length).toString().padStart(6, "0")} 00000 n
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
@@ -287,9 +284,7 @@ async function queryRows(kind, req) {
        ORDER BY d.createdAt DESC`,
     );
     return rows;
-  }
-
-  // default to freelancers if unknown
+  }
   const [rows] = await db.execute(
     `SELECT u.id, u.fullName, u.email, p.hourlyRate, p.bio,
             ROUND(AVG(CAST(r.stars AS DECIMAL(10,2))), 1) AS averageRating,
@@ -462,8 +457,7 @@ export async function importApplications(req, res, next) {
     const skipped = [];
     const applications = [];
     rows.forEach((row, index) => {
-      try {
-        // Basic validation for proposal fields
+      try {
         const app = {
           projectID: Number(row.projectID || projectID),
           userID: Number(row.userID || row.freelancerID),
