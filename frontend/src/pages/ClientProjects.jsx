@@ -180,7 +180,7 @@ export default function ClientProjects() {
                 Post New Project
               </Link>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-6">
               <button
                 onClick={() => exportCSV(filteredProjects, "my-projects")}
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
@@ -328,9 +328,7 @@ export default function ClientProjects() {
                               disabled={deletingId === project.id}
                               className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-200 disabled:opacity-50"
                             >
-                              {deletingId === project.id
-                                ? "Deleting..."
-                                : Delete}
+                              {deletingId === project.id ? "Deleting..." : "Delete"}
                             </button>
                           </div>
                         </td>
