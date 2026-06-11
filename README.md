@@ -8,7 +8,6 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql)](https://www.mysql.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb)](https://www.mongodb.com/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?logo=socket.io)](https://socket.io/)
-[![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?logo=stripe)](https://stripe.com/)
 
 ## Highlights
 
@@ -296,6 +295,9 @@ Full management of users, categories, skills, projects, disputes, payments, appl
 - **`/health`** — MySQL + Mongo status
 
 **Request validation**: Every route that accepts body/params/query uses Zod schemas defined in `backend/src/validation/schemas.js`.
+
+## ERD
+<img width="2981" height="3082" alt="image" src="https://github.com/user-attachments/assets/119447f1-d218-4f9d-8e58-b6fb7cc54ec8" />
 
 ### API Usage Examples
 
